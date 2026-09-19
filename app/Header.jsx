@@ -18,7 +18,7 @@ import {
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 
-const API_BASE = "http://localhost:4000";
+const API_BASE = "https://apple-gadgets-ui-backend.vercel.app";
 
 export default function Header() {
   const [search, setSearch] = useState("");

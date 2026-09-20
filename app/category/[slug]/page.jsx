@@ -805,104 +805,82 @@ export default function CategoryPage() {
                     Number(product.stock) <= 0;
 
                   return (
-                    <div
-                      key={product._id}
-                      className="group overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition duration-300 hover:-translate-y-0.5 hover:shadow-md"
-                    >
+             <div
+  key={product._id}
+  className="group relative overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+>
+  {/* Product Image */}
+  <Link
+    href={`/product/${product.slug}`}
+    className="relative block h-[260px] w-full overflow-hidden bg-gray-50"
+  >
+    <div className="relative h-full w-full p-5">
+      <img
+        src={image}
+        alt={product.name || "Product"}
+        className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
+      />
+    </div>
 
-                      {/* Product Image */}
+    {/* Discount Badge (top-right) */}
+    {discount > 0 && (
+      <div className="absolute top-3 right-3">
+        <span className="rounded-full bg-gradient-to-r from-green-500 to-emerald-500 px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm">
+          ৳{formatPrice(originalPrice - price)} OFF
+        </span>
+      </div>
+    )}
+  </Link>
 
-                      <Link
-                        href={`/product/${product.slug}`}
-                        className="relative block h-[270px] w-full"
-                      >
-                        <div className="relative h-full w-full p-4">
-                          <img
-                            src={image}
-                            alt={
-                              product.name ||
-                              "Product"
-                            }
-                         
-                            className="object-contain transition duration-300 group-hover:scale-105"
-                          />
-                        </div>
-                      </Link>
+  {/* Product Info */}
+  <div className="px-4 pb-4 pt-3">
+    <Link href={`/product/${product.slug}`} className="block">
+      <h3 className="line-clamp-1 text-[15px] font-semibold text-gray-900 transition-colors group-hover:text-orange-600">
+        {product.name}
+      </h3>
+    </Link>
 
-                      {/* Product Info */}
+    {/* Price */}
+    <div className="mt-1.5 flex items-baseline gap-2">
+      <span className="text-[17px] font-bold text-gray-900">
+        ৳ {formatPrice(price)}
+      </span>
 
-                      <div className="px-3 pb-3">
+      {originalPrice > price && (
+        <span className="text-sm text-gray-400 line-through">
+          ৳ {formatPrice(originalPrice)}
+        </span>
+      )}
+    </div>
 
-                        <Link
-                          href={`/product/${product.slug}`}
-                          className="block"
-                        >
-                          <h3 className="line-clamp-1 text-[15px] font-semibold text-gray-900 hover:text-orange-600">
-                            {product.name}
-                          </h3>
-                        </Link>
+    {/* Buttons */}
+    <div className="mt-4 flex items-center gap-2.5">
+      <Link
+        href={`/product/${product.slug}`}
+        className={`flex h-9 flex-1 items-center justify-center rounded-full text-sm font-medium transition-all ${
+          outOfStock
+            ? "cursor-not-allowed border border-gray-200 bg-gray-50 text-gray-400"
+            : "border border-gray-900 bg-gray-900 text-white hover:bg-gray-800"
+        }`}
+      >
+        {outOfStock
+          ? "Out of Stock"
+          : product.isPreOrder
+          ? "Pre Order"
+          : "Shop Now"}
+      </Link>
 
-                        {/* Price */}
-
-                        <div className="mt-1 flex flex-wrap items-center gap-2">
-
-                          <span className="text-[16px] font-semibold text-gray-900">
-                            ৳{" "}
-                            {formatPrice(price)}
-                          </span>
-
-                          {originalPrice > price && (
-                            <span className="text-xs text-gray-400 line-through">
-                              ৳{" "}
-                              {formatPrice(
-                                originalPrice
-                              )}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Discount */}
-
-                        {discount > 0 && (
-                          <div className="mt-1">
-                            <span className="rounded-full bg-green-100 px-2 py-1 text-[10px] font-medium text-green-600">
-                              ৳{" "}
-                              {formatPrice(
-                                originalPrice -
-                                  price
-                              )}{" "}
-                              OFF
-                            </span>
-                          </div>
-                        )}
-
-                        {/* Buttons */}
-
-                        <div className="mt-3 flex items-center gap-2">
-
-                          <Link
-                            href={`/product/${product.slug}`}
-                            className="flex h-8 flex-1 items-center justify-center rounded-full border border-gray-200 text-xs font-medium transition hover:border-gray-900 hover:bg-gray-900 hover:text-white"
-                          >
-                            {outOfStock
-                              ? "Out of Stock"
-                              : product.isPreOrder
-                              ? "Pre Order"
-                              : "Shop Now"}
-                          </Link>
-
-                          <button
-                            type="button"
-                            disabled={outOfStock}
-                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200 text-gray-600 transition hover:border-gray-900 hover:bg-gray-900 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
-                            title="Add to cart"
-                          >
-                            <ShoppingCart size={14} />
-                          </button>
-
-                        </div>
-                      </div>
-                    </div>
+      <button
+        type="button"
+        disabled={outOfStock}
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gray-200 text-gray-600 transition-all hover:border-gray-900 hover:bg-gray-900 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+        title="Add to cart"
+      >
+        <ShoppingCart size={15} />
+      </button>
+    </div>
+  </div>
+</div>
                   );
                 })}
 

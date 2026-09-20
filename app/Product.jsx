@@ -23,6 +23,7 @@ const initialFormData = {
   colors: [],
   sizes: [],
   specifications: [],
+  ram:[],
   rating: 0,
   isActive: true,
   isFeatured: false,
@@ -30,7 +31,7 @@ const initialFormData = {
   isBestSeller: false,
   metaTitle: "",
   metaDescription: "",
-  image: null,
+  images: [],
 };
 
 export default function AddProductPage() {
@@ -44,7 +45,8 @@ const [subChildCategories, setSubChildCategories] = useState([]);
   const [size, setSize] = useState("");
   const [specKey, setSpecKey] = useState("");
   const [specValue, setSpecValue] = useState("");
-  const [imagePreview, setImagePreview] = useState(null);
+  const [ramValue, setRamValue] = useState("");
+const [imagePreviews, setImagePreviews] = useState([]);
 
   const [categories, setCategories] = useState([]);
   const [subCategories, setSubCategories] = useState([]);
@@ -237,22 +239,55 @@ const [showSubChildCategoryModal, setShowSubChildCategoryModal] =
   // ==============================
   // IMAGE
   // ==============================
-  const handleImageChange = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+const handleImageChange = (e) => {
+  const files = Array.from(e.target.files || []);
 
-    if (!file.type.startsWith("image/")) {
-      alert("Choose an image file");
-      return;
+  if (!files.length) return;
+
+  const validFiles = files.filter((file) =>
+    file.type.startsWith("image/")
+  );
+
+  if (validFiles.length !== files.length) {
+    alert("Only image files are allowed");
+  }
+
+  if (!validFiles.length) return;
+
+  setFormData((prev) => ({
+    ...prev,
+    images: [...prev.images, ...validFiles],
+  }));
+
+  const newPreviews = validFiles.map((file) => ({
+    file,
+    url: URL.createObjectURL(file),
+  }));
+
+  setImagePreviews((prev) => [...prev, ...newPreviews]);
+
+  // একই file আবার select করার সুযোগ
+  e.target.value = "";
+};
+
+const removeImage = (index) => {
+  setFormData((prev) => ({
+    ...prev,
+    images: prev.images.filter((_, i) => i !== index),
+  }));
+
+  setImagePreviews((prev) => {
+    const updated = [...prev];
+
+    if (updated[index]?.url) {
+      URL.revokeObjectURL(updated[index].url);
     }
 
-    const reader = new FileReader();
-    reader.onloadend = () => setImagePreview(reader.result);
-    reader.readAsDataURL(file);
+    updated.splice(index, 1);
 
-    setFormData((prev) => ({ ...prev, image: file }));
-  };
-
+    return updated;
+  });
+};
   // ==============================
   // COLOR
   // ==============================
@@ -311,20 +346,45 @@ const [showSubChildCategoryModal, setShowSubChildCategoryModal] =
   // ==============================
   // SPECIFICATION
   // ==============================
-  const addSpecification = () => {
-    if (!specKey.trim() || !specValue.trim()) return;
+ const addSpecification = () => {
+  const key = specKey.trim();
+  const value = specValue.trim();
 
-    setFormData((prev) => ({
-      ...prev,
-      specifications: [
-        ...prev.specifications,
-        { key: specKey.trim(), value: specValue.trim() },
-      ],
-    }));
+  if (!key) {
+    alert("Please enter specification name");
+    return;
+  }
 
-    setSpecKey("");
-    setSpecValue("");
+  if (!value) {
+    alert("Please enter specification value");
+    return;
+  }
+
+  const exists = formData.specifications.some(
+    (item) => item.key.toLowerCase() === key.toLowerCase()
+  );
+
+  if (exists) {
+    alert("This specification already exists");
+    return;
+  }
+
+  const newSpecification = {
+    key,
+    value,
   };
+
+  setFormData((prev) => ({
+    ...prev,
+    specifications: [
+      ...prev.specifications,
+      newSpecification,
+    ],
+  }));
+
+  setSpecKey("");
+  setSpecValue("");
+};
 
   const removeSpecification = (index) => {
     setFormData((prev) => ({
@@ -333,12 +393,47 @@ const [showSubChildCategoryModal, setShowSubChildCategoryModal] =
     }));
   };
 
+
+
+
+const addRam = () => {
+  if (!ramValue.trim()) {
+    alert("Enter RAM / Memory value");
+    return;
+  }
+
+  if (
+    formData.ram.some(
+      (item) =>
+        item.toLowerCase() === ramValue.trim().toLowerCase()
+    )
+  ) {
+    alert("This RAM / Memory is already added");
+    return;
+  }
+
+  setFormData((prev) => ({
+    ...prev,
+    ram: [...prev.ram, ramValue.trim()],
+  }));
+
+  setRamValue("");
+};
+
+const removeRam = (index) => {
+  setFormData((prev) => ({
+    ...prev,
+    ram: prev.ram.filter((_, i) => i !== index),
+  }));
+};
+
+  
   // ==============================
   // RESET FORM
   // ==============================
   const resetForm = () => {
     setFormData(initialFormData);
-    setImagePreview(null);
+   setImagePreviews([]);
     setSubCategories([]);
     setChildCategories([]);
     setColorName("");
@@ -355,10 +450,10 @@ const [showSubChildCategoryModal, setShowSubChildCategoryModal] =
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.image) {
-      alert("Choose a product image");
-      return;
-    }
+    if (!formData.images || formData.images.length === 0) {
+  alert("Choose at least one product image");
+  return;
+}
 
     const rating = parseFloat(formData.rating);
     if (Number.isNaN(rating) || rating < 0 || rating > 5) {
@@ -393,9 +488,25 @@ const [showSubChildCategoryModal, setShowSubChildCategoryModal] =
       data.append("discountPercentage", formData.discountPercentage || "");
       data.append("stock", formData.stock);
       data.append("sku", formData.sku);
-      data.append("colors", JSON.stringify(formData.colors));
-      data.append("sizes", JSON.stringify(formData.sizes));
-      data.append("specifications", JSON.stringify(formData.specifications));
+     data.append(
+  "colors",
+  JSON.stringify(formData.colors)
+);
+
+data.append(
+  "sizes",
+  JSON.stringify(formData.sizes)
+);
+
+data.append(
+  "ram",
+  JSON.stringify(formData.ram)
+);
+
+data.append(
+  "specifications",
+  JSON.stringify(formData.specifications)
+);
       data.append("rating", String(rating));
       data.append("isActive", String(formData.isActive));
       data.append("isFeatured", String(formData.isFeatured));
@@ -403,7 +514,9 @@ const [showSubChildCategoryModal, setShowSubChildCategoryModal] =
       data.append("isBestSeller", String(formData.isBestSeller));
       data.append("metaTitle", formData.metaTitle);
       data.append("metaDescription", formData.metaDescription);
-      data.append("image", formData.image);
+   formData.images.forEach((image) => {
+  data.append("images", image);
+});
 
       const response = await fetch(`${API_BASE}/addproduct`, {
         method: "POST",
@@ -1046,27 +1159,76 @@ const selectedChildCategoryName =
           </section>
 
           {/* ================= IMAGE ================= */}
-          <section className="rounded-2xl bg-white p-6 shadow-sm">
-            <h2 className="mb-5 text-xl font-semibold">Product Image</h2>
+   {/* ================= PRODUCT GALLERY ================= */}
+<section className="rounded-2xl bg-white p-6 shadow-sm">
+  <h2 className="mb-2 text-xl font-semibold text-slate-900">
+    Product Gallery
+  </h2>
 
-            <input
-              ref={imageInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleImageChange}
-              className="w-full rounded-xl border border-dashed border-slate-400 bg-slate-50 p-4"
-            />
+  <p className="mb-5 text-sm text-slate-500">
+    Select multiple product images. You can add as many images as needed.
+  </p>
 
-            {imagePreview && (
-              <div className="mt-4">
-                <img
-                  src={imagePreview}
-                  alt="Product preview"
-                  className="h-40 w-40 rounded-xl border object-cover"
-                />
-              </div>
-            )}
-          </section>
+  <input
+    ref={imageInputRef}
+    type="file"
+    accept="image/*"
+    multiple
+    onChange={handleImageChange}
+    className="w-full cursor-pointer rounded-xl border border-dashed border-slate-400 bg-slate-50 p-4"
+  />
+
+  {/* Gallery Preview */}
+  {imagePreviews.length > 0 && (
+    <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+      {imagePreviews.map((image, index) => (
+        <div
+          key={`${image.file.name}-${index}`}
+          className="group relative overflow-hidden rounded-xl border border-slate-200 bg-white"
+        >
+          <img
+            src={image.url}
+            alt={`Product image ${index + 1}`}
+            className="h-40 w-full object-cover"
+          />
+
+          {/* Main image badge */}
+          {index === 0 && (
+            <span className="absolute left-2 top-2 rounded-full bg-blue-600 px-2.5 py-1 text-xs font-semibold text-white">
+              Main Image
+            </span>
+          )}
+
+          {/* Remove */}
+          <button
+            type="button"
+            onClick={() => removeImage(index)}
+            className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-red-500 text-lg font-bold text-white opacity-90 transition hover:bg-red-600"
+          >
+            ×
+          </button>
+
+          <div className="p-2">
+            <p className="truncate text-xs text-slate-500">
+              {image.file.name}
+            </p>
+          </div>
+        </div>
+      ))}
+    </div>
+  )}
+
+  {imagePreviews.length === 0 && (
+    <div className="mt-5 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+      <p className="text-sm font-medium text-slate-600">
+        No images selected
+      </p>
+      <p className="mt-1 text-xs text-slate-400">
+        Select multiple images to create your product gallery
+      </p>
+    </div>
+  )}
+</section>
 
           {/* ================= COLORS ================= */}
           <section className="rounded-2xl bg-white p-6 shadow-sm">
@@ -1159,53 +1321,176 @@ const selectedChildCategoryName =
           </section>
 
           {/* ================= SPECIFICATIONS ================= */}
-          <section className="rounded-2xl bg-white p-6 shadow-sm">
-            <h2 className="mb-5 text-xl font-semibold">Specifications</h2>
+     {/* ================= SPECIFICATIONS ================= */}
+<section className="rounded-2xl bg-white p-6 shadow-sm">
+  <div className="mb-6">
+    <h2 className="text-xl font-semibold text-slate-900">
+      Specifications
+    </h2>
 
-            <div className="grid gap-3 md:grid-cols-2">
-              <input
-                value={specKey}
-                onChange={(e) => setSpecKey(e.target.value)}
-                placeholder="Key (e.g. RAM)"
-                className="rounded-xl border border-slate-300 px-4 py-3"
-              />
-              <input
-                value={specValue}
-                onChange={(e) => setSpecValue(e.target.value)}
-                placeholder="Value (e.g. 8GB)"
-                className="rounded-xl border border-slate-300 px-4 py-3"
-              />
-            </div>
+    <p className="mt-1 text-sm text-slate-500">
+      Add product technical specifications
+    </p>
+  </div>
+
+  {/* Add Specification */}
+  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+    <h3 className="mb-4 text-base font-semibold text-slate-800">
+      Add Specification
+    </h3>
+
+    <div className="grid gap-4 md:grid-cols-2">
+      {/* Specification Name */}
+      <div>
+        <label className="mb-2 block text-sm font-medium text-slate-700">
+          Specification Name
+        </label>
+
+        <input
+          value={specKey}
+          onChange={(e) => setSpecKey(e.target.value)}
+          placeholder="e.g. Display Type"
+          className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+        />
+      </div>
+
+      {/* Specification Value */}
+      <div>
+        <label className="mb-2 block text-sm font-medium text-slate-700">
+          Specification Value
+        </label>
+
+        <input
+          value={specValue}
+          onChange={(e) => setSpecValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              addSpecification();
+            }
+          }}
+          placeholder="e.g. LTPO Super Retina XDR OLED, 120Hz"
+          className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+        />
+      </div>
+    </div>
+
+    <button
+      type="button"
+      onClick={addSpecification}
+      className="mt-4 rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700"
+    >
+      + Add Specification
+    </button>
+  </div>
+
+  {/* RAM / MEMORY */}
+  <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+    <div className="mb-4">
+      <h3 className="text-base font-semibold text-slate-800">
+        Memory / RAM
+      </h3>
+
+      <p className="mt-1 text-sm text-slate-500">
+        You can add multiple memory variants
+      </p>
+    </div>
+
+    <div className="flex flex-col gap-3 md:flex-row">
+      <input
+        value={ramValue}
+        onChange={(e) => setRamValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            addRam();
+          }
+        }}
+        placeholder="e.g. 256GB / 12GB RAM"
+        className="flex-1 rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+      />
+
+      <button
+        type="button"
+        onClick={addRam}
+        className="rounded-xl bg-slate-900 px-6 py-3 font-semibold text-white transition hover:bg-slate-800"
+      >
+        + Add Memory
+      </button>
+    </div>
+
+    {/* RAM Array */}
+    {formData.ram.length > 0 && (
+      <div className="mt-4 flex flex-wrap gap-3">
+        {formData.ram.map((item, index) => (
+          <div
+            key={`${item}-${index}`}
+            className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3"
+          >
+            <span className="text-sm font-medium text-slate-700">
+              {item}
+            </span>
 
             <button
               type="button"
-              onClick={addSpecification}
-              className="mt-3 rounded-xl bg-blue-600 px-6 py-3 text-white"
+              onClick={() => removeRam(index)}
+              className="font-bold text-red-500 hover:text-red-700"
             >
-              Add specification
+              ×
             </button>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
 
-            <div className="mt-5 space-y-2">
-              {formData.specifications.map((item, index) => (
-                <div
-                  key={`${item.key}-${index}`}
-                  className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3"
+  {/* ADDED SPECIFICATIONS */}
+  {formData.specifications.length > 0 && (
+    <div className="mt-6">
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="text-base font-semibold text-slate-800">
+          Added Specifications
+        </h3>
+
+        <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600">
+          {formData.specifications.length} items
+        </span>
+      </div>
+
+      <div className="overflow-hidden rounded-2xl border border-slate-200">
+        <div className="divide-y divide-slate-200">
+          {formData.specifications.map((item, index) => (
+            <div
+              key={`${item.key}-${index}`}
+              className="grid grid-cols-1 md:grid-cols-[220px_1fr_auto] md:items-center"
+            >
+              {/* Key */}
+              <div className="bg-slate-50 px-4 py-4 font-medium text-slate-700">
+                {item.key}
+              </div>
+
+              {/* Value */}
+              <div className="px-4 py-4 text-sm text-slate-600">
+                {item.value}
+              </div>
+
+              {/* Remove */}
+              <div className="px-4 py-3">
+                <button
+                  type="button"
+                  onClick={() => removeSpecification(index)}
+                  className="rounded-lg px-3 py-2 text-sm font-medium text-red-500 transition hover:bg-red-50 hover:text-red-700"
                 >
-                  <div>
-                    <span className="font-semibold">{item.key}:</span>{" "}
-                    {item.value}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => removeSpecification(index)}
-                    className="text-red-500"
-                  >
-                    Remove
-                  </button>
-                </div>
-              ))}
+                  Remove
+                </button>
+              </div>
             </div>
-          </section>
+          ))}
+        </div>
+      </div>
+    </div>
+  )}
+</section>
 
           {/* ================= STATUS + RATING ================= */}
           <section className="rounded-2xl bg-white p-6 shadow-sm">

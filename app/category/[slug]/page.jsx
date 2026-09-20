@@ -2061,7 +2061,7 @@ export default function CategoryPage() {
                     className="font-semibold"
                     style={{ color: COLOR.ink }}
                   >
-                    "{searchText}"
+                    {searchText}
                   </span>
                 </p>
 

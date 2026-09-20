@@ -278,13 +278,15 @@ export default function CategoryPage() {
   // SERIES
   // ============================================
 
-  const getSeriesValues = (product) => {
-    return getSpecificationValues(product, [
-      "series",
-      "model series",
-      "series name",
-    ]);
-  };
+ const getSeriesValues = (product) => {
+  return getSpecificationValues(product, [
+    "series",
+    "series name",
+    "model series",
+    "model",
+    "model name",
+  ]);
+};
 
   // ============================================
   // DISPLAY
@@ -775,6 +777,7 @@ export default function CategoryPage() {
     }
 
     return result;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     products,
     priceMin,

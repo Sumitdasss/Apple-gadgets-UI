@@ -83,7 +83,7 @@ const services = [
 
 export default function Banner() {
   return (
-    <main className="min-h-screen w-full bg-white">
+    <main className=" w-full bg-white">
       <section className="w-full px-3 py-3 sm:px-4 sm:py-5 md:px-5 lg:px-6 xl:px-8">
         <div className="mx-auto w-full max-w-[1440px]">
 

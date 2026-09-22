@@ -24,6 +24,7 @@ const initialFormData = {
   sizes: [],
   specifications: [],
   ram:[],
+  variants: [],
   rating: 0,
   isActive: true,
   isFeatured: false,
@@ -49,6 +50,16 @@ const [colorImagePreview, setColorImagePreview] = useState("");
   const [specValue, setSpecValue] = useState("");
   const [ramValue, setRamValue] = useState("");
 const [imagePreviews, setImagePreviews] = useState([]);
+
+  // ==============================
+  // VARIANTS (color + ram + storage combination)
+  // ==============================
+  const [variantColorName, setVariantColorName] = useState("");
+  const [variantRam, setVariantRam] = useState("");
+  const [variantStorage, setVariantStorage] = useState("");
+  const [variantStock, setVariantStock] = useState("");
+  const [variantPrice, setVariantPrice] = useState("");
+  const [variantSku, setVariantSku] = useState("");
 
   const [categories, setCategories] = useState([]);
   const [subCategories, setSubCategories] = useState([]);
@@ -476,6 +487,97 @@ const removeRam = (index) => {
   }));
 };
 
+  // ==============================
+  // VARIANTS (color + ram + storage → stock/price/sku)
+  // ==============================
+  const addVariant = () => {
+    if (!variantColorName) {
+      alert("Select a color for this variant");
+      return;
+    }
+
+    if (!variantRam.trim()) {
+      alert("Enter RAM for this variant");
+      return;
+    }
+
+    if (!variantStorage.trim()) {
+      alert("Enter storage for this variant");
+      return;
+    }
+
+    if (variantStock === "" || Number(variantStock) < 0) {
+      alert("Enter a valid stock quantity");
+      return;
+    }
+
+    if (!variantPrice || Number(variantPrice) <= 0) {
+      alert("Enter a valid price for this variant");
+      return;
+    }
+
+    if (!variantSku.trim()) {
+      alert("Enter a SKU for this variant");
+      return;
+    }
+
+    const duplicate = formData.variants.some(
+      (v) =>
+        v.color.name.toLowerCase() === variantColorName.toLowerCase() &&
+        v.ram.toLowerCase() === variantRam.trim().toLowerCase() &&
+        v.storage.toLowerCase() === variantStorage.trim().toLowerCase()
+    );
+
+    if (duplicate) {
+      alert("This color / RAM / storage combination is already added");
+      return;
+    }
+
+    const skuTaken = formData.variants.some(
+      (v) => v.sku.toLowerCase() === variantSku.trim().toLowerCase()
+    );
+
+    if (skuTaken) {
+      alert("This SKU is already used by another variant");
+      return;
+    }
+
+    const selectedColor = formData.colors.find(
+      (c) => c.name === variantColorName
+    );
+
+    const newVariant = {
+      color: {
+        name: selectedColor?.name || variantColorName,
+        code: selectedColor?.code || "#000000",
+      },
+      ram: variantRam.trim(),
+      storage: variantStorage.trim(),
+      stock: Number(variantStock),
+      price: Number(variantPrice),
+      sku: variantSku.trim(),
+    };
+
+    setFormData((prev) => ({
+      ...prev,
+      variants: [...prev.variants, newVariant],
+    }));
+
+    setVariantColorName("");
+    setVariantRam("");
+    setVariantStorage("");
+    setVariantStock("");
+    setVariantPrice("");
+    setVariantSku("");
+  };
+
+  const removeVariant = (index) => {
+    setFormData((prev) => ({
+      ...prev,
+      variants: prev.variants.filter((_, i) => i !== index),
+    }));
+  };
+
   
   // ==============================
   // RESET FORM
@@ -492,6 +594,12 @@ const removeRam = (index) => {
     setSpecValue("");
     setColorImage(null);
 setColorImagePreview("");
+    setVariantColorName("");
+    setVariantRam("");
+    setVariantStorage("");
+    setVariantStock("");
+    setVariantPrice("");
+    setVariantSku("");
     if (imageInputRef.current) imageInputRef.current.value = "";
   };
 
@@ -583,6 +691,15 @@ data.append(
   "specifications",
   JSON.stringify(formData.specifications)
 );
+
+// ==============================
+// VARIANTS DATA
+// ==============================
+data.append(
+  "variants",
+  JSON.stringify(formData.variants)
+);
+
       data.append("rating", String(rating));
       data.append("isActive", String(formData.isActive));
       data.append("isFeatured", String(formData.isFeatured));
@@ -1833,6 +1950,218 @@ const selectedChildCategoryName =
     </div>
   )}
 </section>
+
+          {/* ================= VARIANTS ================= */}
+          <section className="rounded-2xl bg-white p-6 shadow-sm">
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold text-slate-900">
+                Product Variants
+              </h2>
+
+              <p className="mt-1 text-sm text-slate-500">
+                Combine a color, RAM and storage to create a purchasable
+                variant with its own stock, price and SKU.
+              </p>
+            </div>
+
+            {formData.colors.length === 0 && (
+              <p className="mb-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-700">
+                Add at least one color above before creating variants.
+              </p>
+            )}
+
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+              <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
+                {/* COLOR */}
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-slate-700">
+                    Color
+                  </label>
+
+                  <select
+                    value={variantColorName}
+                    onChange={(e) => setVariantColorName(e.target.value)}
+                    disabled={formData.colors.length === 0}
+                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+                  >
+                    <option value="">Select color</option>
+                    {formData.colors.map((color) => (
+                      <option key={color.name} value={color.name}>
+                        {color.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* RAM */}
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-slate-700">
+                    RAM
+                  </label>
+
+                  <input
+                    list="variant-ram-options"
+                    value={variantRam}
+                    onChange={(e) => setVariantRam(e.target.value)}
+                    placeholder="8GB"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  />
+                  <datalist id="variant-ram-options">
+                    {formData.ram.map((item, index) => (
+                      <option key={`${item}-${index}`} value={item} />
+                    ))}
+                  </datalist>
+                </div>
+
+                {/* STORAGE */}
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-slate-700">
+                    Storage
+                  </label>
+
+                  <input
+                    value={variantStorage}
+                    onChange={(e) => setVariantStorage(e.target.value)}
+                    placeholder="256GB"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  />
+                </div>
+
+                {/* STOCK */}
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-slate-700">
+                    Stock
+                  </label>
+
+                  <input
+                    type="number"
+                    min="0"
+                    value={variantStock}
+                    onChange={(e) => setVariantStock(e.target.value)}
+                    placeholder="5"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  />
+                </div>
+
+                {/* PRICE */}
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-slate-700">
+                    Price
+                  </label>
+
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={variantPrice}
+                    onChange={(e) => setVariantPrice(e.target.value)}
+                    placeholder="55000"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  />
+                </div>
+
+                {/* SKU */}
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-slate-700">
+                    SKU
+                  </label>
+
+                  <input
+                    value={variantSku}
+                    onChange={(e) => setVariantSku(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addVariant();
+                      }
+                    }}
+                    placeholder="IQOO-BLK-8-256"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={addVariant}
+                disabled={formData.colors.length === 0}
+                className="mt-4 rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                + Add Variant
+              </button>
+            </div>
+
+            {/* ADDED VARIANTS */}
+            {formData.variants.length > 0 && (
+              <div className="mt-6">
+                <div className="mb-3 flex items-center justify-between">
+                  <h3 className="text-base font-semibold text-slate-800">
+                    Added Variants
+                  </h3>
+
+                  <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600">
+                    {formData.variants.length} variants
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto rounded-2xl border border-slate-200">
+                  <table className="w-full min-w-[720px] text-left text-sm">
+                    <thead className="bg-slate-50 text-slate-600">
+                      <tr>
+                        <th className="px-4 py-3 font-medium">Color</th>
+                        <th className="px-4 py-3 font-medium">RAM</th>
+                        <th className="px-4 py-3 font-medium">Storage</th>
+                        <th className="px-4 py-3 font-medium">Stock</th>
+                        <th className="px-4 py-3 font-medium">Price</th>
+                        <th className="px-4 py-3 font-medium">SKU</th>
+                        <th className="px-4 py-3 font-medium" />
+                      </tr>
+                    </thead>
+
+                    <tbody className="divide-y divide-slate-200">
+                      {formData.variants.map((variant, index) => (
+                        <tr key={`${variant.sku}-${index}`}>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className="h-4 w-4 rounded-full border"
+                                style={{
+                                  backgroundColor: variant.color.code,
+                                }}
+                              />
+                              {variant.color.name}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">{variant.ram}</td>
+                          <td className="px-4 py-3">{variant.storage}</td>
+                          <td className="px-4 py-3">
+                            {variant.stock === 0 ? (
+                              <span className="rounded-full bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-600">
+                                Out of stock
+                              </span>
+                            ) : (
+                              variant.stock
+                            )}
+                          </td>
+                          <td className="px-4 py-3">{variant.price}</td>
+                          <td className="px-4 py-3">{variant.sku}</td>
+                          <td className="px-4 py-3 text-right">
+                            <button
+                              type="button"
+                              onClick={() => removeVariant(index)}
+                              className="rounded-lg px-3 py-2 text-sm font-medium text-red-500 transition hover:bg-red-50 hover:text-red-700"
+                            >
+                              Remove
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </section>
 
           {/* ================= STATUS + RATING ================= */}
           <section className="rounded-2xl bg-white p-6 shadow-sm">

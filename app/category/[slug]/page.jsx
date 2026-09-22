@@ -1444,7 +1444,7 @@ const getRamValues = (product) => {
 
                       <div className="px-4 pb-4 pt-3.5">
                         <Link
-                          href={`/product/${product.slug}`}
+                          href={`/Product/${product.slug}`}
                           className="block"
                         >
                           <h3

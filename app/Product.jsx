@@ -3,7 +3,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
 
-const API_BASE = "https://apple-gadgets-ui-backend.vercel.app";
+const API_BASE = "http://localhost:4000";
 
 const initialFormData = {
   name: "",
@@ -42,6 +42,8 @@ const [subChildCategories, setSubChildCategories] = useState([]);
 
   const [colorName, setColorName] = useState("");
   const [colorCode, setColorCode] = useState("#000000");
+  const [colorImage, setColorImage] = useState(null);
+const [colorImagePreview, setColorImagePreview] = useState("");
   const [size, setSize] = useState("");
   const [specKey, setSpecKey] = useState("");
   const [specValue, setSpecValue] = useState("");
@@ -291,33 +293,80 @@ const removeImage = (index) => {
   // ==============================
   // COLOR
   // ==============================
-  const addColor = () => {
-    if (!colorName.trim()) return;
+  // ==============================
+// COLOR
+// ==============================
 
-    if (
-      formData.colors.some(
-        (c) => c.name.toLowerCase() === colorName.trim().toLowerCase()
-      )
-    ) {
-      alert("This color is already added");
-      return;
-    }
+const handleColorImageChange = (e) => {
+  const file = e.target.files?.[0];
 
-    setFormData((prev) => ({
-      ...prev,
-      colors: [...prev.colors, { name: colorName.trim(), code: colorCode }],
-    }));
+  if (!file) return;
 
-    setColorName("");
-    setColorCode("#000000");
-  };
+  if (!file.type.startsWith("image/")) {
+    alert("Only image files are allowed");
+    return;
+  }
 
-  const removeColor = (index) => {
-    setFormData((prev) => ({
-      ...prev,
-      colors: prev.colors.filter((_, i) => i !== index),
-    }));
-  };
+  setColorImage(file);
+
+  const previewUrl = URL.createObjectURL(file);
+  setColorImagePreview(previewUrl);
+
+  e.target.value = "";
+};
+
+const addColor = () => {
+  if (!colorName.trim()) {
+    alert("Enter color name");
+    return;
+  }
+
+  if (!colorImage) {
+    alert("Please choose an image for this color");
+    return;
+  }
+
+  if (
+    formData.colors.some(
+      (c) =>
+        c.name.toLowerCase() ===
+        colorName.trim().toLowerCase()
+    )
+  ) {
+    alert("This color is already added");
+    return;
+  }
+
+  setFormData((prev) => ({
+    ...prev,
+
+    colors: [
+      ...prev.colors,
+
+      {
+        name: colorName.trim(),
+        code: colorCode,
+        imageFile: colorImage,
+        imagePreview: colorImagePreview,
+      },
+    ],
+  }));
+
+  setColorName("");
+  setColorCode("#000000");
+  setColorImage(null);
+  setColorImagePreview("");
+};
+
+const removeColor = (index) => {
+  setFormData((prev) => ({
+    ...prev,
+
+    colors: prev.colors.filter(
+      (_, i) => i !== index
+    ),
+  }));
+};
 
   // ==============================
   // SIZE
@@ -441,6 +490,8 @@ const removeRam = (index) => {
     setSize("");
     setSpecKey("");
     setSpecValue("");
+    setColorImage(null);
+setColorImagePreview("");
     if (imageInputRef.current) imageInputRef.current.value = "";
   };
 
@@ -488,10 +539,35 @@ const removeRam = (index) => {
       data.append("discountPercentage", formData.discountPercentage || "");
       data.append("stock", formData.stock);
       data.append("sku", formData.sku);
-     data.append(
-  "colors",
-  JSON.stringify(formData.colors)
+    // ==============================
+// COLORS DATA
+// ==============================
+
+const colorsWithoutFiles = formData.colors.map(
+  (color) => ({
+    name: color.name,
+    code: color.code,
+  })
 );
+
+data.append(
+  "colors",
+  JSON.stringify(colorsWithoutFiles)
+);
+
+
+// ==============================
+// COLOR IMAGES
+// ==============================
+
+formData.colors.forEach((color) => {
+  if (color.imageFile) {
+    data.append(
+      "colorImages",
+      color.imageFile
+    );
+  }
+});
 
 data.append(
   "sizes",
@@ -1231,54 +1307,320 @@ const selectedChildCategoryName =
 </section>
 
           {/* ================= COLORS ================= */}
-          <section className="rounded-2xl bg-white p-6 shadow-sm">
-            <h2 className="mb-5 text-xl font-semibold">Colors</h2>
+        {/* ================= COLORS ================= */}
 
-            <div className="flex flex-col gap-3 md:flex-row">
-              <input
-                value={colorName}
-                onChange={(e) => setColorName(e.target.value)}
-                placeholder="Color name"
-                className="rounded-xl border border-slate-300 px-4 py-3"
+<section className="rounded-2xl bg-white p-6 shadow-sm">
+
+  <h2 className="mb-5 text-xl font-semibold">
+    Colors
+  </h2>
+
+  {/* ================= ADD COLOR ================= */}
+
+  <div className="grid gap-4 md:grid-cols-2">
+
+    {/* COLOR NAME */}
+
+    <div>
+      <label className="mb-2 block text-sm font-medium text-slate-700">
+        Color Name
+      </label>
+
+      <input
+        type="text"
+        value={colorName}
+        onChange={(e) =>
+          setColorName(e.target.value)
+        }
+        placeholder="Example: Burgundy"
+        className="
+          w-full
+          rounded-xl
+          border
+          border-slate-300
+          px-4
+          py-3
+          outline-none
+          focus:border-blue-500
+        "
+      />
+    </div>
+
+    {/* COLOR CODE */}
+
+    <div>
+      <label className="mb-2 block text-sm font-medium text-slate-700">
+        Color Code
+      </label>
+
+      <div className="flex gap-3">
+
+        <input
+          type="color"
+          value={colorCode}
+          onChange={(e) =>
+            setColorCode(e.target.value)
+          }
+          className="
+            h-[48px]
+            w-[70px]
+            cursor-pointer
+            rounded-lg
+            border
+            border-slate-300
+          "
+        />
+
+        <input
+          type="text"
+          value={colorCode}
+          onChange={(e) =>
+            setColorCode(e.target.value)
+          }
+          className="
+            flex-1
+            rounded-xl
+            border
+            border-slate-300
+            px-4
+            py-3
+            uppercase
+            outline-none
+            focus:border-blue-500
+          "
+        />
+
+      </div>
+    </div>
+
+  </div>
+
+
+  {/* ================= COLOR IMAGE ================= */}
+
+  <div className="mt-5">
+
+    <label className="mb-2 block text-sm font-medium text-slate-700">
+      Color Image
+    </label>
+
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+
+      {/* Upload */}
+
+      <label
+        className="
+          flex
+          h-32
+          w-32
+          cursor-pointer
+          flex-col
+          items-center
+          justify-center
+          overflow-hidden
+          rounded-xl
+          border-2
+          border-dashed
+          border-slate-300
+          bg-slate-50
+          hover:border-blue-500
+        "
+      >
+
+        {colorImagePreview ? (
+          <img
+            src={colorImagePreview}
+            alt="Color preview"
+            className="h-full w-full object-contain p-2"
+          />
+        ) : (
+          <>
+            <span className="text-3xl text-slate-400">
+              +
+            </span>
+
+            <span className="mt-1 text-xs text-slate-500">
+              Choose Image
+            </span>
+          </>
+        )}
+
+        <input
+          type="file"
+          accept="image/*"
+          onChange={handleColorImageChange}
+          className="hidden"
+        />
+
+      </label>
+
+      {/* File information */}
+
+      <div>
+
+        {colorImage ? (
+          <>
+            <p className="text-sm font-medium text-slate-700">
+              {colorImage.name}
+            </p>
+
+            <p className="mt-1 text-xs text-green-600">
+              Image selected
+            </p>
+          </>
+        ) : (
+          <p className="text-sm text-slate-500">
+            Upload the phone image for this color
+          </p>
+        )}
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  {/* ================= ADD BUTTON ================= */}
+
+  <button
+    type="button"
+    onClick={addColor}
+    className="
+      mt-5
+      rounded-xl
+      bg-blue-600
+      px-6
+      py-3
+      font-medium
+      text-white
+      transition
+      hover:bg-blue-700
+    "
+  >
+    + Add Color
+  </button>
+
+
+  {/* ================= ADDED COLORS ================= */}
+
+  {formData.colors.length > 0 && (
+    <div className="mt-6 space-y-3">
+
+      <h3 className="text-sm font-semibold text-slate-700">
+        Added Colors
+      </h3>
+
+      {formData.colors.map((color, index) => (
+        <div
+          key={`${color.name}-${index}`}
+          className="
+            flex
+            items-center
+            justify-between
+            gap-4
+            rounded-xl
+            border
+            border-slate-200
+            bg-slate-50
+            p-3
+          "
+        >
+
+          <div className="flex items-center gap-4">
+
+            {/* IMAGE */}
+
+            {color.imagePreview ? (
+              <img
+                src={color.imagePreview}
+                alt={color.name}
+                className="
+                  h-16
+                  w-16
+                  rounded-lg
+                  border
+                  border-slate-200
+                  bg-white
+                  object-contain
+                  p-1
+                "
               />
-              <input
-                type="color"
-                value={colorCode}
-                onChange={(e) => setColorCode(e.target.value)}
-                className="h-12 w-20 cursor-pointer rounded-lg"
+            ) : (
+              <div
+                className="
+                  h-16
+                  w-16
+                  rounded-lg
+                  border
+                  bg-white
+                "
               />
-              <button
-                type="button"
-                onClick={addColor}
-                className="rounded-xl bg-blue-600 px-6 py-3 font-medium text-white hover:bg-blue-700"
-              >
-                Add color
-              </button>
+            )}
+
+            {/* COLOR */}
+
+            <div>
+
+              <div className="flex items-center gap-2">
+
+                <span
+                  className="
+                    h-5
+                    w-5
+                    rounded-full
+                    border
+                  "
+                  style={{
+                    backgroundColor:
+                      color.code,
+                  }}
+                />
+
+                <span className="font-medium">
+                  {color.name}
+                </span>
+
+              </div>
+
+              <p className="mt-1 text-xs text-slate-500">
+                {color.code}
+              </p>
+
             </div>
 
-            <div className="mt-4 flex flex-wrap gap-3">
-              {formData.colors.map((color, index) => (
-                <div
-                  key={`${color.name}-${index}`}
-                  className="flex items-center gap-2 rounded-full border bg-slate-50 px-4 py-2"
-                >
-                  <span
-                    className="h-5 w-5 rounded-full border"
-                    style={{ backgroundColor: color.code }}
-                  />
-                  <span>{color.name}</span>
-                  <button
-                    type="button"
-                    onClick={() => removeColor(index)}
-                    className="ml-2 text-red-500"
-                    aria-label={`Remove ${color.name}`}
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-            </div>
-          </section>
+          </div>
+
+
+          {/* REMOVE */}
+
+          <button
+            type="button"
+            onClick={() =>
+              removeColor(index)
+            }
+            className="
+              flex
+              h-8
+              w-8
+              items-center
+              justify-center
+              rounded-full
+              bg-red-50
+              text-red-500
+              hover:bg-red-100
+            "
+          >
+            ×
+          </button>
+
+        </div>
+      ))}
+
+    </div>
+  )}
+
+</section>
 
           {/* ================= SIZES ================= */}
           <section className="rounded-2xl bg-white p-6 shadow-sm">

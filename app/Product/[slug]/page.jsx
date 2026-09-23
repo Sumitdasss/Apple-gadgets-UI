@@ -1341,6 +1341,7 @@ useEffect(() => {
             {/* =================================================
                 ORDER BUTTON
             ================================================= */}
+            <div className="flex justify-between gap-3">
             <button
               onClick={handlePreOrder}
               disabled={
@@ -1368,8 +1369,38 @@ useEffect(() => {
                 : !selectedVariant &&
                   hasVariants
                 ? "Select Variant"
-                : "Order Now"}
+                : "Add to Cart"}
             </button>
+            <button
+              onClick={handlePreOrder}
+              disabled={
+                currentStock <= 0 ||
+                (hasVariants &&
+                  !selectedVariant)
+              }
+              className={`
+                mt-7 w-full h-[50px] rounded-2xl
+                font-semibold text-[15px]
+                transition-all duration-200 flex items-center justify-center gap-2.5
+                ${
+                  currentStock <= 0 ||
+                  (hasVariants &&
+                    !selectedVariant)
+                    ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                    : "bg-orange-500 hover:bg-orange-600 active:scale-[0.985] text-white shadow-lg shadow-orange-500/25"
+                }
+              `}
+            >
+              <ShoppingBag size={18} />
+
+              {currentStock <= 0
+                ? "Out of Stock"
+                : !selectedVariant &&
+                  hasVariants
+                ? "Select Variant"
+                : "Buy"}
+            </button>
+            </div>
           </div>
         </div>
 

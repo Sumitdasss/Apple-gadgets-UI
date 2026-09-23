@@ -1,7 +1,5 @@
 /* eslint-disable react-hooks/set-state-in-effect */
-/* eslint-disable react-hooks/globals */
 /* eslint-disable react-hooks/static-components */
-
 "use client";
 
 import React, {
@@ -281,12 +279,16 @@ function CategoryPageContent() {
       .replace(/\b\w/g, (char) =>
         char.toUpperCase()
       );
-  }, [slug, isSearchPage, urlSearch]);
+  }, [
+    slug,
+    isSearchPage,
+    urlSearch,
+  ]);
 
   // ============================================
   // GET PRODUCTS
   //
-  // Normal:
+  // Category:
   // current category only
   //
   // Search:
@@ -294,7 +296,9 @@ function CategoryPageContent() {
   // ============================================
 
   useEffect(() => {
-    if (!slug && !isSearchPage) return;
+    if (!slug && !isSearchPage) {
+      return;
+    }
 
     const fetchProducts = async () => {
       try {
@@ -358,7 +362,7 @@ function CategoryPageContent() {
   // ============================================
 
   const getProductImage = (product) => {
-    if (!product?.images) {
+    if (!product) {
       return "/placeholder.png";
     }
 
@@ -370,23 +374,51 @@ function CategoryPageContent() {
         product.images[0];
 
       if (
-        typeof firstImage === "string"
+        typeof firstImage ===
+        "string"
       ) {
         return firstImage;
       }
 
-      return (
-        firstImage?.url ||
-        firstImage?.secure_url ||
-        firstImage?.src ||
-        "/placeholder.png"
-      );
+      if (
+        firstImage &&
+        typeof firstImage ===
+          "object"
+      ) {
+        return (
+          firstImage.url ||
+          firstImage.secure_url ||
+          firstImage.src ||
+          "/placeholder.png"
+        );
+      }
     }
 
     if (
-      typeof product.images === "string"
+      typeof product.images ===
+      "string"
     ) {
       return product.images;
+    }
+
+    if (
+      typeof product.image ===
+      "string"
+    ) {
+      return product.image;
+    }
+
+    if (
+      product.image &&
+      typeof product.image ===
+        "object"
+    ) {
+      return (
+        product.image.url ||
+        product.image.secure_url ||
+        product.image.src ||
+        "/placeholder.png"
+      );
     }
 
     return "/placeholder.png";
@@ -397,17 +429,39 @@ function CategoryPageContent() {
   // ============================================
 
   const getProductPrice = (product) => {
-    return Number(
-      product?.discountPrice ||
-        product?.price ||
-        0
+    const discountPrice = Number(
+      product?.discountPrice
     );
+
+    const price = Number(
+      product?.price
+    );
+
+    if (
+      Number.isFinite(discountPrice) &&
+      discountPrice > 0
+    ) {
+      return discountPrice;
+    }
+
+    if (
+      Number.isFinite(price) &&
+      price > 0
+    ) {
+      return price;
+    }
+
+    return 0;
   };
 
   const getOriginalPrice = (product) => {
-    return Number(
-      product?.price || 0
+    const price = Number(
+      product?.price
     );
+
+    return Number.isFinite(price)
+      ? price
+      : 0;
   };
 
   const formatPrice = (price) => {
@@ -441,22 +495,22 @@ function CategoryPageContent() {
 
   const getSpecKeyLabel = (item) => {
     return String(
-      item.key ||
-        item.name ||
-        item.title ||
-        item.label ||
-        item.specification ||
-        item.attribute ||
+      item?.key ||
+        item?.name ||
+        item?.title ||
+        item?.label ||
+        item?.specification ||
+        item?.attribute ||
         ""
     ).trim();
   };
 
   const getSpecItemValues = (item) => {
     const value =
-      item.value ??
-      item.data ??
-      item.specificationValue ??
-      item.content ??
+      item?.value ??
+      item?.data ??
+      item?.specificationValue ??
+      item?.content ??
       "";
 
     const values = [];
@@ -544,7 +598,13 @@ function CategoryPageContent() {
         undefined &&
       product?.brand !== null &&
       String(
-        product.brand
+        typeof product.brand ===
+          "object"
+          ? product.brand.name ||
+              product.brand.title ||
+              product.brand.value ||
+              ""
+          : product.brand
       ).trim() !== ""
     ) {
       if (
@@ -555,6 +615,7 @@ function CategoryPageContent() {
           product.brand.name ||
           product.brand.title ||
           product.brand.value ||
+          product.brand.label ||
           "";
 
         return value
@@ -586,29 +647,22 @@ function CategoryPageContent() {
   // RAW RAM
   // ============================================
 
-  const getRawRamValues = (
-    product
-  ) => {
-    const ram =
-      product?.ram;
+  const getRawRamValues = (product) => {
+  const ram = product?.ram;
 
-    if (!Array.isArray(ram)) {
-      return [];
-    }
+  if (!Array.isArray(ram)) {
+    return [];
+  }
 
-    return ram
-      .filter(
-        (item) =>
-          item !== undefined &&
-          item !== null &&
-          String(
-            item
-          ).trim() !== ""
-      )
-      .map((item) =>
-        String(item).trim()
-      );
-  };
+  return ram
+    .filter(
+      (item) =>
+        item !== undefined &&
+        item !== null &&
+        String(item).trim() !== ""
+    )
+    .map((item) => String(item).trim());
+};
 
   // ============================================
   // STORAGE
@@ -622,8 +676,7 @@ function CategoryPageContent() {
         product
       );
 
-    const storageValues =
-      [];
+    const storageValues = [];
 
     ramValues.forEach(
       (value) => {
@@ -715,123 +768,84 @@ function CategoryPageContent() {
   // RAM
   // ============================================
 
-  const getRamValues = (
-    product
-  ) => {
-    const ramValues =
-      getRawRamValues(
-        product
+  // ============================================
+// RAM
+// IMPORTANT:
+// RAM শুধু product.ram থেকে আসবে
+// specifications থেকে RAM নেওয়া হবে না
+// ============================================
+
+const getRamValues = (product) => {
+  const ramValues = getRawRamValues(product);
+
+  const parsed = ramValues
+    .map((value) => {
+      const text = String(value).trim();
+
+      if (!text) {
+        return "";
+      }
+
+      // Example:
+      // "8GB RAM"
+      // "12GB RAM"
+      // "16GB RAM"
+      const withRam = text.match(
+        /\b\d+(?:\.\d+)?\s*GB\s*RAM\b/i
       );
 
-    const parsed =
-      ramValues
-        .map((value) => {
-          const text =
-            String(
-              value
-            ).trim();
+      if (withRam) {
+        return withRam[0]
+          .replace(/\s*RAM\b/i, "")
+          .replace(/\s+/g, "")
+          .toUpperCase();
+      }
 
-          if (!text) return "";
-
-          const withRam =
-            text.match(
-              /\b\d+(?:\.\d+)?\s*GB\s*RAM\b/i
-            );
-
-          if (withRam) {
-            return withRam[0]
-              .replace(
-                /\s*RAM\b/i,
-                ""
-              )
-              .replace(
-                /\s+/g,
-                ""
-              )
-              .toUpperCase();
-          }
-
-          const plainGb =
-            text.match(
-              /^\d+(?:\.\d+)?\s*GB$/i
-            );
-
-          if (plainGb) {
-            return plainGb[0]
-              .replace(
-                /\s+/g,
-                ""
-              )
-              .toUpperCase();
-          }
-
-          return text;
-        })
-        .filter(Boolean);
-
-    const ramGroup =
-      KNOWN_FILTER_GROUPS.find(
-        (group) =>
-          group.key ===
-          "ram"
+      // Example:
+      // "8GB"
+      // "12GB"
+      // "16GB"
+      const plainGb = text.match(
+        /^\d+(?:\.\d+)?\s*GB$/i
       );
 
-    const specRam =
-      getSpecificationValues(
-        product,
-        ramGroup?.synonyms ||
-          []
-      );
+      if (plainGb) {
+        return plainGb[0]
+          .replace(/\s+/g, "")
+          .toUpperCase();
+      }
 
-    return [
-      ...new Set([
-        ...parsed,
-        ...specRam,
-      ]),
-    ];
-  };
+      return text;
+    })
+    .filter(Boolean);
+
+  return [...new Set(parsed)];
+};
 
   // ============================================
   // GENERIC FILTER VALUE GETTER
   // ============================================
+const getValuesForFilter = (
+  product,
+  config
+) => {
+  if (config.key === "brand") {
+    return getBrandValues(product);
+  }
 
-  const getValuesForFilter = (
+  if (config.key === "storage") {
+    return getStorageValues(product);
+  }
+
+  if (config.key === "ram") {
+    return getRamValues(product);
+  }
+
+  return getSpecificationValues(
     product,
-    config
-  ) => {
-    if (
-      config.key ===
-      "brand"
-    ) {
-      return getBrandValues(
-        product
-      );
-    }
-
-    if (
-      config.key ===
-      "storage"
-    ) {
-      return getStorageValues(
-        product
-      );
-    }
-
-    if (
-      config.key ===
-      "ram"
-    ) {
-      return getRamValues(
-        product
-      );
-    }
-
-    return getSpecificationValues(
-      product,
-      config.synonyms
-    );
-  };
-
+    config.synonyms
+  );
+};
   // ============================================
   // SORT FILTER OPTIONS
   // ============================================
@@ -852,8 +866,9 @@ function CategoryPageContent() {
           /\d+(?:\.\d+)?/
         );
 
-      if (!match)
+      if (!match) {
         return null;
+      }
 
       const number =
         Number(
@@ -861,13 +876,9 @@ function CategoryPageContent() {
         );
 
       if (
-        text.includes(
-          "TB"
-        )
+        text.includes("TB")
       ) {
-        return (
-          number * 1024
-        );
+        return number * 1024;
       }
 
       return number;
@@ -876,9 +887,8 @@ function CategoryPageContent() {
     const allNumeric =
       values.every(
         (value) =>
-          getNumber(
-            value
-          ) !== null
+          getNumber(value) !==
+          null
       );
 
     if (allNumeric) {
@@ -893,7 +903,11 @@ function CategoryPageContent() {
 
     return [
       ...values,
-    ].sort();
+    ].sort((a, b) =>
+      String(a).localeCompare(
+        String(b)
+      )
+    );
   };
 
   // ============================================
@@ -921,7 +935,201 @@ function CategoryPageContent() {
     }, []);
 
   // ============================================
+  // SEARCH TEXT HELPER
+  // ============================================
+
+  const getSearchText = (
+    value
+  ) => {
+    if (
+      value === undefined ||
+      value === null
+    ) {
+      return "";
+    }
+
+    if (Array.isArray(value)) {
+      return value
+        .map((item) =>
+          getSearchText(item)
+        )
+        .join(" ");
+    }
+
+    if (
+      typeof value ===
+      "object"
+    ) {
+      return [
+        value.name,
+        value.title,
+        value.label,
+        value.value,
+        value.slug,
+        value._id,
+        value.key,
+      ]
+        .filter(
+          (item) =>
+            item !== undefined &&
+            item !== null
+        )
+        .map((item) =>
+          getSearchText(item)
+        )
+        .join(" ");
+    }
+
+    return String(value);
+  };
+
+  // ============================================
+  // SEARCH PRODUCT
+  // ============================================
+
+  const searchProduct = (
+    product,
+    searchValue
+  ) => {
+    if (
+      !searchValue.trim()
+    ) {
+      return true;
+    }
+
+    const search =
+      searchValue
+        .trim()
+        .toLowerCase();
+
+    const searchableValues =
+      [];
+
+    // Basic fields
+    searchableValues.push(
+      product?.name
+    );
+
+    searchableValues.push(
+      product?.slug
+    );
+
+    searchableValues.push(
+      product?.brand
+    );
+
+    searchableValues.push(
+      product?.sku
+    );
+
+    // Category fields
+    searchableValues.push(
+      product?.category
+    );
+
+    searchableValues.push(
+      product?.subCategory
+    );
+
+    searchableValues.push(
+      product?.childCategory
+    );
+
+    searchableValues.push(
+      product?.subChildCategory
+    );
+
+    // Price
+    searchableValues.push(
+      product?.price
+    );
+
+    searchableValues.push(
+      product?.discountPrice
+    );
+
+    // Description
+    searchableValues.push(
+      product?.shortDescription
+    );
+
+    searchableValues.push(
+      product?.description
+    );
+
+    // RAM
+    searchableValues.push(
+      product?.ram
+    );
+
+    // Colors
+    searchableValues.push(
+      product?.colors
+    );
+
+    // Sizes
+    searchableValues.push(
+      product?.sizes
+    );
+
+    // Specifications
+    getSpecEntries(
+      product
+    ).forEach((item) => {
+      searchableValues.push(
+        getSpecKeyLabel(item)
+      );
+
+      searchableValues.push(
+        getSpecItemValues(item)
+      );
+    });
+
+    return searchableValues.some(
+      (value) =>
+        getSearchText(
+          value
+        )
+          .toLowerCase()
+          .includes(search)
+    );
+  };
+
+  // ============================================
+  // SEARCH FILTERED PRODUCTS
+  //
+  // IMPORTANT:
+  // Search result এখানেই তৈরি হচ্ছে।
+  // এরপর filter sections এই data ব্যবহার করবে।
+  // ============================================
+
+  const searchFilteredProducts =
+    useMemo(() => {
+      const keyword =
+        searchText.trim();
+
+      if (!keyword) {
+        return products;
+      }
+
+      return products.filter(
+        (product) =>
+          searchProduct(
+            product,
+            keyword
+          )
+      );
+    }, [
+      products,
+      searchText,
+    ]);
+
+  // ============================================
   // DYNAMIC FILTER CONFIGS
+  //
+  // IMPORTANT:
+  // Search থাকলে শুধু matching products
+  // থেকে dynamic filter তৈরি হবে।
   // ============================================
 
   const dynamicFilterConfigs =
@@ -929,7 +1137,7 @@ function CategoryPageContent() {
       const collected =
         new Map();
 
-      products.forEach(
+      searchFilteredProducts.forEach(
         (product) => {
           getSpecEntries(
             product
@@ -943,8 +1151,9 @@ function CategoryPageContent() {
               const normalized =
                 rawLabel.toLowerCase();
 
-              if (!normalized)
+              if (!normalized) {
                 return;
+              }
 
               if (
                 knownSynonymSet.has(
@@ -1054,12 +1263,16 @@ function CategoryPageContent() {
 
       return configs;
     }, [
-      products,
+      searchFilteredProducts,
       knownSynonymSet,
     ]);
 
   // ============================================
   // FINAL FILTER LIST
+  //
+  // IMPORTANT:
+  // Search result-এর products থেকেই
+  // সব filter options তৈরি হবে।
   // ============================================
 
   const filterSections =
@@ -1072,7 +1285,7 @@ function CategoryPageContent() {
       return allConfigs
         .map((config) => {
           const values =
-            products.flatMap(
+            searchFilteredProducts.flatMap(
               (product) =>
                 getValuesForFilter(
                   product,
@@ -1094,183 +1307,13 @@ function CategoryPageContent() {
         })
         .filter(
           (section) =>
-            section.options
-              .length > 0
+            section.options.length >
+            0
         );
     }, [
-      products,
+      searchFilteredProducts,
       dynamicFilterConfigs,
     ]);
-
-  // ============================================
-  // SEARCH TEXT HELPER
-  // ============================================
-
-  const getSearchText = (
-    value
-  ) => {
-    if (
-      value === undefined ||
-      value === null
-    ) {
-      return "";
-    }
-
-    if (Array.isArray(value)) {
-      return value
-        .map((item) =>
-          getSearchText(item)
-        )
-        .join(" ");
-    }
-
-    if (
-      typeof value ===
-      "object"
-    ) {
-      return [
-        value.name,
-        value.title,
-        value.label,
-        value.value,
-        value.slug,
-        value._id,
-      ]
-        .filter(Boolean)
-        .map((item) =>
-          getSearchText(item)
-        )
-        .join(" ");
-    }
-
-    return String(value);
-  };
-
-  // ============================================
-  // SEARCH PRODUCT
-  // ============================================
-
-  const searchProduct = (
-    product,
-    searchValue
-  ) => {
-    if (
-      !searchValue.trim()
-    ) {
-      return true;
-    }
-
-    const search =
-      searchValue
-        .trim()
-        .toLowerCase();
-
-    const searchableValues =
-      [];
-
-    searchableValues.push(
-      product?.name
-    );
-
-    searchableValues.push(
-      product?.slug
-    );
-
-    searchableValues.push(
-      product?.brand
-    );
-
-    searchableValues.push(
-      product?.sku
-    );
-
-    searchableValues.push(
-      product?.category
-    );
-
-    searchableValues.push(
-      product?.subCategory
-    );
-
-    searchableValues.push(
-      product?.childCategory
-    );
-
-    searchableValues.push(
-      product?.subChildCategory
-    );
-
-    searchableValues.push(
-      product?.price
-    );
-
-    searchableValues.push(
-      product?.discountPrice
-    );
-
-    searchableValues.push(
-      product?.shortDescription
-    );
-
-    searchableValues.push(
-      product?.description
-    );
-
-    if (
-      Array.isArray(
-        product?.ram
-      )
-    ) {
-      searchableValues.push(
-        ...product.ram
-      );
-    }
-
-    if (
-      Array.isArray(
-        product?.colors
-      )
-    ) {
-      searchableValues.push(
-        ...product.colors
-      );
-    }
-
-    if (
-      Array.isArray(
-        product?.sizes
-      )
-    ) {
-      searchableValues.push(
-        ...product.sizes
-      );
-    }
-
-    getSpecEntries(
-      product
-    ).forEach((item) => {
-      searchableValues.push(
-        getSpecKeyLabel(
-          item
-        )
-      );
-
-      searchableValues.push(
-        ...getSpecItemValues(
-          item
-        )
-      );
-    });
-
-    return searchableValues.some(
-      (value) =>
-        getSearchText(
-          value
-        )
-          .toLowerCase()
-          .includes(search)
-    );
-  };
 
   // ============================================
   // TOGGLE FILTER
@@ -1336,25 +1379,13 @@ function CategoryPageContent() {
   const filteredProducts =
     useMemo(() => {
       let result = [
-        ...products,
+        ...searchFilteredProducts,
       ];
 
-      // Search
-      if (
-        searchText.trim() !==
-        ""
-      ) {
-        result =
-          result.filter(
-            (product) =>
-              searchProduct(
-                product,
-                searchText
-              )
-          );
-      }
+      // ========================================
+      // PRICE MIN
+      // ========================================
 
-      // Price min
       if (
         priceMin !== ""
       ) {
@@ -1370,7 +1401,10 @@ function CategoryPageContent() {
           );
       }
 
-      // Price max
+      // ========================================
+      // PRICE MAX
+      // ========================================
+
       if (
         priceMax !== ""
       ) {
@@ -1386,7 +1420,10 @@ function CategoryPageContent() {
           );
       }
 
-      // Stock
+      // ========================================
+      // STOCK
+      // ========================================
+
       if (
         excludeStock
       ) {
@@ -1403,7 +1440,10 @@ function CategoryPageContent() {
           );
       }
 
-      // Generic filters
+      // ========================================
+      // GENERIC FILTERS
+      // ========================================
+
       filterSections.forEach(
         (config) => {
           const selectedValues =
@@ -1439,7 +1479,10 @@ function CategoryPageContent() {
         }
       );
 
-      // Sorting
+      // ========================================
+      // SORT
+      // ========================================
+
       if (
         sortBy ===
         "low"
@@ -1489,8 +1532,7 @@ function CategoryPageContent() {
 
       return result;
     }, [
-      products,
-      searchText,
+      searchFilteredProducts,
       priceMin,
       priceMax,
       excludeStock,
@@ -2368,6 +2410,7 @@ function CategoryPageContent() {
                 </div>
               </div>
             ) : (
+
               /* PRODUCT GRID */
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -2404,6 +2447,12 @@ function CategoryPageContent() {
                         product.stock
                       ) <= 0;
 
+                    const productUrl =
+                      `/product/${
+                        product.slug ||
+                        product._id
+                      }`;
+
                     return (
                       <div
                         key={
@@ -2432,7 +2481,9 @@ function CategoryPageContent() {
                         {/* IMAGE */}
 
                         <Link
-                          href={`/product/${product.slug}`}
+                          href={
+                            productUrl
+                          }
                           className="relative block h-[250px] w-full overflow-hidden"
                           style={{
                             backgroundColor:
@@ -2449,6 +2500,12 @@ function CategoryPageContent() {
                                 "Product"
                               }
                               className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
+                              onError={(
+                                e
+                              ) => {
+                                e.currentTarget.src =
+                                  "/placeholder.png";
+                              }}
                             />
                           </div>
 
@@ -2476,7 +2533,9 @@ function CategoryPageContent() {
 
                         <div className="px-4 pb-4 pt-3.5">
                           <Link
-                            href={`/product/${product.slug}`}
+                            href={
+                              productUrl
+                            }
                             className="block"
                           >
                             <h3
@@ -2525,7 +2584,9 @@ function CategoryPageContent() {
 
                           <div className="mt-3.5 flex items-center gap-2.5">
                             <Link
-                              href={`/product/${product.slug}`}
+                              href={
+                                productUrl
+                              }
                               className="flex h-10 flex-1 items-center justify-center rounded-full text-[13px] font-medium"
                               style={
                                 outOfStock
@@ -2598,11 +2659,13 @@ export default function CategoryPage() {
       fallback={
         <main className="min-h-screen bg-white">
           <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+
             <div className="h-4 w-52 animate-pulse rounded bg-gray-100" />
 
             <div className="mt-5 h-10 w-48 animate-pulse rounded bg-gray-100" />
 
             <div className="mt-8 grid gap-5 lg:grid-cols-[260px_1fr]">
+
               <div className="h-[650px] animate-pulse rounded-[20px] bg-gray-100" />
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -2617,6 +2680,7 @@ export default function CategoryPage() {
                   )
                 )}
               </div>
+
             </div>
           </div>
         </main>

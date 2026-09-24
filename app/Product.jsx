@@ -18,6 +18,7 @@ const initialFormData = {
   price: "",
   discountPrice: "",
   discountPercentage: "",
+   additionalCategories: [],
   stock: "",
   sku: "",
   colors: [],
@@ -650,7 +651,12 @@ setColorImagePreview("");
     // ==============================
 // COLORS DATA
 // ==============================
-
+data.append(
+  "additionalCategories",
+  JSON.stringify(
+    formData.additionalCategories || []
+  )
+);
 const colorsWithoutFiles = formData.colors.map(
   (color) => ({
     name: color.name,
@@ -1099,200 +1105,360 @@ const selectedChildCategoryName =
           </section>
 
           {/* ================= CATEGORY ================= */}
-          <section className="rounded-2xl bg-white p-6 shadow-sm">
-            <h2 className="mb-5 text-xl font-semibold text-slate-900">
-              Category &amp; Brand
-            </h2>
+        {/* ================= CATEGORY & BRAND ================= */}
+<section className="rounded-2xl bg-white p-6 shadow-sm">
+  <h2 className="mb-5 text-xl font-semibold text-slate-900">
+    Category &amp; Brand
+  </h2>
 
-            <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-              {/* CATEGORY */}
-              <div>
-                <div className="mb-2 flex items-center justify-between">
-                  <label className="block text-sm font-medium text-slate-700">
-                    Category
-                  </label>
+  {/* ================= MAIN CATEGORY TREE ================= */}
+  <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
 
-                  <button
-                    type="button"
-                    onClick={() => setShowCategoryModal(true)}
-                    className="text-sm font-semibold text-blue-600 hover:text-blue-700"
-                  >
-                    + Add
-                  </button>
-                </div>
+    {/* ================= CATEGORY ================= */}
+    <div>
+      <div className="mb-2 flex items-center justify-between">
+        <label className="block text-sm font-medium text-slate-700">
+          Category
+        </label>
 
-                <select
-                  name="category"
-                  value={formData.category}
-                  onChange={handleChange}
-                  required
-                  disabled={categoriesLoading}
-                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100"
-                >
-                  <option value="">
-                    {categoriesLoading
-                      ? "Loading categories..."
-                      : categories.length === 0
-                      ? "No category yet"
-                      : "Select category"}
-                  </option>
+        <button
+          type="button"
+          onClick={() => setShowCategoryModal(true)}
+          className="text-sm font-semibold text-blue-600 hover:text-blue-700"
+        >
+          + Add
+        </button>
+      </div>
 
-                  {categories.map((category) => (
-                    <option key={category._id} value={category._id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
+      <select
+        name="category"
+        value={formData.category}
+        onChange={handleChange}
+        required
+        disabled={categoriesLoading}
+        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+      >
+        <option value="">
+          {categoriesLoading
+            ? "Loading categories..."
+            : categories.length === 0
+            ? "No category yet"
+            : "Select category"}
+        </option>
 
-                {categoriesError && (
-                  <p className="mt-2 text-sm text-red-600">
-                    {categoriesError}{" "}
-                    <button
-                      type="button"
-                      onClick={loadCategories}
-                      className="font-semibold underline"
-                    >
-                      Try again
-                    </button>
-                  </p>
-                )}
-              </div>
+        {categories.map((category) => (
+          <option
+            key={category._id}
+            value={category._id}
+          >
+            {category.name}
+          </option>
+        ))}
+      </select>
 
-              {/* SUB CATEGORY */}
-              <div>
-                <div className="mb-2 flex items-center justify-between">
-                  <label className="block text-sm font-medium text-slate-700">
-                    Sub Category
-                  </label>
+      {categoriesError && (
+        <p className="mt-2 text-sm text-red-600">
+          {categoriesError}{" "}
 
-                  <button
-                    type="button"
-                    disabled={!formData.category}
-                    onClick={() => setShowSubCategoryModal(true)}
-                    className="text-sm font-semibold text-blue-600 hover:text-blue-700 disabled:cursor-not-allowed disabled:text-slate-400"
-                  >
-                    + Add
-                  </button>
-                </div>
+          <button
+            type="button"
+            onClick={loadCategories}
+            className="font-semibold underline"
+          >
+            Try again
+          </button>
+        </p>
+      )}
+    </div>
 
-                <select
-                  name="subCategory"
-                  value={formData.subCategory}
-                  onChange={handleChange}
-                  disabled={!formData.category}
-                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100"
-                >
-                  <option value="">
-                    {!formData.category
-                      ? "Select a category first"
-                      : subCategories.length === 0
-                      ? "No sub category yet"
-                      : "Select sub category"}
-                  </option>
+    {/* ================= SUB CATEGORY ================= */}
+    <div>
+      <div className="mb-2 flex items-center justify-between">
+        <label className="block text-sm font-medium text-slate-700">
+          Sub Category
+        </label>
 
-                  {subCategories.map((subCategory) => (
-                    <option key={subCategory._id} value={subCategory._id}>
-                      {subCategory.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+        <button
+          type="button"
+          disabled={!formData.category}
+          onClick={() => setShowSubCategoryModal(true)}
+          className="text-sm font-semibold text-blue-600 hover:text-blue-700 disabled:cursor-not-allowed disabled:text-slate-400"
+        >
+          + Add
+        </button>
+      </div>
 
-              {/* CHILD CATEGORY */}
-              <div>
-                <div className="mb-2 flex items-center justify-between">
-                  <label className="block text-sm font-medium text-slate-700">
-                    Child Category
-                  </label>
+      <select
+        name="subCategory"
+        value={formData.subCategory}
+        onChange={handleChange}
+        disabled={!formData.category}
+        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+      >
+        <option value="">
+          {!formData.category
+            ? "Select a category first"
+            : subCategories.length === 0
+            ? "No sub category yet"
+            : "Select sub category"}
+        </option>
 
-                  <button
-                    type="button"
-                    disabled={!formData.subCategory}
-                    onClick={() => setShowChildCategoryModal(true)}
-                    className="text-sm font-semibold text-blue-600 hover:text-blue-700 disabled:cursor-not-allowed disabled:text-slate-400"
-                  >
-                    + Add
-                  </button>
-                </div>
+        {subCategories.map((subCategory) => (
+          <option
+            key={subCategory._id}
+            value={subCategory._id}
+          >
+            {subCategory.name}
+          </option>
+        ))}
+      </select>
+    </div>
 
-                <select
-                  name="childCategory"
-                  value={formData.childCategory}
-                  onChange={handleChange}
-                  disabled={!formData.subCategory}
-                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100"
-                >
-                  <option value="">
-                    {!formData.subCategory
-                      ? "Select a sub category first"
-                      : childCategories.length === 0
-                      ? "No child category yet"
-                      : "Select child category"}
-                  </option>
+    {/* ================= CHILD CATEGORY ================= */}
+    <div>
+      <div className="mb-2 flex items-center justify-between">
+        <label className="block text-sm font-medium text-slate-700">
+          Child Category
+        </label>
 
-                  {childCategories.map((childCategory) => (
-                    <option key={childCategory._id} value={childCategory._id}>
-                      {childCategory.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+        <button
+          type="button"
+          disabled={!formData.subCategory}
+          onClick={() => setShowChildCategoryModal(true)}
+          className="text-sm font-semibold text-blue-600 hover:text-blue-700 disabled:cursor-not-allowed disabled:text-slate-400"
+        >
+          + Add
+        </button>
+      </div>
 
-{/* ================= SUB CHILD CATEGORY ================= */}
-<div>
-  <div className="mb-2 flex items-center justify-between">
-    <label className="block text-sm font-medium text-slate-700">
-      Sub Child Category
-    </label>
+      <select
+        name="childCategory"
+        value={formData.childCategory}
+        onChange={handleChange}
+        disabled={!formData.subCategory}
+        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+      >
+        <option value="">
+          {!formData.subCategory
+            ? "Select a sub category first"
+            : childCategories.length === 0
+            ? "No child category yet"
+            : "Select child category"}
+        </option>
 
-    <button
-      type="button"
-      disabled={!formData.childCategory}
-      onClick={() => setShowSubChildCategoryModal(true)}
-      className="text-sm font-semibold text-blue-600 hover:text-blue-700 disabled:cursor-not-allowed disabled:text-slate-400"
-    >
-      + Add
-    </button>
+        {childCategories.map((childCategory) => (
+          <option
+            key={childCategory._id}
+            value={childCategory._id}
+          >
+            {childCategory.name}
+          </option>
+        ))}
+      </select>
+    </div>
+
+    {/* ================= SUB CHILD CATEGORY ================= */}
+    <div>
+      <div className="mb-2 flex items-center justify-between">
+        <label className="block text-sm font-medium text-slate-700">
+          Sub Child Category
+        </label>
+
+        <button
+          type="button"
+          disabled={!formData.childCategory}
+          onClick={() =>
+            setShowSubChildCategoryModal(true)
+          }
+          className="text-sm font-semibold text-blue-600 hover:text-blue-700 disabled:cursor-not-allowed disabled:text-slate-400"
+        >
+          + Add
+        </button>
+      </div>
+
+      <select
+        name="subChildCategory"
+        value={formData.subChildCategory}
+        onChange={handleChange}
+        disabled={!formData.childCategory}
+        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+      >
+        <option value="">
+          {!formData.childCategory
+            ? "Select a child category first"
+            : subChildCategories.length === 0
+            ? "No sub child category yet"
+            : "Select sub child category"}
+        </option>
+
+        {subChildCategories.map(
+          (subChildCategory) => (
+            <option
+              key={subChildCategory._id}
+              value={subChildCategory._id}
+            >
+              {subChildCategory.name}
+            </option>
+          )
+        )}
+      </select>
+    </div>
   </div>
 
-  <select
-    name="subChildCategory"
-    value={formData.subChildCategory}
-    onChange={handleChange}
-    disabled={!formData.childCategory}
-    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100"
-  >
-    <option value="">
-      {!formData.childCategory
-        ? "Select a child category first"
-        : subChildCategories.length === 0
-        ? "No sub child category yet"
-        : "Select sub child category"}
-    </option>
+  {/* ================= BRAND ================= */}
+  <div className="mt-5 max-w-md">
+    <Input
+      label="Brand"
+      name="brand"
+      value={formData.brand}
+      onChange={handleChange}
+      placeholder="Apple"
+    />
+  </div>
 
-    {subChildCategories.map((subChildCategory) => (
-      <option
-        key={subChildCategory._id}
-        value={subChildCategory._id}
-      >
-        {subChildCategory.name}
-      </option>
-    ))}
-  </select>
-</div>
+  {/* =====================================================
+      ADDITIONAL CATEGORIES
+      ===================================================== */}
+  <div className="mt-6 border-t border-slate-200 pt-6">
 
+    <div className="mb-4">
+      <h3 className="text-base font-semibold text-slate-900">
+        Additional Categories
+      </h3>
 
+      <p className="mt-1 text-sm text-slate-500">
+        Select other main categories where this product
+        should also appear.
+      </p>
+    </div>
 
-              {/* BRAND */}
-              <Input
-                label="Brand"
-                name="brand"
-                value={formData.brand}
-                onChange={handleChange}
-                placeholder="Samsung"
-              />
-            </div>
-          </section>
+    {categories.length === 0 ? (
+      <p className="text-sm text-slate-500">
+        No categories available.
+      </p>
+    ) : (
+      <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+
+        {categories
+          .filter(
+            (category) =>
+              category._id !== formData.category
+          )
+          .map((category) => {
+
+            const checked =
+              (
+                formData.additionalCategories || []
+              ).includes(category._id);
+
+            return (
+              <label
+                key={category._id}
+                className={`
+                  flex cursor-pointer items-center gap-3
+                  rounded-xl border px-4 py-3
+                  transition
+                  ${
+                    checked
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-slate-300 bg-white hover:border-blue-300"
+                  }
+                `}
+              >
+
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={(e) => {
+
+                    setFormData((prev) => {
+
+                      const current =
+                        prev.additionalCategories || [];
+
+                      if (e.target.checked) {
+
+                        // duplicate prevent
+                        if (
+                          current.includes(
+                            category._id
+                          )
+                        ) {
+                          return prev;
+                        }
+
+                        return {
+                          ...prev,
+
+                          additionalCategories: [
+                            ...current,
+                            category._id,
+                          ],
+                        };
+                      }
+
+                      // uncheck
+                      return {
+                        ...prev,
+
+                        additionalCategories:
+                          current.filter(
+                            (id) =>
+                              id !== category._id
+                          ),
+                      };
+                    });
+                  }}
+                  className="h-4 w-4 accent-blue-600"
+                />
+
+                <span className="text-sm font-medium text-slate-700">
+                  {category.name}
+                </span>
+
+              </label>
+            );
+          })}
+      </div>
+    )}
+
+    {/* Selected category preview */}
+    {formData.additionalCategories?.length > 0 && (
+      <div className="mt-4 rounded-xl bg-slate-50 p-4">
+
+        <p className="mb-2 text-sm font-semibold text-slate-700">
+          Selected additional categories:
+        </p>
+
+        <div className="flex flex-wrap gap-2">
+
+          {formData.additionalCategories.map(
+            (categoryId) => {
+
+              const category =
+                categories.find(
+                  (item) =>
+                    item._id === categoryId
+                );
+
+              if (!category) return null;
+
+              return (
+                <span
+                  key={categoryId}
+                  className="rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-700"
+                >
+                  {category.name}
+                </span>
+              );
+            }
+          )}
+
+        </div>
+      </div>
+    )}
+  </div>
+</section>
 
           {/* ================= PRICE ================= */}
           <section className="rounded-2xl bg-white p-6 shadow-sm">

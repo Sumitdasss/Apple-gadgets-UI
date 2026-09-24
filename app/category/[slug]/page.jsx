@@ -2883,7 +2883,7 @@ function CategoryPageContent() {
                           {/* IMAGE */}
 
                           <Link
-                            href={`/product/${product.slug}`}
+                            href={`/Product/${product.slug}`}
                             className="relative block h-[165px] w-full overflow-hidden sm:h-[230px] lg:h-[240px]"
                             style={{
                               backgroundColor:
@@ -2928,7 +2928,7 @@ function CategoryPageContent() {
                           <div className="px-2.5 pb-2.5 pt-3 sm:px-4 sm:pb-4 sm:pt-3.5">
 
                             <Link
-                              href={`/product/${product.slug}`}
+                              href={`/Product/${product.slug}`}
                               className="block"
                             >
                               <h3

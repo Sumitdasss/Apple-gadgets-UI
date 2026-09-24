@@ -2928,7 +2928,7 @@ function CategoryPageContent() {
                           <div className="px-2.5 pb-2.5 pt-3 sm:px-4 sm:pb-4 sm:pt-3.5">
 
                             <Link
-                              href={`/product/${product.slug}`}
+                              href={`/Product/${product.slug}`}
                               className="block"
                             >
                               <h3
@@ -2979,7 +2979,7 @@ function CategoryPageContent() {
                             <div className="mt-2.5 flex items-center gap-1.5 sm:mt-3 sm:gap-2">
 
                               <Link
-                                href={`/product/${product.slug}`}
+                                href={`/Product/${product.slug}`}
                                 className="flex h-8 min-w-0 flex-1 items-center justify-center rounded-full text-[9.5px] font-medium sm:h-10 sm:text-[13px]"
                                 style={
                                   outOfStock

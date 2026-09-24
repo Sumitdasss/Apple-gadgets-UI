@@ -1,22 +1,10 @@
-
 /* eslint-disable react-hooks/set-state-in-effect */
-/* eslint-disable react-hooks/globals */
-/* eslint-disable react-hooks/static-components */
 
 "use client";
 
-import React, {
-  Suspense,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import React, { Suspense, useEffect, useMemo, useState } from "react";
 
-import {
-  useParams,
-  usePathname,
-  useSearchParams,
-} from "next/navigation";
+import { useParams, usePathname, useSearchParams } from "next/navigation";
 
 import Link from "next/link";
 
@@ -33,8 +21,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 
-const API_BASE =
-  "https://apple-gadgets-ui-backend.vercel.app";
+const API_BASE = "https://apple-gadgets-ui-backend.vercel.app";
 
 // ============================================
 // DESIGN TOKENS
@@ -66,13 +53,7 @@ const KNOWN_FILTER_GROUPS = [
   {
     key: "series",
     label: "Series / Model",
-    synonyms: [
-      "series",
-      "series name",
-      "model series",
-      "model",
-      "model name",
-    ],
+    synonyms: ["series", "series name", "model series", "model", "model name"],
   },
   {
     key: "display",
@@ -89,13 +70,7 @@ const KNOWN_FILTER_GROUPS = [
   {
     key: "processor",
     label: "Processor",
-    synonyms: [
-      "processor",
-      "cpu",
-      "chip",
-      "chipset",
-      "processor name",
-    ],
+    synonyms: ["processor", "cpu", "chip", "chipset", "processor name"],
   },
   {
     key: "battery",
@@ -121,12 +96,7 @@ const KNOWN_FILTER_GROUPS = [
   {
     key: "ram",
     label: "RAM",
-    synonyms: [
-      "ram",
-      "ram size",
-      "memory",
-      "memory size",
-    ],
+    synonyms: ["ram", "ram size", "memory", "memory size"],
   },
 ];
 
@@ -157,31 +127,17 @@ const MAX_AUTO_FILTER_OPTIONS = 25;
 // FILTER CHECKBOX
 // ============================================
 
-function FilterCheckbox({
-  label,
-  checked,
-  onChange,
-}) {
+function FilterCheckbox({ label, checked, onChange }) {
   return (
     <label className="flex cursor-pointer items-center gap-2.5 py-1 text-[12px] text-[#4B4943] transition-colors hover:text-[#211F1C] sm:text-[13px]">
       <span
         className="flex h-4 w-4 shrink-0 items-center justify-center rounded-[4px] border"
         style={{
-          borderColor: checked
-            ? COLOR.accent
-            : COLOR.lineStrong,
-          backgroundColor: checked
-            ? COLOR.accent
-            : COLOR.paper,
+          borderColor: checked ? COLOR.accent : COLOR.lineStrong,
+          backgroundColor: checked ? COLOR.accent : COLOR.paper,
         }}
       >
-        {checked && (
-          <Check
-            size={11}
-            strokeWidth={3}
-            className="text-white"
-          />
-        )}
+        {checked && <Check size={11} strokeWidth={3} className="text-white" />}
       </span>
 
       <input
@@ -191,9 +147,7 @@ function FilterCheckbox({
         className="sr-only"
       />
 
-      <span className="min-w-0 break-words">
-        {label}
-      </span>
+      <span className="min-w-0 break-words">{label}</span>
     </label>
   );
 }
@@ -202,13 +156,7 @@ function FilterCheckbox({
 // FILTER SECTION
 // ============================================
 
-function FilterSection({
-  label,
-  count,
-  isOpen,
-  onToggle,
-  children,
-}) {
+function FilterSection({ label, count, isOpen, onToggle, children }) {
   return (
     <div
       className="px-4 py-3.5"
@@ -407,9 +355,7 @@ function FilterContent({
             <input
               type="number"
               value={priceMin}
-              onChange={(e) =>
-                setPriceMin(e.target.value)
-              }
+              onChange={(e) => setPriceMin(e.target.value)}
               placeholder="Min"
               className="h-9 min-w-0 w-full rounded-[9px] px-3 text-[12px] outline-none"
               style={{
@@ -431,9 +377,7 @@ function FilterContent({
             <input
               type="number"
               value={priceMax}
-              onChange={(e) =>
-                setPriceMax(e.target.value)
-              }
+              onChange={(e) => setPriceMax(e.target.value)}
               placeholder="Max"
               className="h-9 min-w-0 w-full rounded-[9px] px-3 text-[12px] outline-none"
               style={{
@@ -457,9 +401,7 @@ function FilterContent({
         <FilterCheckbox
           label="Exclude out of stock"
           checked={excludeStock}
-          onChange={(e) =>
-            setExcludeStock(e.target.checked)
-          }
+          onChange={(e) => setExcludeStock(e.target.checked)}
         />
       </div>
 
@@ -471,25 +413,14 @@ function FilterContent({
           label={section.label}
           count={getSelectedCount(section.key)}
           isOpen={isSectionOpen(section.key)}
-          onToggle={() =>
-            toggleSection(section.key)
-          }
+          onToggle={() => toggleSection(section.key)}
         >
           {section.options.map((item) => (
             <FilterCheckbox
               key={item}
               label={item}
-              checked={(
-                selectedFilters[
-                  section.key
-                ] || []
-              ).includes(item)}
-              onChange={() =>
-                toggleFilterValue(
-                  section.key,
-                  item
-                )
-              }
+              checked={(selectedFilters[section.key] || []).includes(item)}
+              onChange={() => toggleFilterValue(section.key, item)}
             />
           ))}
         </FilterSection>
@@ -529,22 +460,16 @@ function CategoryPageContent() {
   // SEARCH PAGE
   // ============================================
 
-  const isSearchPage =
-    pathname === "/search";
+  const isSearchPage = pathname === "/search";
 
-  const urlSearch =
-    searchParams.get("q") ||
-    searchParams.get("search") ||
-    "";
+  const urlSearch = searchParams.get("q") || searchParams.get("search") || "";
 
   // ============================================
   // BREADCRUMB
   // ============================================
 
   const breadcrumbItems = useMemo(() => {
-    const segments = pathname
-      ?.split("/")
-      .filter(Boolean);
+    const segments = pathname?.split("/").filter(Boolean);
 
     return segments || [];
   }, [pathname]);
@@ -552,72 +477,60 @@ function CategoryPageContent() {
   const formatBreadcrumb = (segment) => {
     return decodeURIComponent(segment)
       .replace(/-/g, " ")
-      .replace(/\b\w/g, (char) =>
-        char.toUpperCase()
-      );
+      .replace(/\b\w/g, (char) => char.toUpperCase());
   };
 
   // ============================================
   // PRODUCTS
   // ============================================
 
-  const [products, setProducts] =
-    useState([]);
+  const [products, setProducts] = useState([]);
 
-  const [loading, setLoading] =
-    useState(true);
+  const [loading, setLoading] = useState(true);
 
   // ============================================
   // SEARCH
   // ============================================
 
-  const [searchText, setSearchText] =
-    useState(urlSearch);
+  const [searchText, setSearchText] = useState(urlSearch);
 
   // ============================================
   // PRICE
   // ============================================
 
-  const [priceMin, setPriceMin] =
-    useState("");
+  const [priceMin, setPriceMin] = useState("");
 
-  const [priceMax, setPriceMax] =
-    useState("");
+  const [priceMax, setPriceMax] = useState("");
 
   // ============================================
   // STOCK
   // ============================================
 
-  const [excludeStock, setExcludeStock] =
-    useState(true);
+  const [excludeStock, setExcludeStock] = useState(true);
 
   // ============================================
   // FILTERS
   // ============================================
 
-  const [selectedFilters, setSelectedFilters] =
-    useState({});
+  const [selectedFilters, setSelectedFilters] = useState({});
 
   // ============================================
   // SORT
   // ============================================
 
-  const [sortBy, setSortBy] =
-    useState("default");
+  const [sortBy, setSortBy] = useState("default");
 
   // ============================================
   // CLOSED SECTIONS
   // ============================================
 
-  const [closedSections, setClosedSections] =
-    useState({});
+  const [closedSections, setClosedSections] = useState({});
 
   // ============================================
   // MOBILE FILTER
   // ============================================
 
-  const [isFilterOpen, setIsFilterOpen] =
-    useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   // ============================================
   // PAGINATION
@@ -625,15 +538,13 @@ function CategoryPageContent() {
 
   const PRODUCTS_PER_PAGE = 12;
 
-  const [currentPage, setCurrentPage] =
-    useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
 
   // ============================================
   // SECTION OPEN / CLOSE
   // ============================================
 
-  const isSectionOpen = (key) =>
-    !closedSections[key];
+  const isSectionOpen = (key) => !closedSections[key];
 
   const toggleSection = (key) => {
     setClosedSections((prev) => ({
@@ -663,16 +574,10 @@ function CategoryPageContent() {
       }
     };
 
-    document.addEventListener(
-      "keydown",
-      handleEscape
-    );
+    document.addEventListener("keydown", handleEscape);
 
     return () => {
-      document.removeEventListener(
-        "keydown",
-        handleEscape
-      );
+      document.removeEventListener("keydown", handleEscape);
     };
   }, [isFilterOpen]);
 
@@ -682,8 +587,7 @@ function CategoryPageContent() {
 
   useEffect(() => {
     if (isFilterOpen) {
-      document.body.style.overflow =
-        "hidden";
+      document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
     }
@@ -699,23 +603,15 @@ function CategoryPageContent() {
 
   const categoryName = useMemo(() => {
     if (isSearchPage) {
-      return urlSearch.trim()
-        ? `Search: ${urlSearch}`
-        : "Search Products";
+      return urlSearch.trim() ? `Search: ${urlSearch}` : "Search Products";
     }
 
     if (!slug) return "";
 
     return slug
       .replace(/-/g, " ")
-      .replace(/\b\w/g, (char) =>
-        char.toUpperCase()
-      );
-  }, [
-    slug,
-    isSearchPage,
-    urlSearch,
-  ]);
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  }, [slug, isSearchPage, urlSearch]);
 
   // ============================================
   // GET PRODUCTS
@@ -728,45 +624,30 @@ function CategoryPageContent() {
       try {
         setLoading(true);
 
-        const hasSearch =
-          urlSearch.trim() !== "";
+        const hasSearch = urlSearch.trim() !== "";
 
         const endpoint =
           isSearchPage || hasSearch
             ? `${API_BASE}/getallProduct`
-            : `${API_BASE}/getallProduct?category=${encodeURIComponent(
-                slug
-              )}`;
+            : `${API_BASE}/getallProduct?category=${encodeURIComponent(slug)}`;
 
-        const response = await fetch(
-          endpoint,
-          {
-            cache: "no-store",
-          }
-        );
+        const response = await fetch(endpoint, {
+          cache: "no-store",
+        });
 
         if (!response.ok) {
-          throw new Error(
-            "Failed to fetch products"
-          );
+          throw new Error("Failed to fetch products");
         }
 
-        const data =
-          await response.json();
+        const data = await response.json();
 
-        const productList =
-          Array.isArray(data)
-            ? data
-            : data?.products ||
-              data?.data ||
-              [];
+        const productList = Array.isArray(data)
+          ? data
+          : data?.products || data?.data || [];
 
         setProducts(productList);
       } catch (error) {
-        console.error(
-          "Category products error:",
-          error
-        );
+        console.error("Category products error:", error);
 
         setProducts([]);
       } finally {
@@ -775,11 +656,7 @@ function CategoryPageContent() {
     };
 
     fetchProducts();
-  }, [
-    slug,
-    urlSearch,
-    isSearchPage,
-  ]);
+  }, [slug, urlSearch, isSearchPage]);
 
   // ============================================
   // PRODUCT IMAGE
@@ -790,16 +667,10 @@ function CategoryPageContent() {
       return "/placeholder.png";
     }
 
-    if (
-      Array.isArray(product.images) &&
-      product.images.length > 0
-    ) {
-      const firstImage =
-        product.images[0];
+    if (Array.isArray(product.images) && product.images.length > 0) {
+      const firstImage = product.images[0];
 
-      if (
-        typeof firstImage === "string"
-      ) {
+      if (typeof firstImage === "string") {
         return firstImage;
       }
 
@@ -811,9 +682,7 @@ function CategoryPageContent() {
       );
     }
 
-    if (
-      typeof product.images === "string"
-    ) {
+    if (typeof product.images === "string") {
       return product.images;
     }
 
@@ -825,23 +694,15 @@ function CategoryPageContent() {
   // ============================================
 
   const getProductPrice = (product) => {
-    return Number(
-      product?.discountPrice ||
-        product?.price ||
-        0
-    );
+    return Number(product?.discountPrice || product?.price || 0);
   };
 
   const getOriginalPrice = (product) => {
-    return Number(
-      product?.price || 0
-    );
+    return Number(product?.price || 0);
   };
 
   const formatPrice = (price) => {
-    return new Intl.NumberFormat(
-      "en-BD"
-    ).format(price);
+    return new Intl.NumberFormat("en-BD").format(price);
   };
 
   // ============================================
@@ -849,22 +710,13 @@ function CategoryPageContent() {
   // ============================================
 
   const getSpecEntries = (product) => {
-    const specifications =
-      product?.specifications;
+    const specifications = product?.specifications;
 
-    if (
-      !Array.isArray(
-        specifications
-      )
-    ) {
+    if (!Array.isArray(specifications)) {
       return [];
     }
 
-    return specifications.filter(
-      (item) =>
-        item &&
-        typeof item === "object"
-    );
+    return specifications.filter((item) => item && typeof item === "object");
   };
 
   const getSpecKeyLabel = (item) => {
@@ -875,91 +727,53 @@ function CategoryPageContent() {
         item.label ||
         item.specification ||
         item.attribute ||
-        ""
+        "",
     ).trim();
   };
 
   const getSpecItemValues = (item) => {
     const value =
-      item.value ??
-      item.data ??
-      item.specificationValue ??
-      item.content ??
-      "";
+      item.value ?? item.data ?? item.specificationValue ?? item.content ?? "";
 
     const values = [];
 
     if (Array.isArray(value)) {
-      value.forEach(
-        (itemValue) => {
-          if (
-            itemValue !==
-              undefined &&
-            itemValue !== null &&
-            String(
-              itemValue
-            ).trim() !== ""
-          ) {
-            values.push(
-              String(
-                itemValue
-              ).trim()
-            );
-          }
+      value.forEach((itemValue) => {
+        if (
+          itemValue !== undefined &&
+          itemValue !== null &&
+          String(itemValue).trim() !== ""
+        ) {
+          values.push(String(itemValue).trim());
         }
-      );
+      });
     } else if (
       value !== undefined &&
       value !== null &&
       String(value).trim() !== ""
     ) {
-      values.push(
-        String(value).trim()
-      );
+      values.push(String(value).trim());
     }
 
     return values;
   };
 
-  const getSpecificationValues = (
-    product,
-    keys = []
-  ) => {
-    const normalizedKeys =
-      keys.map((key) =>
-        String(key)
-          .trim()
-          .toLowerCase()
-      );
+  const getSpecificationValues = (product, keys = []) => {
+    const normalizedKeys = keys.map((key) => String(key).trim().toLowerCase());
 
     const result = [];
 
-    getSpecEntries(product).forEach(
-      (item) => {
-        const itemKey =
-          getSpecKeyLabel(
-            item
-          ).toLowerCase();
+    getSpecEntries(product).forEach((item) => {
+      const itemKey = getSpecKeyLabel(item).toLowerCase();
 
-        if (
-          !normalizedKeys.includes(
-            itemKey
-          )
-        ) {
-          return;
-        }
-
-        result.push(
-          ...getSpecItemValues(
-            item
-          )
-        );
+      if (!normalizedKeys.includes(itemKey)) {
+        return;
       }
-    );
 
-    return [
-      ...new Set(result),
-    ];
+      result.push(...getSpecItemValues(item));
+    });
+
+    return [...new Set(result)];
   };
 
   // ============================================
@@ -968,57 +782,32 @@ function CategoryPageContent() {
 
   const getBrandValues = (product) => {
     if (
-      product?.brand !==
-        undefined &&
+      product?.brand !== undefined &&
       product?.brand !== null &&
-      String(
-        product.brand
-      ).trim() !== ""
+      String(product.brand).trim() !== ""
     ) {
-      if (
-        typeof product.brand ===
-        "object"
-      ) {
+      if (typeof product.brand === "object") {
         const value =
           product.brand.name ||
           product.brand.title ||
           product.brand.value ||
           "";
 
-        return value
-          ? [
-              String(
-                value
-              ).trim(),
-            ]
-          : [];
+        return value ? [String(value).trim()] : [];
       }
 
-      return [
-        String(
-          product.brand
-        ).trim(),
-      ];
+      return [String(product.brand).trim()];
     }
 
-    return getSpecificationValues(
-      product,
-      [
-        "brand",
-        "brand name",
-      ]
-    );
+    return getSpecificationValues(product, ["brand", "brand name"]);
   };
 
   // ============================================
   // RAW RAM
   // ============================================
 
-  const getRawRamValues = (
-    product
-  ) => {
-    const ram =
-      product?.ram;
+  const getRawRamValues = (product) => {
+    const ram = product?.ram;
 
     if (!Array.isArray(ram)) {
       return [];
@@ -1027,237 +816,128 @@ function CategoryPageContent() {
     return ram
       .filter(
         (item) =>
-          item !== undefined &&
-          item !== null &&
-          String(
-            item
-          ).trim() !== ""
+          item !== undefined && item !== null && String(item).trim() !== "",
       )
-      .map((item) =>
-        String(item).trim()
-      );
+      .map((item) => String(item).trim());
   };
 
   // ============================================
   // STORAGE
   // ============================================
 
-  const getStorageValues = (
-    product
-  ) => {
-    const ramValues =
-      getRawRamValues(
-        product
-      );
+  const getStorageValues = (product) => {
+    const ramValues = getRawRamValues(product);
 
-    const storageValues =
-      [];
+    const storageValues = [];
 
-    ramValues.forEach(
-      (value) => {
-        const text =
-          String(
-            value
-          ).trim();
+    ramValues.forEach((value) => {
+      const text = String(value).trim();
 
-        if (!text) return;
+      if (!text) return;
 
-        const ramMatch =
-          text.match(
-            /\b\d+(?:\.\d+)?\s*GB\s*RAM\b/i
-          );
+      const ramMatch = text.match(/\b\d+(?:\.\d+)?\s*GB\s*RAM\b/i);
 
-        if (ramMatch) {
-          const beforeRam =
-            text
-              .slice(
-                0,
-                ramMatch.index
-              )
-              .trim();
+      if (ramMatch) {
+        const beforeRam = text.slice(0, ramMatch.index).trim();
 
-          const storageMatch =
-            beforeRam.match(
-              /\b\d+(?:\.\d+)?\s*(?:TB|GB)\b/i
-            );
+        const storageMatch = beforeRam.match(/\b\d+(?:\.\d+)?\s*(?:TB|GB)\b/i);
 
-          if (
-            storageMatch
-          ) {
-            storageValues.push(
-              storageMatch[0]
-                .replace(
-                  /\s+/g,
-                  ""
-                )
-                .toUpperCase()
-            );
-          }
-
-          return;
+        if (storageMatch) {
+          storageValues.push(storageMatch[0].replace(/\s+/g, "").toUpperCase());
         }
 
-        const onlyStorageMatch =
-          text.match(
-            /^\d+(?:\.\d+)?\s*(?:TB|GB)$/i
-          );
-
-        if (
-          onlyStorageMatch
-        ) {
-          storageValues.push(
-            onlyStorageMatch[0]
-              .replace(
-                /\s+/g,
-                ""
-              )
-              .toUpperCase()
-          );
-        }
+        return;
       }
+
+      const onlyStorageMatch = text.match(/^\d+(?:\.\d+)?\s*(?:TB|GB)$/i);
+
+      if (onlyStorageMatch) {
+        storageValues.push(
+          onlyStorageMatch[0].replace(/\s+/g, "").toUpperCase(),
+        );
+      }
+    });
+
+    const storageGroup = KNOWN_FILTER_GROUPS.find(
+      (group) => group.key === "storage",
     );
 
-    const storageGroup =
-      KNOWN_FILTER_GROUPS.find(
-        (group) =>
-          group.key ===
-          "storage"
-      );
+    const specStorage = getSpecificationValues(
+      product,
+      storageGroup?.synonyms || [],
+    );
 
-    const specStorage =
-      getSpecificationValues(
-        product,
-        storageGroup?.synonyms ||
-          []
-      );
-
-    return [
-      ...new Set([
-        ...storageValues,
-        ...specStorage,
-      ]),
-    ];
+    return [...new Set([...storageValues, ...specStorage])];
   };
 
   // ============================================
   // RAM
   // ============================================
 
-  const getRamValues = (
-    product
-  ) => {
-    const ramValues =
-      getRawRamValues(
-        product
-      );
+  const getRamValues = (product) => {
+    const ramValues = getRawRamValues(product);
 
-    const parsed =
-      ramValues
-        .map((value) => {
-          const text =
-            String(
-              value
-            ).trim();
+    const parsed = ramValues
+      .map((value) => {
+        const text = String(value).trim();
 
-          if (!text) return "";
+        if (!text) return "";
 
-          const withRam =
-            text.match(
-              /\b\d+(?:\.\d+)?\s*GB\s*RAM\b/i
-            );
+        const withRam = text.match(/\b\d+(?:\.\d+)?\s*GB\s*RAM\b/i);
 
-          if (withRam) {
-            return withRam[0]
-              .replace(
-                /\s*RAM\b/i,
-                ""
-              )
-              .replace(
-                /\s+/g,
-                ""
-              )
-              .toUpperCase();
-          }
+        if (withRam) {
+          return withRam[0]
+            .replace(/\s*RAM\b/i, "")
+            .replace(/\s+/g, "")
+            .toUpperCase();
+        }
 
-          const plainGb =
-            text.match(
-              /^\d+(?:\.\d+)?\s*GB$/i
-            );
+        const plainGb = text.match(/^\d+(?:\.\d+)?\s*GB$/i);
 
-          if (plainGb) {
-            return plainGb[0]
-              .replace(
-                /\s+/g,
-                ""
-              )
-              .toUpperCase();
-          }
+        if (plainGb) {
+          return plainGb[0].replace(/\s+/g, "").toUpperCase();
+        }
 
-          return text;
-        })
-        .filter(Boolean);
+        return text;
+      })
+      .filter(Boolean);
 
-    const ramGroup =
-      KNOWN_FILTER_GROUPS.find(
-        (group) =>
-          group.key ===
-          "ram"
-      );
+    const ramGroup = KNOWN_FILTER_GROUPS.find((group) => group.key === "ram");
 
-    const specRam =
-      getSpecificationValues(
-        product,
-        ramGroup?.synonyms ||
-          []
-      );
+    const specRam = getSpecificationValues(product, ramGroup?.synonyms || []);
 
-    return [
-      ...new Set([
-        ...parsed,
-        ...specRam,
-      ]),
-    ];
+    return [...new Set([...parsed, ...specRam])];
   };
 
   // ============================================
   // DISPLAY SIZE
   // ============================================
 
-  const getDisplayValues = (
-    product
-  ) => {
-    const displayGroup =
-      KNOWN_FILTER_GROUPS.find(
-        (group) =>
-          group.key === "display"
-      );
+  const getDisplayValues = (product) => {
+    const displayGroup = KNOWN_FILTER_GROUPS.find(
+      (group) => group.key === "display",
+    );
 
-    const rawValues =
-      getSpecificationValues(
-        product,
-        displayGroup?.synonyms || []
-      );
+    const rawValues = getSpecificationValues(
+      product,
+      displayGroup?.synonyms || [],
+    );
 
     const cleaned = rawValues
       .map((value) => {
-        const text =
-          String(value).trim();
+        const text = String(value).trim();
 
         if (!text) return "";
 
-        const primaryMatch =
-          text.match(
-            /\b(\d+(?:\.\d+)?)\s*(?:inches?|inch|")\b/i
-          );
+        const primaryMatch = text.match(
+          /\b(\d+(?:\.\d+)?)\s*(?:inches?|inch|")\b/i,
+        );
 
         if (primaryMatch) {
           return `${primaryMatch[1]} inches`;
         }
 
-        if (
-          text.length >
-          MAX_FILTER_VALUE_LENGTH
-        ) {
+        if (text.length > MAX_FILTER_VALUE_LENGTH) {
           return "";
         }
 
@@ -1265,174 +945,93 @@ function CategoryPageContent() {
       })
       .filter(Boolean);
 
-    return [
-      ...new Set(cleaned),
-    ];
+    return [...new Set(cleaned)];
   };
 
   // ============================================
   // GENERIC FILTER VALUE
   // ============================================
 
-  const getValuesForFilter = (
-    product,
-    config
-  ) => {
-    if (
-      config.key ===
-      "brand"
-    ) {
-      return getBrandValues(
-        product
-      );
+  const getValuesForFilter = (product, config) => {
+    if (config.key === "brand") {
+      return getBrandValues(product);
     }
 
-    if (
-      config.key ===
-      "storage"
-    ) {
-      return getStorageValues(
-        product
-      );
+    if (config.key === "storage") {
+      return getStorageValues(product);
     }
 
-    if (
-      config.key ===
-      "ram"
-    ) {
-      return getRamValues(
-        product
-      );
+    if (config.key === "ram") {
+      return getRamValues(product);
     }
 
-    if (
-      config.key ===
-      "display"
-    ) {
-      return getDisplayValues(
-        product
-      );
+    if (config.key === "display") {
+      return getDisplayValues(product);
     }
 
-    return getSpecificationValues(
-      product,
-      config.synonyms
-    );
+    return getSpecificationValues(product, config.synonyms);
   };
 
   // ============================================
   // SORT FILTER OPTIONS
   // ============================================
 
-  const sortFilterOptions = (
-    values
-  ) => {
-    const getNumber = (
-      value
-    ) => {
-      const text =
-        String(
-          value
-        ).toUpperCase();
+  const sortFilterOptions = (values) => {
+    const getNumber = (value) => {
+      const text = String(value).toUpperCase();
 
-      const match =
-        text.match(
-          /\d+(?:\.\d+)?/
-        );
+      const match = text.match(/\d+(?:\.\d+)?/);
 
       if (!match) return null;
 
-      const number =
-        Number(
-          match[0]
-        );
+      const number = Number(match[0]);
 
-      if (
-        text.includes(
-          "TB"
-        )
-      ) {
-        return (
-          number * 1024
-        );
+      if (text.includes("TB")) {
+        return number * 1024;
       }
 
       return number;
     };
 
-    const allNumeric =
-      values.every(
-        (value) =>
-          getNumber(
-            value
-          ) !== null
-      );
+    const allNumeric = values.every((value) => getNumber(value) !== null);
 
     if (allNumeric) {
-      return [
-        ...values,
-      ].sort(
-        (a, b) =>
-          getNumber(a) -
-          getNumber(b)
-      );
+      return [...values].sort((a, b) => getNumber(a) - getNumber(b));
     }
 
-    return [
-      ...values,
-    ].sort();
+    return [...values].sort();
   };
 
   // ============================================
   // KNOWN SYNONYMS
   // ============================================
 
-  const knownSynonymSet =
-    useMemo(() => {
-      const set =
-        new Set();
+  const knownSynonymSet = useMemo(() => {
+    const set = new Set();
 
-      KNOWN_FILTER_GROUPS.forEach(
-        (group) => {
-          group.synonyms.forEach(
-            (synonym) => {
-              set.add(
-                synonym.toLowerCase()
-              );
-            }
-          );
-        }
-      );
+    KNOWN_FILTER_GROUPS.forEach((group) => {
+      group.synonyms.forEach((synonym) => {
+        set.add(synonym.toLowerCase());
+      });
+    });
 
-      return set;
-    }, []);
+    return set;
+  }, []);
 
   // ============================================
   // SEARCH TEXT
   // ============================================
 
-  const getSearchText = (
-    value
-  ) => {
-    if (
-      value === undefined ||
-      value === null
-    ) {
+  const getSearchText = (value) => {
+    if (value === undefined || value === null) {
       return "";
     }
 
     if (Array.isArray(value)) {
-      return value
-        .map((item) =>
-          getSearchText(item)
-        )
-        .join(" ");
+      return value.map((item) => getSearchText(item)).join(" ");
     }
 
-    if (
-      typeof value ===
-      "object"
-    ) {
+    if (typeof value === "object") {
       return [
         value.name,
         value.title,
@@ -1442,9 +1041,7 @@ function CategoryPageContent() {
         value._id,
       ]
         .filter(Boolean)
-        .map((item) =>
-          getSearchText(item)
-        )
+        .map((item) => getSearchText(item))
         .join(" ");
     }
 
@@ -1455,90 +1052,48 @@ function CategoryPageContent() {
   // SEARCH PRODUCT
   // ============================================
 
-  const searchProduct = (
-    product,
-    searchValue
-  ) => {
-    if (
-      !searchValue.trim()
-    ) {
+  const searchProduct = (product, searchValue) => {
+    if (!searchValue.trim()) {
       return true;
     }
 
-    const search =
-      searchValue
-        .trim()
-        .toLowerCase();
+    const search = searchValue.trim().toLowerCase();
 
-    const searchableValues =
-      [
-        product?.name,
-        product?.slug,
-        product?.brand,
-        product?.sku,
-        product?.category,
-        product?.subCategory,
-        product?.childCategory,
-        product?.subChildCategory,
-        product?.price,
-        product?.discountPrice,
-        product?.shortDescription,
-        product?.description,
-      ];
+    const searchableValues = [
+      product?.name,
+      product?.slug,
+      product?.brand,
+      product?.sku,
+      product?.category,
+      product?.subCategory,
+      product?.childCategory,
+      product?.subChildCategory,
+      product?.price,
+      product?.discountPrice,
+      product?.shortDescription,
+      product?.description,
+    ];
 
-    if (
-      Array.isArray(
-        product?.ram
-      )
-    ) {
-      searchableValues.push(
-        ...product.ram
-      );
+    if (Array.isArray(product?.ram)) {
+      searchableValues.push(...product.ram);
     }
 
-    if (
-      Array.isArray(
-        product?.colors
-      )
-    ) {
-      searchableValues.push(
-        ...product.colors
-      );
+    if (Array.isArray(product?.colors)) {
+      searchableValues.push(...product.colors);
     }
 
-    if (
-      Array.isArray(
-        product?.sizes
-      )
-    ) {
-      searchableValues.push(
-        ...product.sizes
-      );
+    if (Array.isArray(product?.sizes)) {
+      searchableValues.push(...product.sizes);
     }
 
-    getSpecEntries(
-      product
-    ).forEach((item) => {
-      searchableValues.push(
-        getSpecKeyLabel(
-          item
-        )
-      );
+    getSpecEntries(product).forEach((item) => {
+      searchableValues.push(getSpecKeyLabel(item));
 
-      searchableValues.push(
-        ...getSpecItemValues(
-          item
-        )
-      );
+      searchableValues.push(...getSpecItemValues(item));
     });
 
-    return searchableValues.some(
-      (value) =>
-        getSearchText(
-          value
-        )
-          .toLowerCase()
-          .includes(search)
+    return searchableValues.some((value) =>
+      getSearchText(value).toLowerCase().includes(search),
     );
   };
 
@@ -1554,26 +1109,15 @@ function CategoryPageContent() {
   // source হবে।
   // ============================================
 
-  const searchMatchedProducts =
-    useMemo(() => {
-      const query =
-        searchText.trim();
+  const searchMatchedProducts = useMemo(() => {
+    const query = searchText.trim();
 
-      if (!query) {
-        return products;
-      }
+    if (!query) {
+      return products;
+    }
 
-      return products.filter(
-        (product) =>
-          searchProduct(
-            product,
-            query
-          )
-      );
-    }, [
-      products,
-      searchText,
-    ]);
+    return products.filter((product) => searchProduct(product, query));
+  }, [products, searchText]);
 
   // ============================================
   // DYNAMIC FILTER CONFIGS
@@ -1583,143 +1127,75 @@ function CategoryPageContent() {
   // searchMatchedProducts ব্যবহার করা হয়েছে।
   // ============================================
 
-  const dynamicFilterConfigs =
-    useMemo(() => {
-      const collected =
-        new Map();
+  const dynamicFilterConfigs = useMemo(() => {
+    const collected = new Map();
 
-      searchMatchedProducts.forEach(
-        (product) => {
-          getSpecEntries(
-            product
-          ).forEach(
-            (item) => {
-              const rawLabel =
-                getSpecKeyLabel(
-                  item
-                );
+    searchMatchedProducts.forEach((product) => {
+      getSpecEntries(product).forEach((item) => {
+        const rawLabel = getSpecKeyLabel(item);
 
-              const normalized =
-                rawLabel.toLowerCase();
+        const normalized = rawLabel.toLowerCase();
 
-              if (!normalized) {
-                return;
-              }
-
-              if (
-                knownSynonymSet.has(
-                  normalized
-                )
-              ) {
-                return;
-              }
-
-              if (
-                IGNORED_SPEC_KEYS.has(
-                  normalized
-                )
-              ) {
-                return;
-              }
-
-              const values =
-                getSpecItemValues(
-                  item
-                ).filter(
-                  (value) =>
-                    value.length <=
-                    MAX_FILTER_VALUE_LENGTH
-                );
-
-              if (
-                values.length ===
-                0
-              ) {
-                return;
-              }
-
-              if (
-                !collected.has(
-                  normalized
-                )
-              ) {
-                collected.set(
-                  normalized,
-                  {
-                    label:
-                      rawLabel,
-                    values:
-                      new Set(),
-                  }
-                );
-              }
-
-              const entry =
-                collected.get(
-                  normalized
-                );
-
-              values.forEach(
-                (value) => {
-                  entry.values.add(
-                    value
-                  );
-                }
-              );
-            }
-          );
+        if (!normalized) {
+          return;
         }
-      );
 
-      const configs = [];
+        if (knownSynonymSet.has(normalized)) {
+          return;
+        }
 
-      collected.forEach(
-        (
-          entry,
-          normalizedKey
-        ) => {
-          const uniqueValues = [
-            ...entry.values,
-          ];
+        if (IGNORED_SPEC_KEYS.has(normalized)) {
+          return;
+        }
 
-          if (
-            uniqueValues.length <
-            2
-          ) {
-            return;
-          }
+        const values = getSpecItemValues(item).filter(
+          (value) => value.length <= MAX_FILTER_VALUE_LENGTH,
+        );
 
-          if (
-            uniqueValues.length >
-            MAX_AUTO_FILTER_OPTIONS
-          ) {
-            return;
-          }
+        if (values.length === 0) {
+          return;
+        }
 
-          configs.push({
-            key: `spec:${normalizedKey}`,
-            label:
-              entry.label,
-            values:
-              uniqueValues,
-            synonyms: [
-              normalizedKey,
-            ],
+        if (!collected.has(normalized)) {
+          collected.set(normalized, {
+            label: rawLabel,
+            values: new Set(),
           });
         }
-      );
 
-      configs.sort((a, b) =>
-        a.label.localeCompare(
-          b.label
-        )
-      );
+        const entry = collected.get(normalized);
 
-      return configs;
-    }, [
-      searchMatchedProducts,
-      knownSynonymSet,
-    ]);
+        values.forEach((value) => {
+          entry.values.add(value);
+        });
+      });
+    });
+
+    const configs = [];
+
+    collected.forEach((entry, normalizedKey) => {
+      const uniqueValues = [...entry.values];
+
+      if (uniqueValues.length < 2) {
+        return;
+      }
+
+      if (uniqueValues.length > MAX_AUTO_FILTER_OPTIONS) {
+        return;
+      }
+
+      configs.push({
+        key: `spec:${normalizedKey}`,
+        label: entry.label,
+        values: uniqueValues,
+        synonyms: [normalizedKey],
+      });
+    });
+
+    configs.sort((a, b) => a.label.localeCompare(b.label));
+
+    return configs;
+  }, [searchMatchedProducts, knownSynonymSet]);
 
   // ============================================
   // FILTER SECTIONS
@@ -1728,156 +1204,86 @@ function CategoryPageContent() {
   // searchMatchedProducts থেকে options তৈরি হচ্ছে।
   // ============================================
 
-  const filterSections =
-    useMemo(() => {
-      const allConfigs = [
-        ...KNOWN_FILTER_GROUPS,
-        ...dynamicFilterConfigs,
-      ];
+  const filterSections = useMemo(() => {
+    const allConfigs = [...KNOWN_FILTER_GROUPS, ...dynamicFilterConfigs];
 
-      return allConfigs
-        .map((config) => {
-          const values =
-            searchMatchedProducts.flatMap(
-              (product) =>
-                getValuesForFilter(
-                  product,
-                  config
-                )
-            );
-
-          const uniqueValues = [
-            ...new Set(values),
-          ].filter(
-            (value) =>
-              Boolean(value) &&
-              String(value).length <=
-                MAX_FILTER_VALUE_LENGTH
-          );
-
-          return {
-            ...config,
-            options:
-              sortFilterOptions(
-                uniqueValues
-              ),
-          };
-        })
-        .filter(
-          (section) =>
-            section.options
-              .length > 0
+    return allConfigs
+      .map((config) => {
+        const values = searchMatchedProducts.flatMap((product) =>
+          getValuesForFilter(product, config),
         );
-    }, [
-      searchMatchedProducts,
-      dynamicFilterConfigs,
-    ]);
+
+        const uniqueValues = [...new Set(values)].filter(
+          (value) =>
+            Boolean(value) && String(value).length <= MAX_FILTER_VALUE_LENGTH,
+        );
+
+        return {
+          ...config,
+          options: sortFilterOptions(uniqueValues),
+        };
+      })
+      .filter((section) => section.options.length > 0);
+  }, [searchMatchedProducts, dynamicFilterConfigs]);
 
   // ============================================
   // TOGGLE FILTER
   // ============================================
 
-  const toggleFilterValue = (
-    filterKey,
-    value
-  ) => {
-    setSelectedFilters(
-      (prev) => {
-        const current =
-          prev[filterKey] ||
-          [];
+  const toggleFilterValue = (filterKey, value) => {
+    setSelectedFilters((prev) => {
+      const current = prev[filterKey] || [];
 
-        const next =
-          current.includes(value)
-            ? current.filter(
-                (item) =>
-                  item !== value
-              )
-            : [
-                ...current,
-                value,
-              ];
+      const next = current.includes(value)
+        ? current.filter((item) => item !== value)
+        : [...current, value];
 
-        return {
-          ...prev,
-          [filterKey]:
-            next,
-        };
-      }
-    );
+      return {
+        ...prev,
+        [filterKey]: next,
+      };
+    });
   };
 
   // ============================================
   // SELECTED COUNT
   // ============================================
 
-  const getSelectedCount = (
-    filterKey
-  ) =>
-    (
-      selectedFilters[
-        filterKey
-      ] || []
-    ).length;
+  const getSelectedCount = (filterKey) =>
+    (selectedFilters[filterKey] || []).length;
 
   // ============================================
   // ACTIVE FILTER COUNT
   // ============================================
 
-  const activeFilterCount =
-    useMemo(() => {
-      const optionCount =
-        Object.values(
-          selectedFilters
-        ).reduce(
-          (total, values) =>
-            total +
-            values.length,
-          0
-        );
+  const activeFilterCount = useMemo(() => {
+    const optionCount = Object.values(selectedFilters).reduce(
+      (total, values) => total + values.length,
+      0,
+    );
 
-      const priceCount =
-        priceMin !== ""
-          ? 1
-          : 0;
+    const priceCount = priceMin !== "" ? 1 : 0;
 
-      const maxPriceCount =
-        priceMax !== ""
-          ? 1
-          : 0;
+    const maxPriceCount = priceMax !== "" ? 1 : 0;
 
-      const searchCount =
-        searchText.trim() !== ""
-          ? 1
-          : 0;
+    const searchCount = searchText.trim() !== "" ? 1 : 0;
 
-      return (
-        optionCount +
-        priceCount +
-        maxPriceCount +
-        searchCount
-      );
-    }, [
-      selectedFilters,
-      priceMin,
-      priceMax,
-      searchText,
-    ]);
+    return optionCount + priceCount + maxPriceCount + searchCount;
+  }, [selectedFilters, priceMin, priceMax, searchText]);
 
   // ============================================
   // CLEAR ALL
   // ============================================
 
-  const clearAllFilters =
-    () => {
-      setSearchText("");
-      setPriceMin("");
-      setPriceMax("");
-      setExcludeStock(true);
-      setSelectedFilters({});
-      setSortBy("default");
-      setCurrentPage(1);
-    };
+  const clearAllFilters = () => {
+    setSearchText("");
+    setPriceMin("");
+    setPriceMax("");
+    setExcludeStock(true);
+    setSelectedFilters({});
+    setSortBy("default");
+    setCurrentPage(1);
+  };
 
   // ============================================
   // FILTER PRODUCTS
@@ -1886,164 +1292,82 @@ function CategoryPageContent() {
   // Search result থেকেই filtering শুরু হচ্ছে।
   // ============================================
 
-  const filteredProducts =
-    useMemo(() => {
-      let result = [
-        ...searchMatchedProducts,
-      ];
+  const filteredProducts = useMemo(() => {
+    let result = [...searchMatchedProducts];
 
-      // PRICE MIN
+    // PRICE MIN
 
-      if (
-        priceMin !== ""
-      ) {
-        result =
-          result.filter(
-            (product) =>
-              getProductPrice(
-                product
-              ) >=
-              Number(
-                priceMin
-              )
-          );
-      }
-
-      // PRICE MAX
-
-      if (
-        priceMax !== ""
-      ) {
-        result =
-          result.filter(
-            (product) =>
-              getProductPrice(
-                product
-              ) <=
-              Number(
-                priceMax
-              )
-          );
-      }
-
-      // STOCK
-
-      if (
-        excludeStock
-      ) {
-        result =
-          result.filter(
-            (product) =>
-              product.stock ===
-                undefined ||
-              product.stock ===
-                null ||
-              Number(
-                product.stock
-              ) > 0
-          );
-      }
-
-      // DYNAMIC FILTERS
-
-      filterSections.forEach(
-        (config) => {
-          const selectedValues =
-            selectedFilters[
-              config.key
-            ];
-
-          if (
-            !selectedValues ||
-            selectedValues.length ===
-              0
-          ) {
-            return;
-          }
-
-          result =
-            result.filter(
-              (product) => {
-                const values =
-                  getValuesForFilter(
-                    product,
-                    config
-                  );
-
-                return values.some(
-                  (value) =>
-                    selectedValues.includes(
-                      value
-                    )
-                );
-              }
-            );
-        }
+    if (priceMin !== "") {
+      result = result.filter(
+        (product) => getProductPrice(product) >= Number(priceMin),
       );
+    }
 
-      // SORT LOW
+    // PRICE MAX
 
-      if (
-        sortBy ===
-        "low"
-      ) {
-        result.sort(
-          (a, b) =>
-            getProductPrice(
-              a
-            ) -
-            getProductPrice(
-              b
-            )
-        );
+    if (priceMax !== "") {
+      result = result.filter(
+        (product) => getProductPrice(product) <= Number(priceMax),
+      );
+    }
+
+    // STOCK
+
+    if (excludeStock) {
+      result = result.filter(
+        (product) =>
+          product.stock === undefined ||
+          product.stock === null ||
+          Number(product.stock) > 0,
+      );
+    }
+
+    // DYNAMIC FILTERS
+
+    filterSections.forEach((config) => {
+      const selectedValues = selectedFilters[config.key];
+
+      if (!selectedValues || selectedValues.length === 0) {
+        return;
       }
 
-      // SORT HIGH
+      result = result.filter((product) => {
+        const values = getValuesForFilter(product, config);
 
-      if (
-        sortBy ===
-        "high"
-      ) {
-        result.sort(
-          (a, b) =>
-            getProductPrice(
-              b
-            ) -
-            getProductPrice(
-              a
-            )
-        );
-      }
+        return values.some((value) => selectedValues.includes(value));
+      });
+    });
 
-      // SORT NEWEST
+    // SORT LOW
 
-      if (
-        sortBy ===
-        "newest"
-      ) {
-        result.sort(
-          (a, b) =>
-            new Date(
-              b.createdAt ||
-                0
-            ) -
-            new Date(
-              a.createdAt ||
-                0
-            )
-        );
-      }
+    if (sortBy === "low") {
+      result.sort((a, b) => getProductPrice(a) - getProductPrice(b));
+    }
 
-      return result;
-    }, [
-      searchMatchedProducts,
-      priceMin,
-      priceMax,
-      excludeStock,
-      selectedFilters,
-      filterSections,
-      sortBy,
-    ]);
+    // SORT HIGH
+
+    if (sortBy === "high") {
+      result.sort((a, b) => getProductPrice(b) - getProductPrice(a));
+    }
+
+    // SORT NEWEST
+
+    if (sortBy === "newest") {
+      result.sort(
+        (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0),
+      );
+    }
+
+    return result;
+  }, [
+    searchMatchedProducts,
+    priceMin,
+    priceMax,
+    excludeStock,
+    selectedFilters,
+    filterSections,
+    sortBy,
+  ]);
 
   // ============================================
   // RESET PAGE WHEN FILTER CHANGES
@@ -2051,99 +1375,55 @@ function CategoryPageContent() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [
-    searchText,
-    priceMin,
-    priceMax,
-    excludeStock,
-    selectedFilters,
-    sortBy,
-  ]);
+  }, [searchText, priceMin, priceMax, excludeStock, selectedFilters, sortBy]);
 
   // ============================================
   // PAGINATION
   // ============================================
 
-  const totalPages =
-    Math.max(
-      1,
-      Math.ceil(
-        filteredProducts.length /
-          PRODUCTS_PER_PAGE
-      )
-    );
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE),
+  );
 
   useEffect(() => {
-    if (
-      currentPage >
-      totalPages
-    ) {
-      setCurrentPage(
-        totalPages
-      );
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
     }
-  }, [
-    currentPage,
-    totalPages,
-  ]);
+  }, [currentPage, totalPages]);
 
-  const paginatedProducts =
-    useMemo(() => {
-      const start =
-        (currentPage - 1) *
-        PRODUCTS_PER_PAGE;
+  const paginatedProducts = useMemo(() => {
+    const start = (currentPage - 1) * PRODUCTS_PER_PAGE;
 
-      return filteredProducts.slice(
-        start,
-        start +
-          PRODUCTS_PER_PAGE
-      );
-    }, [
-      filteredProducts,
-      currentPage,
-    ]);
+    return filteredProducts.slice(start, start + PRODUCTS_PER_PAGE);
+  }, [filteredProducts, currentPage]);
 
   // ============================================
   // PAGINATION NUMBERS
   // ============================================
 
-  const paginationItems =
-    useMemo(() => {
-      if (totalPages <= 5) {
-        return Array.from(
-          {
-            length:
-              totalPages,
-          },
-          (_, index) =>
-            index + 1
-        );
-      }
+  const paginationItems = useMemo(() => {
+    if (totalPages <= 5) {
+      return Array.from(
+        {
+          length: totalPages,
+        },
+        (_, index) => index + 1,
+      );
+    }
 
-      const pages = new Set([
-        1,
-        totalPages,
-        currentPage,
-        currentPage - 1,
-        currentPage + 1,
-      ]);
-
-      return [
-        ...pages,
-      ]
-        .filter(
-          (page) =>
-            page >= 1 &&
-            page <= totalPages
-        )
-        .sort(
-          (a, b) =>
-            a - b
-        );
-    }, [
+    const pages = new Set([
+      1,
       totalPages,
       currentPage,
+      currentPage - 1,
+      currentPage + 1,
     ]);
+
+    return [...pages]
+      .filter((page) => page >= 1 && page <= totalPages)
+      .sort((a, b) => a - b);
+  }, [totalPages, currentPage]);
 
   // ============================================
   // LOADING
@@ -2154,24 +1434,21 @@ function CategoryPageContent() {
       <main
         className="min-h-screen"
         style={{
-          backgroundColor:
-            COLOR.paper,
+          backgroundColor: COLOR.paper,
         }}
       >
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <div
             className="h-3.5 w-52 animate-pulse rounded"
             style={{
-              backgroundColor:
-                COLOR.mist,
+              backgroundColor: COLOR.mist,
             }}
           />
 
           <div
             className="mt-4 h-9 w-44 animate-pulse rounded"
             style={{
-              backgroundColor:
-                COLOR.mist,
+              backgroundColor: COLOR.mist,
             }}
           />
 
@@ -2179,26 +1456,22 @@ function CategoryPageContent() {
             <div
               className="hidden h-[700px] animate-pulse rounded-[20px] lg:block"
               style={{
-                backgroundColor:
-                  COLOR.mist,
+                backgroundColor: COLOR.mist,
               }}
             />
 
             <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-3">
               {Array.from({
                 length: 6,
-              }).map(
-                (_, index) => (
-                  <div
-                    key={index}
-                    className="h-[360px] animate-pulse rounded-[22px]"
-                    style={{
-                      backgroundColor:
-                        COLOR.mist,
-                    }}
-                  />
-                )
-              )}
+              }).map((_, index) => (
+                <div
+                  key={index}
+                  className="h-[360px] animate-pulse rounded-[22px]"
+                  style={{
+                    backgroundColor: COLOR.mist,
+                  }}
+                />
+              ))}
             </div>
           </div>
         </div>
@@ -2214,8 +1487,7 @@ function CategoryPageContent() {
     <main
       className="min-h-screen antialiased"
       style={{
-        backgroundColor:
-          COLOR.paper,
+        backgroundColor: COLOR.paper,
         color: COLOR.ink,
         fontFamily:
           "'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif",
@@ -2238,76 +1510,47 @@ function CategoryPageContent() {
       `}</style>
 
       <div className="mx-auto max-w-7xl px-4 pb-14 pt-5 sm:px-6 lg:px-8">
-
         {/* BREADCRUMB */}
 
         <div
           className="mb-3 flex flex-wrap items-center gap-1.5 text-[11.5px]"
           style={{
-            color:
-              COLOR.inkMuted,
+            color: COLOR.inkMuted,
           }}
         >
-          <Link
-            href="/"
-            className="transition-colors hover:text-[#211F1C]"
-          >
+          <Link href="/" className="transition-colors hover:text-[#211F1C]">
             Home
           </Link>
 
-          {breadcrumbItems.map(
-            (
-              segment,
-              index
-            ) => {
-              const href =
-                "/" +
-                breadcrumbItems
-                  .slice(
-                    0,
-                    index + 1
-                  )
-                  .join("/");
+          {breadcrumbItems.map((segment, index) => {
+            const href = "/" + breadcrumbItems.slice(0, index + 1).join("/");
 
-              const isLast =
-                index ===
-                breadcrumbItems.length -
-                  1;
+            const isLast = index === breadcrumbItems.length - 1;
 
-              return (
-                <React.Fragment
-                  key={`${segment}-${index}`}
-                >
-                  <span>/</span>
+            return (
+              <React.Fragment key={`${segment}-${index}`}>
+                <span>/</span>
 
-                  {isLast ? (
-                    <span
-                      style={{
-                        color:
-                          COLOR.ink,
-                        fontWeight: 500,
-                      }}
-                    >
-                      {formatBreadcrumb(
-                        segment
-                      )}
-                    </span>
-                  ) : (
-                    <Link
-                      href={
-                        href
-                      }
-                      className="transition-colors hover:text-[#211F1C]"
-                    >
-                      {formatBreadcrumb(
-                        segment
-                      )}
-                    </Link>
-                  )}
-                </React.Fragment>
-              );
-            }
-          )}
+                {isLast ? (
+                  <span
+                    style={{
+                      color: COLOR.ink,
+                      fontWeight: 500,
+                    }}
+                  >
+                    {formatBreadcrumb(segment)}
+                  </span>
+                ) : (
+                  <Link
+                    href={href}
+                    className="transition-colors hover:text-[#211F1C]"
+                  >
+                    {formatBreadcrumb(segment)}
+                  </Link>
+                )}
+              </React.Fragment>
+            );
+          })}
         </div>
 
         {/* TITLE */}
@@ -2315,11 +1558,9 @@ function CategoryPageContent() {
         <h1
           className="mb-6 text-[28px] tracking-tight sm:mb-7 sm:text-[34px] lg:text-[38px]"
           style={{
-            fontFamily:
-              "'Space Grotesk', 'Inter', sans-serif",
+            fontFamily: "'Space Grotesk', 'Inter', sans-serif",
             fontWeight: 600,
-            color:
-              COLOR.ink,
+            color: COLOR.ink,
           }}
         >
           {categoryName}
@@ -2327,30 +1568,25 @@ function CategoryPageContent() {
 
         {/* SEARCH NOTICE */}
 
-        {searchText.trim() !==
-          "" && (
+        {searchText.trim() !== "" && (
           <div
             className="mb-5 rounded-[12px] px-4 py-3"
             style={{
-              backgroundColor:
-                COLOR.surface,
+              backgroundColor: COLOR.surface,
               border: `1px solid ${COLOR.line}`,
             }}
           >
             <p
               className="truncate text-[13px]"
               style={{
-                color:
-                  COLOR.inkSoft,
+                color: COLOR.inkSoft,
               }}
             >
-              Searching all
-              products for{" "}
+              Searching all products for{" "}
               <span
                 className="font-semibold"
                 style={{
-                  color:
-                    COLOR.ink,
+                  color: COLOR.ink,
                 }}
               >
                 {searchText}
@@ -2360,14 +1596,10 @@ function CategoryPageContent() {
             <p
               className="mt-1 text-[11px]"
               style={{
-                color:
-                  COLOR.inkMuted,
+                color: COLOR.inkMuted,
               }}
             >
-              Filters below are
-              based only on the
-              matching search
-              results.
+              Filters below are based only on the matching search results.
             </p>
           </div>
         )}
@@ -2375,14 +1607,12 @@ function CategoryPageContent() {
         {/* MAIN LAYOUT */}
 
         <div className="grid gap-5 lg:grid-cols-[260px_minmax(0,1fr)]">
-
           {/* DESKTOP SIDEBAR */}
 
           <aside
             className="hidden h-fit overflow-hidden rounded-[20px] lg:block"
             style={{
-              backgroundColor:
-                COLOR.paper,
+              backgroundColor: COLOR.paper,
               border: `1px solid ${COLOR.line}`,
             }}
           >
@@ -2395,8 +1625,7 @@ function CategoryPageContent() {
               <h2
                 className="text-[15px] font-semibold"
                 style={{
-                  color:
-                    COLOR.ink,
+                  color: COLOR.ink,
                 }}
               >
                 Filters
@@ -2405,8 +1634,7 @@ function CategoryPageContent() {
               <SlidersHorizontal
                 size={16}
                 style={{
-                  color:
-                    COLOR.inkMuted,
+                  color: COLOR.inkMuted,
                 }}
               />
             </div>
@@ -2419,30 +1647,14 @@ function CategoryPageContent() {
               priceMax={priceMax}
               setPriceMax={setPriceMax}
               excludeStock={excludeStock}
-              setExcludeStock={
-                setExcludeStock
-              }
-              filterSections={
-                filterSections
-              }
-              selectedFilters={
-                selectedFilters
-              }
-              getSelectedCount={
-                getSelectedCount
-              }
-              toggleFilterValue={
-                toggleFilterValue
-              }
-              isSectionOpen={
-                isSectionOpen
-              }
-              toggleSection={
-                toggleSection
-              }
-              clearAllFilters={
-                clearAllFilters
-              }
+              setExcludeStock={setExcludeStock}
+              filterSections={filterSections}
+              selectedFilters={selectedFilters}
+              getSelectedCount={getSelectedCount}
+              toggleFilterValue={toggleFilterValue}
+              isSectionOpen={isSectionOpen}
+              toggleSection={toggleSection}
+              clearAllFilters={clearAllFilters}
             />
           </aside>
 
@@ -2450,17 +1662,12 @@ function CategoryPageContent() {
 
           {isFilterOpen && (
             <div className="fixed inset-0 z-[9999] lg:hidden">
-
               {/* BACKDROP */}
 
               <button
                 type="button"
                 aria-label="Close filters"
-                onClick={() =>
-                  setIsFilterOpen(
-                    false
-                  )
-                }
+                onClick={() => setIsFilterOpen(false)}
                 className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
               />
 
@@ -2469,11 +1676,9 @@ function CategoryPageContent() {
               <aside
                 className="absolute right-0 top-0 flex h-[100dvh] w-[88%] max-w-[380px] flex-col overflow-hidden shadow-2xl"
                 style={{
-                  backgroundColor:
-                    COLOR.paper,
+                  backgroundColor: COLOR.paper,
                 }}
               >
-
                 {/* HEADER */}
 
                 <div
@@ -2486,8 +1691,7 @@ function CategoryPageContent() {
                     <h2
                       className="text-[16px] font-semibold"
                       style={{
-                        color:
-                          COLOR.ink,
+                        color: COLOR.ink,
                       }}
                     >
                       Filters
@@ -2496,29 +1700,21 @@ function CategoryPageContent() {
                     <p
                       className="mt-0.5 text-[10.5px]"
                       style={{
-                        color:
-                          COLOR.inkMuted,
+                        color: COLOR.inkMuted,
                       }}
                     >
-                      Refine your
-                      products
+                      Refine your products
                     </p>
                   </div>
 
                   <button
                     type="button"
                     aria-label="Close filters"
-                    onClick={() =>
-                      setIsFilterOpen(
-                        false
-                      )
-                    }
+                    onClick={() => setIsFilterOpen(false)}
                     className="flex h-9 w-9 items-center justify-center rounded-full"
                     style={{
-                      backgroundColor:
-                        COLOR.surface,
-                      color:
-                        COLOR.inkSoft,
+                      backgroundColor: COLOR.surface,
+                      color: COLOR.inkSoft,
                     }}
                   >
                     <X size={17} />
@@ -2536,30 +1732,14 @@ function CategoryPageContent() {
                     priceMax={priceMax}
                     setPriceMax={setPriceMax}
                     excludeStock={excludeStock}
-                    setExcludeStock={
-                      setExcludeStock
-                    }
-                    filterSections={
-                      filterSections
-                    }
-                    selectedFilters={
-                      selectedFilters
-                    }
-                    getSelectedCount={
-                      getSelectedCount
-                    }
-                    toggleFilterValue={
-                      toggleFilterValue
-                    }
-                    isSectionOpen={
-                      isSectionOpen
-                    }
-                    toggleSection={
-                      toggleSection
-                    }
-                    clearAllFilters={
-                      clearAllFilters
-                    }
+                    setExcludeStock={setExcludeStock}
+                    filterSections={filterSections}
+                    selectedFilters={selectedFilters}
+                    getSelectedCount={getSelectedCount}
+                    toggleFilterValue={toggleFilterValue}
+                    isSectionOpen={isSectionOpen}
+                    toggleSection={toggleSection}
+                    clearAllFilters={clearAllFilters}
                   />
                 </div>
 
@@ -2569,24 +1749,18 @@ function CategoryPageContent() {
                   className="shrink-0 p-3.5"
                   style={{
                     borderTop: `1px solid ${COLOR.line}`,
-                    backgroundColor:
-                      COLOR.paper,
+                    backgroundColor: COLOR.paper,
                   }}
                 >
                   <div className="flex gap-2">
-
                     <button
                       type="button"
-                      onClick={
-                        clearAllFilters
-                      }
+                      onClick={clearAllFilters}
                       className="h-11 flex-1 rounded-full text-[12px] font-medium"
                       style={{
                         border: `1px solid ${COLOR.line}`,
-                        color:
-                          COLOR.ink,
-                        backgroundColor:
-                          COLOR.paper,
+                        color: COLOR.ink,
+                        backgroundColor: COLOR.paper,
                       }}
                     >
                       Clear
@@ -2594,24 +1768,14 @@ function CategoryPageContent() {
 
                     <button
                       type="button"
-                      onClick={() =>
-                        setIsFilterOpen(
-                          false
-                        )
-                      }
+                      onClick={() => setIsFilterOpen(false)}
                       className="h-11 flex-[1.5] rounded-full text-[12px] font-semibold text-white"
                       style={{
-                        backgroundColor:
-                          COLOR.ink,
+                        backgroundColor: COLOR.ink,
                       }}
                     >
-                      Show{" "}
-                      {
-                        filteredProducts.length
-                      }{" "}
-                      Products
+                      Show {filteredProducts.length} Products
                     </button>
-
                   </div>
                 </div>
               </aside>
@@ -2621,42 +1785,26 @@ function CategoryPageContent() {
           {/* PRODUCTS */}
 
           <section className="min-w-0">
-
             {/* TOP BAR */}
 
             <div className="mb-4 flex min-w-0 items-center justify-between gap-2">
-
               <div className="flex min-w-0 flex-1 items-center gap-2">
-
                 {/* MOBILE FILTER */}
 
                 <button
                   type="button"
-                  onClick={() =>
-                    setIsFilterOpen(
-                      true
-                    )
-                  }
+                  onClick={() => setIsFilterOpen(true)}
                   className="flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-[11.5px] font-medium lg:hidden"
                   style={{
-                    backgroundColor:
-                      COLOR.ink,
-                    color:
-                      "#fff",
+                    backgroundColor: COLOR.ink,
+                    color: "#fff",
                   }}
                 >
-                  <SlidersHorizontal
-                    size={13}
-                  />
-
+                  <SlidersHorizontal size={13} />
                   Filter
-
-                  {activeFilterCount >
-                    0 && (
+                  {activeFilterCount > 0 && (
                     <span className="flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-white px-1 text-[9px] font-semibold text-[#211F1C]">
-                      {
-                        activeFilterCount
-                      }
+                      {activeFilterCount}
                     </span>
                   )}
                 </button>
@@ -2664,21 +1812,17 @@ function CategoryPageContent() {
                 <p
                   className="min-w-0 truncate text-[11.5px] sm:text-[12.5px]"
                   style={{
-                    color:
-                      COLOR.inkSoft,
+                    color: COLOR.inkSoft,
                   }}
                 >
                   Showing{" "}
                   <span
                     className="font-semibold"
                     style={{
-                      color:
-                        COLOR.ink,
+                      color: COLOR.ink,
                     }}
                   >
-                    {
-                      filteredProducts.length
-                    }
+                    {filteredProducts.length}
                   </span>{" "}
                   items
                 </p>
@@ -2688,51 +1832,29 @@ function CategoryPageContent() {
 
               <div className="relative shrink-0">
                 <select
-                  value={
-                    sortBy
-                  }
-                  onChange={(
-                    e
-                  ) =>
-                    setSortBy(
-                      e.target
-                        .value
-                    )
-                  }
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
                   className="h-9 appearance-none rounded-full py-1 pl-3 pr-8 text-[11.5px] outline-none sm:h-10 sm:pl-4 sm:pr-9 sm:text-[12.5px]"
                   style={{
-                    backgroundColor:
-                      COLOR.paper,
+                    backgroundColor: COLOR.paper,
                     border: `1px solid ${COLOR.line}`,
-                    color:
-                      COLOR.ink,
+                    color: COLOR.ink,
                   }}
                 >
-                  <option value="default">
-                    Sort by
-                  </option>
+                  <option value="default">Sort by</option>
 
-                  <option value="newest">
-                    Newest
-                  </option>
+                  <option value="newest">Newest</option>
 
-                  <option value="low">
-                    Price: low to
-                    high
-                  </option>
+                  <option value="low">Price: low to high</option>
 
-                  <option value="high">
-                    Price: high to
-                    low
-                  </option>
+                  <option value="high">Price: high to low</option>
                 </select>
 
                 <ArrowDownUp
                   size={12}
                   className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 sm:right-3.5"
                   style={{
-                    color:
-                      COLOR.inkMuted,
+                    color: COLOR.inkMuted,
                   }}
                 />
               </div>
@@ -2740,29 +1862,25 @@ function CategoryPageContent() {
 
             {/* ACTIVE SEARCH */}
 
-            {searchText.trim() !==
-              "" && (
+            {searchText.trim() !== "" && (
               <div
                 className="mb-4 flex min-w-0 items-center justify-between gap-2 rounded-[10px] px-3 py-2.5 sm:px-3.5"
                 style={{
-                  backgroundColor:
-                    COLOR.surface,
+                  backgroundColor: COLOR.surface,
                   border: `1px solid ${COLOR.line}`,
                 }}
               >
                 <p
                   className="min-w-0 truncate text-[11.5px] sm:text-[12.5px]"
                   style={{
-                    color:
-                      COLOR.inkSoft,
+                    color: COLOR.inkSoft,
                   }}
                 >
                   Results for{" "}
                   <span
                     className="font-semibold"
                     style={{
-                      color:
-                        COLOR.ink,
+                      color: COLOR.ink,
                     }}
                   >
                     {searchText}
@@ -2771,15 +1889,10 @@ function CategoryPageContent() {
 
                 <button
                   type="button"
-                  onClick={() =>
-                    setSearchText(
-                      ""
-                    )
-                  }
+                  onClick={() => setSearchText("")}
                   className="shrink-0 rounded-full px-2 py-1 text-[10.5px] font-medium sm:text-[12px]"
                   style={{
-                    color:
-                      COLOR.accent,
+                    color: COLOR.accent,
                   }}
                 >
                   Clear
@@ -2789,498 +1902,338 @@ function CategoryPageContent() {
 
             {/* NO PRODUCTS */}
 
-            {filteredProducts.length ===
-            0 ? (
+            {filteredProducts.length === 0 ? (
               <div
                 className="flex min-h-[420px] items-center justify-center rounded-[20px]"
                 style={{
                   border: `1px dashed ${COLOR.lineStrong}`,
-                  backgroundColor:
-                    COLOR.surface,
+                  backgroundColor: COLOR.surface,
                 }}
               >
                 <div className="px-5 text-center">
-
                   <h2
                     className="text-[17px] font-semibold"
                     style={{
-                      fontFamily:
-                        "'Space Grotesk', 'Inter', sans-serif",
-                      color:
-                        COLOR.ink,
+                      fontFamily: "'Space Grotesk', 'Inter', sans-serif",
+                      color: COLOR.ink,
                     }}
                   >
-                    No products
-                    found
+                    No products found
                   </h2>
 
                   <p
                     className="mt-1 text-[13px]"
                     style={{
-                      color:
-                        COLOR.inkMuted,
+                      color: COLOR.inkMuted,
                     }}
                   >
-                    Try changing
-                    your filters
-                    or search.
+                    Try changing your filters or search.
                   </p>
 
                   <button
                     type="button"
-                    onClick={
-                      clearAllFilters
-                    }
+                    onClick={clearAllFilters}
                     className="mt-4 rounded-full px-5 py-2 text-[12.5px] font-medium text-white"
                     style={{
-                      backgroundColor:
-                        COLOR.ink,
+                      backgroundColor: COLOR.ink,
                     }}
                   >
-                    Clear
-                    filters
+                    Clear filters
                   </button>
-
                 </div>
               </div>
             ) : (
               <>
-
                 {/* PRODUCT GRID */}
 
                 <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-3">
+                  {paginatedProducts.map((product) => {
+                    const price = getProductPrice(product);
 
-                  {paginatedProducts.map(
-                    (product) => {
-                      const price =
-                        getProductPrice(
-                          product
-                        );
+                    const originalPrice = getOriginalPrice(product);
 
-                      const originalPrice =
-                        getOriginalPrice(
-                          product
-                        );
+                    const discount =
+                      originalPrice > price
+                        ? Math.round(
+                            ((originalPrice - price) / originalPrice) * 100,
+                          )
+                        : 0;
 
-                      const discount =
-                        originalPrice >
-                        price
-                          ? Math.round(
-                              ((originalPrice -
-                                price) /
-                                originalPrice) *
-                                100
-                            )
-                          : 0;
+                    const image = getProductImage(product);
 
-                      const image =
-                        getProductImage(
-                          product
-                        );
+                    const outOfStock = Number(product.stock) <= 0;
 
-                      const outOfStock =
-                        Number(
-                          product.stock
-                        ) <= 0;
+                    return (
+                      <div
+                        key={product._id}
+                        className="group relative min-w-0 overflow-hidden rounded-[18px] transition-shadow duration-300 sm:rounded-[22px]"
+                        style={{
+                          backgroundColor: COLOR.paper,
+                          border: `1px solid ${COLOR.line}`,
+                        }}
+                        onMouseEnter={(e) =>
+                          (e.currentTarget.style.boxShadow =
+                            "0 12px 32px rgba(33,31,28,0.10)")
+                        }
+                        onMouseLeave={(e) =>
+                          (e.currentTarget.style.boxShadow = "none")
+                        }
+                      >
+                        {/* IMAGE */}
 
-                      return (
-                        <div
-                          key={
-                            product._id
-                          }
-                          className="group relative min-w-0 overflow-hidden rounded-[18px] transition-shadow duration-300 sm:rounded-[22px]"
+                        <Link
+                          href={`/product/${product.slug}`}
+                          className="relative block h-[165px] w-full overflow-hidden sm:h-[230px] lg:h-[240px]"
                           style={{
-                            backgroundColor:
-                              COLOR.paper,
-                            border: `1px solid ${COLOR.line}`,
+                            backgroundColor: COLOR.mist,
                           }}
-                          onMouseEnter={(
-                            e
-                          ) =>
-                            (e.currentTarget.style.boxShadow =
-                              "0 12px 32px rgba(33,31,28,0.10)")
-                          }
-                          onMouseLeave={(
-                            e
-                          ) =>
-                            (e.currentTarget.style.boxShadow =
-                              "none")
-                          }
                         >
+                          <div className="relative h-full w-full p-2.5 sm:p-6">
+                            <img
+                              src={image}
+                              alt={product.name || "Product"}
+                              className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
+                            />
+                          </div>
 
-                          {/* IMAGE */}
+                          {discount > 0 && (
+                            <div className="absolute left-2 top-2 sm:left-3 sm:top-3">
+                              <span
+                                className="rounded-full px-2 py-1 text-[7.5px] font-medium text-white sm:px-2.5 sm:text-[10.5px]"
+                                style={{
+                                  backgroundColor: COLOR.ink,
+                                }}
+                              >
+                                Save ৳ {formatPrice(originalPrice - price)}
+                              </span>
+                            </div>
+                          )}
+                        </Link>
 
+                        {/* INFO */}
+
+                        <div className="px-2.5 pb-2.5 pt-3 sm:px-4 sm:pb-4 sm:pt-3.5">
                           <Link
                             href={`/product/${product.slug}`}
-                            className="relative block h-[165px] w-full overflow-hidden sm:h-[230px] lg:h-[240px]"
-                            style={{
-                              backgroundColor:
-                                COLOR.mist,
-                            }}
+                            className="block"
                           >
-                            <div className="relative h-full w-full p-2.5 sm:p-6">
-                              <img
-                                src={
-                                  image
-                                }
-                                alt={
-                                  product.name ||
-                                  "Product"
-                                }
-                                className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
-                              />
-                            </div>
-
-                            {discount >
-                              0 && (
-                              <div className="absolute left-2 top-2 sm:left-3 sm:top-3">
-                                <span
-                                  className="rounded-full px-2 py-1 text-[7.5px] font-medium text-white sm:px-2.5 sm:text-[10.5px]"
-                                  style={{
-                                    backgroundColor:
-                                      COLOR.ink,
-                                  }}
-                                >
-                                  Save ৳{" "}
-                                  {formatPrice(
-                                    originalPrice -
-                                      price
-                                  )}
-                                </span>
-                              </div>
-                            )}
+                            <h3
+                              className="line-clamp-2 min-h-[34px] text-[11.5px] font-medium sm:min-h-0 sm:text-[14.5px]"
+                              style={{
+                                color: COLOR.ink,
+                              }}
+                            >
+                              {product.name}
+                            </h3>
                           </Link>
 
-                          {/* INFO */}
+                          <div className="mt-1.5 flex min-w-0 flex-wrap items-baseline gap-1 sm:gap-2">
+                            <span
+                              className="text-[13px] font-semibold sm:text-[17px]"
+                              style={{
+                                color: COLOR.ink,
+                              }}
+                            >
+                              ৳ {formatPrice(price)}
+                            </span>
 
-                          <div className="px-2.5 pb-2.5 pt-3 sm:px-4 sm:pb-4 sm:pt-3.5">
+                            {originalPrice > price && (
+                              <span
+                                className="text-[9px] line-through sm:text-[12.5px]"
+                                style={{
+                                  color: COLOR.inkMuted,
+                                }}
+                              >
+                                ৳ {formatPrice(originalPrice)}
+                              </span>
+                            )}
+                          </div>
 
+                          <div className="mt-2.5 flex items-center gap-1.5 sm:mt-3 sm:gap-2">
                             <Link
                               href={`/product/${product.slug}`}
-                              className="block"
+                              className="flex h-8 min-w-0 flex-1 items-center justify-center rounded-full text-[9.5px] font-medium sm:h-10 sm:text-[13px]"
+                              style={
+                                outOfStock
+                                  ? {
+                                      border: `1px solid ${COLOR.line}`,
+                                      backgroundColor: COLOR.surface,
+                                      color: COLOR.inkMuted,
+                                    }
+                                  : {
+                                      border: `1px solid ${COLOR.ink}`,
+                                      backgroundColor: COLOR.ink,
+                                      color: "#fff",
+                                    }
+                              }
                             >
-                              <h3
-                                className="line-clamp-2 min-h-[34px] text-[11.5px] font-medium sm:min-h-0 sm:text-[14.5px]"
-                                style={{
-                                  color:
-                                    COLOR.ink,
-                                }}
-                              >
-                                {
-                                  product.name
-                                }
-                              </h3>
-                            </Link>
-
-                            <div className="mt-1.5 flex min-w-0 flex-wrap items-baseline gap-1 sm:gap-2">
-
-                              <span
-                                className="text-[13px] font-semibold sm:text-[17px]"
-                                style={{
-                                  color:
-                                    COLOR.ink,
-                                }}
-                              >
-                                ৳{" "}
-                                {formatPrice(
-                                  price
-                                )}
-                              </span>
-
-                              {originalPrice >
-                                price && (
-                                <span
-                                  className="text-[9px] line-through sm:text-[12.5px]"
-                                  style={{
-                                    color:
-                                      COLOR.inkMuted,
-                                  }}
-                                >
-                                  ৳{" "}
-                                  {formatPrice(
-                                    originalPrice
-                                  )}
-                                </span>
-                              )}
-                            </div>
-
-                            <div className="mt-2.5 flex items-center gap-1.5 sm:mt-3 sm:gap-2">
-
-                              <Link
-                                href={`/product/${product.slug}`}
-                                className="flex h-8 min-w-0 flex-1 items-center justify-center rounded-full text-[9.5px] font-medium sm:h-10 sm:text-[13px]"
-                                style={
-                                  outOfStock
-                                    ? {
-                                        border: `1px solid ${COLOR.line}`,
-                                        backgroundColor:
-                                          COLOR.surface,
-                                        color:
-                                          COLOR.inkMuted,
-                                      }
-                                    : {
-                                        border: `1px solid ${COLOR.ink}`,
-                                        backgroundColor:
-                                          COLOR.ink,
-                                        color:
-                                          "#fff",
-                                      }
-                                }
-                              >
-                                {outOfStock
-                                  ? "Out of stock"
-                                  : product.isPreOrder
+                              {outOfStock
+                                ? "Out of stock"
+                                : product.isPreOrder
                                   ? "Pre order"
                                   : "Shop now"}
-                              </Link>
+                            </Link>
 
-                              <button
-                                type="button"
-                                disabled={
-                                  outOfStock
-                                }
-                                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full disabled:cursor-not-allowed disabled:opacity-40 sm:h-10 sm:w-10"
-                                style={{
-                                  border: `1px solid ${COLOR.line}`,
-                                  color:
-                                    COLOR.inkSoft,
-                                }}
-                                title="Add to cart"
-                              >
-                                <ShoppingCart
-                                  size={
-                                    13
-                                  }
-                                />
-                              </button>
-
-                            </div>
+                            <button
+                              type="button"
+                              disabled={outOfStock}
+                              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full disabled:cursor-not-allowed disabled:opacity-40 sm:h-10 sm:w-10"
+                              style={{
+                                border: `1px solid ${COLOR.line}`,
+                                color: COLOR.inkSoft,
+                              }}
+                              title="Add to cart"
+                            >
+                              <ShoppingCart size={13} />
+                            </button>
                           </div>
                         </div>
-                      );
-                    }
-                  )}
+                      </div>
+                    );
+                  })}
                 </div>
 
                 {/* PAGINATION */}
 
-                {totalPages >
-                  1 && (
+                {totalPages > 1 && (
                   <div className="mt-8 flex flex-col items-center gap-3">
-
                     <p
                       className="text-[11px] sm:text-[11.5px]"
                       style={{
-                        color:
-                          COLOR.inkMuted,
+                        color: COLOR.inkMuted,
                       }}
                     >
                       Showing{" "}
                       <span
                         className="font-semibold"
                         style={{
-                          color:
-                            COLOR.ink,
+                          color: COLOR.ink,
                         }}
                       >
-                        {(currentPage -
-                          1) *
-                          PRODUCTS_PER_PAGE +
-                          1}
+                        {(currentPage - 1) * PRODUCTS_PER_PAGE + 1}
                       </span>{" "}
                       –{" "}
                       <span
                         className="font-semibold"
                         style={{
-                          color:
-                            COLOR.ink,
+                          color: COLOR.ink,
                         }}
                       >
                         {Math.min(
-                          currentPage *
-                            PRODUCTS_PER_PAGE,
-                          filteredProducts.length
+                          currentPage * PRODUCTS_PER_PAGE,
+                          filteredProducts.length,
                         )}
                       </span>{" "}
                       of{" "}
                       <span
                         className="font-semibold"
                         style={{
-                          color:
-                            COLOR.ink,
+                          color: COLOR.ink,
                         }}
                       >
-                        {
-                          filteredProducts.length
-                        }
+                        {filteredProducts.length}
                       </span>
                     </p>
 
                     <div className="flex max-w-full items-center gap-1 overflow-x-auto px-1 pb-1">
-
                       {/* PREVIOUS */}
 
                       <button
                         type="button"
-                        disabled={
-                          currentPage ===
-                          1
-                        }
+                        disabled={currentPage === 1}
                         onClick={() => {
-                          setCurrentPage(
-                            (prev) =>
-                              Math.max(
-                                1,
-                                prev - 1
-                              )
-                          );
+                          setCurrentPage((prev) => Math.max(1, prev - 1));
 
                           window.scrollTo({
                             top: 0,
-                            behavior:
-                              "smooth",
+                            behavior: "smooth",
                           });
                         }}
                         className="flex h-9 min-w-9 shrink-0 items-center justify-center rounded-full"
                         style={{
                           border: `1px solid ${COLOR.line}`,
-                          backgroundColor:
-                            COLOR.paper,
-                          color:
-                            COLOR.ink,
-                          opacity:
-                            currentPage ===
-                            1
-                              ? 0.35
-                              : 1,
+                          backgroundColor: COLOR.paper,
+                          color: COLOR.ink,
+                          opacity: currentPage === 1 ? 0.35 : 1,
                         }}
                       >
-                        <ChevronLeft
-                          size={15}
-                        />
+                        <ChevronLeft size={15} />
                       </button>
 
                       {/* PAGE NUMBERS */}
 
-                      {paginationItems.map(
-                        (
-                          page,
-                          index
-                        ) => {
-                          const previous =
-                            paginationItems[
-                              index -
-                                1
-                            ];
+                      {paginationItems.map((page, index) => {
+                        const previous = paginationItems[index - 1];
 
-                          const showDots =
-                            previous &&
-                            page -
-                              previous >
-                              1;
+                        const showDots = previous && page - previous > 1;
 
-                          return (
-                            <React.Fragment
-                              key={
-                                page
-                              }
-                            >
-                              {showDots && (
-                                <span
-                                  className="flex h-9 w-6 shrink-0 items-center justify-center text-[11px]"
-                                  style={{
-                                    color:
-                                      COLOR.inkMuted,
-                                  }}
-                                >
-                                  ...
-                                </span>
-                              )}
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setCurrentPage(
-                                    page
-                                  );
-
-                                  window.scrollTo({
-                                    top: 0,
-                                    behavior:
-                                      "smooth",
-                                  });
-                                }}
-                                className="flex h-9 min-w-9 shrink-0 items-center justify-center rounded-full px-2.5 text-[11px] font-medium"
+                        return (
+                          <React.Fragment key={page}>
+                            {showDots && (
+                              <span
+                                className="flex h-9 w-6 shrink-0 items-center justify-center text-[11px]"
                                 style={{
-                                  backgroundColor:
-                                    currentPage ===
-                                    page
-                                      ? COLOR.ink
-                                      : COLOR.paper,
-                                  color:
-                                    currentPage ===
-                                    page
-                                      ? "#fff"
-                                      : COLOR.ink,
-                                  border: `1px solid ${
-                                    currentPage ===
-                                    page
-                                      ? COLOR.ink
-                                      : COLOR.line
-                                  }`,
+                                  color: COLOR.inkMuted,
                                 }}
                               >
-                                {
-                                  page
-                                }
-                              </button>
-                            </React.Fragment>
-                          );
-                        }
-                      )}
+                                ...
+                              </span>
+                            )}
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCurrentPage(page);
+
+                                window.scrollTo({
+                                  top: 0,
+                                  behavior: "smooth",
+                                });
+                              }}
+                              className="flex h-9 min-w-9 shrink-0 items-center justify-center rounded-full px-2.5 text-[11px] font-medium"
+                              style={{
+                                backgroundColor:
+                                  currentPage === page
+                                    ? COLOR.ink
+                                    : COLOR.paper,
+                                color:
+                                  currentPage === page ? "#fff" : COLOR.ink,
+                                border: `1px solid ${
+                                  currentPage === page ? COLOR.ink : COLOR.line
+                                }`,
+                              }}
+                            >
+                              {page}
+                            </button>
+                          </React.Fragment>
+                        );
+                      })}
 
                       {/* NEXT */}
 
                       <button
                         type="button"
-                        disabled={
-                          currentPage ===
-                          totalPages
-                        }
+                        disabled={currentPage === totalPages}
                         onClick={() => {
-                          setCurrentPage(
-                            (prev) =>
-                              Math.min(
-                                totalPages,
-                                prev + 1
-                              )
+                          setCurrentPage((prev) =>
+                            Math.min(totalPages, prev + 1),
                           );
 
                           window.scrollTo({
                             top: 0,
-                            behavior:
-                              "smooth",
+                            behavior: "smooth",
                           });
                         }}
                         className="flex h-9 min-w-9 shrink-0 items-center justify-center rounded-full"
                         style={{
                           border: `1px solid ${COLOR.line}`,
-                          backgroundColor:
-                            COLOR.paper,
-                          color:
-                            COLOR.ink,
-                          opacity:
-                            currentPage ===
-                            totalPages
-                              ? 0.35
-                              : 1,
+                          backgroundColor: COLOR.paper,
+                          color: COLOR.ink,
+                          opacity: currentPage === totalPages ? 0.35 : 1,
                         }}
                       >
-                        <ChevronRight
-                          size={15}
-                        />
+                        <ChevronRight size={15} />
                       </button>
-
                     </div>
                   </div>
                 )}
@@ -3303,28 +2256,23 @@ export default function CategoryPage() {
       fallback={
         <main className="min-h-screen bg-white">
           <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-
             <div className="h-4 w-52 animate-pulse rounded bg-gray-100" />
 
             <div className="mt-5 h-10 w-48 animate-pulse rounded bg-gray-100" />
 
             <div className="mt-8 grid gap-5 lg:grid-cols-[260px_1fr]">
-
               <div className="hidden h-[650px] animate-pulse rounded-[20px] bg-gray-100 lg:block" />
 
               <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-3">
                 {Array.from({
                   length: 6,
-                }).map(
-                  (_, index) => (
-                    <div
-                      key={index}
-                      className="h-[360px] animate-pulse rounded-[22px] bg-gray-100"
-                    />
-                  )
-                )}
+                }).map((_, index) => (
+                  <div
+                    key={index}
+                    className="h-[360px] animate-pulse rounded-[22px] bg-gray-100"
+                  />
+                ))}
               </div>
-
             </div>
           </div>
         </main>
@@ -3334,4 +2282,3 @@ export default function CategoryPage() {
     </Suspense>
   );
 }
-

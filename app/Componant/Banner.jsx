@@ -1,4 +1,3 @@
-
 "use client";
 
 import Image from "next/image";
@@ -86,7 +85,6 @@ export default function Banner() {
     <main className=" w-full bg-white">
       <section className="w-full px-3 py-3 sm:px-4 sm:py-5 md:px-5 lg:px-6 xl:px-8">
         <div className="mx-auto w-full max-w-[1440px]">
-
           {/* ================= HERO AREA ================= */}
           <div
             className="
@@ -99,7 +97,6 @@ export default function Banner() {
               xl:grid-cols-[minmax(0,3fr)_minmax(300px,1.15fr)]
             "
           >
-
             {/* ================= MAIN SLIDER ================= */}
             <div
               className="
@@ -121,12 +118,7 @@ export default function Banner() {
               "
             >
               <Swiper
-                modules={[
-                  Autoplay,
-                  Pagination,
-                  Navigation,
-                  EffectCreative,
-                ]}
+                modules={[Autoplay, Pagination, Navigation, EffectCreative]}
                 effect="creative"
                 grabCursor
                 loop
@@ -166,10 +158,7 @@ export default function Banner() {
                     <img
                       src={item.image}
                       alt={item.alt}
-                   
-                    
                       className="object-cover object-center"
-                    
                     />
                   </SwiperSlide>
                 ))}
@@ -271,7 +260,6 @@ export default function Banner() {
                 lg:gap-5
               "
             >
-
               {/* MacBook Banner */}
               <div
                 className="
@@ -295,14 +283,12 @@ export default function Banner() {
                 <img
                   src="https://www.applegadgetsbd.com/_next/image?url=https%3A%2F%2Fadminapi.applegadgetsbd.com%2Fstorage%2Fmedia%2Flarge%2FMackbook-neo-banner-2216.png&w=640&q=75"
                   alt="MacBook Neo"
-              
                   className="
                     object-cover
                     transition-transform
                     duration-500
                     hover:scale-[1.03]
                   "
-                
                 />
               </div>
 
@@ -329,14 +315,12 @@ export default function Banner() {
                 <img
                   src="https://www.applegadgetsbd.com/_next/image?url=https%3A%2F%2Fadminapi.applegadgetsbd.com%2Fstorage%2Fmedia%2Flarge%2FAirPods-Pro-(2nd-generation)-USB%E2%80%90C-price-update-6041.png&w=640&q=75"
                   alt="AirPods Pro"
-                
                   className="
                     object-cover
                     transition-transform
                     duration-500
                     hover:scale-[1.03]
                   "
-                 
                 />
               </div>
             </div>
@@ -430,10 +414,8 @@ export default function Banner() {
               })}
             </div>
           </div>
-
         </div>
       </section>
     </main>
   );
 }
-

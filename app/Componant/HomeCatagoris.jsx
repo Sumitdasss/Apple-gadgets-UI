@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -70,7 +69,6 @@ export default function FeaturedCategories() {
   return (
     <section className="w-full bg-white py-12 sm:py-14 lg:py-16">
       <div className="mx-auto max-w-[1450px] px-5 sm:px-8 lg:px-10">
-
         {/* Heading */}
         <div className="mb-10 sm:mb-12 lg:mb-14">
           <h2 className="text-[32px] font-bold tracking-tight text-[#171717] sm:text-[40px] lg:text-[46px]">

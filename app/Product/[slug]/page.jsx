@@ -1,11 +1,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
-import React, {
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Inter } from "next/font/google";
@@ -58,7 +54,7 @@ export default function ProductDetailsPage() {
         setLoading(true);
 
         const res = await fetch(
-          `${API_BASE}/getallProduct?slug=${encodeURIComponent(slug)}`
+          `${API_BASE}/getallProduct?slug=${encodeURIComponent(slug)}`,
         );
 
         if (!res.ok) {
@@ -71,15 +67,11 @@ export default function ProductDetailsPage() {
 
         if (Array.isArray(data)) {
           foundProduct = data.find(
-            (item) =>
-              item?.slug === slug ||
-              item?._id === slug
+            (item) => item?.slug === slug || item?._id === slug,
           );
         } else if (Array.isArray(data?.products)) {
           foundProduct = data.products.find(
-            (item) =>
-              item?.slug === slug ||
-              item?._id === slug
+            (item) => item?.slug === slug || item?._id === slug,
           );
         } else if (data?.product) {
           foundProduct = data.product;
@@ -99,17 +91,10 @@ export default function ProductDetailsPage() {
         ) {
           const firstColor = foundProduct.colors[0];
 
-          if (
-            typeof firstColor === "object" &&
-            firstColor !== null
-          ) {
-            const firstColorName =
-              firstColor.name ||
-              firstColor.value ||
-              "";
+          if (typeof firstColor === "object" && firstColor !== null) {
+            const firstColorName = firstColor.name || firstColor.value || "";
 
-            const firstColorImage =
-              firstColor.image || "";
+            const firstColorImage = firstColor.image || "";
 
             setSelectedColor(firstColorName);
 
@@ -119,12 +104,9 @@ export default function ProductDetailsPage() {
             // Color image normal images-এর মধ্যে থাকলে
             // সেই image-এর index select করবে
             if (firstColorImage) {
-              const imageIndex =
-                Array.isArray(foundProduct.images)
-                  ? foundProduct.images.indexOf(
-                      firstColorImage
-                    )
-                  : -1;
+              const imageIndex = Array.isArray(foundProduct.images)
+                ? foundProduct.images.indexOf(firstColorImage)
+                : -1;
 
               if (imageIndex !== -1) {
                 setSelectedImage(imageIndex);
@@ -147,16 +129,11 @@ export default function ProductDetailsPage() {
           Array.isArray(foundProduct.variants) &&
           foundProduct.variants.length > 0
         ) {
-          const firstVariant =
-            foundProduct.variants[0];
+          const firstVariant = foundProduct.variants[0];
 
-          setSelectedRam(
-            firstVariant?.ram || ""
-          );
+          setSelectedRam(firstVariant?.ram || "");
 
-          setSelectedStorage(
-            firstVariant?.storage || ""
-          );
+          setSelectedStorage(firstVariant?.storage || "");
         } else {
           // Old sizes support
           if (
@@ -164,8 +141,7 @@ export default function ProductDetailsPage() {
             Array.isArray(foundProduct.sizes) &&
             foundProduct.sizes.length > 0
           ) {
-            const firstSize =
-              foundProduct.sizes[0];
+            const firstSize = foundProduct.sizes[0];
 
             setSelectedStorage(
               typeof firstSize === "object"
@@ -173,7 +149,7 @@ export default function ProductDetailsPage() {
                     firstSize?.value ||
                     firstSize?.storage ||
                     ""
-                : firstSize
+                : firstSize,
             );
           } else {
             setSelectedStorage("");
@@ -182,10 +158,7 @@ export default function ProductDetailsPage() {
           setSelectedRam("");
         }
       } catch (error) {
-        console.error(
-          "Product details error:",
-          error
-        );
+        console.error("Product details error:", error);
 
         setProduct(null);
       } finally {
@@ -202,10 +175,7 @@ export default function ProductDetailsPage() {
   const images = useMemo(() => {
     if (!product) return [];
 
-    if (
-      Array.isArray(product.images) &&
-      product.images.length > 0
-    ) {
+    if (Array.isArray(product.images) && product.images.length > 0) {
       return product.images.filter(Boolean);
     }
 
@@ -235,19 +205,11 @@ export default function ProductDetailsPage() {
         }
 
         return {
-          name:
-            color?.name ||
-            color?.value ||
-            "",
+          name: color?.name || color?.value || "",
 
-          code:
-            color?.code ||
-            color?.color ||
-            "#d1d5db",
+          code: color?.code || color?.color || "#d1d5db",
 
-          image:
-            color?.image ||
-            "",
+          image: color?.image || "",
         };
       })
       .filter((color) => color.name);
@@ -269,11 +231,7 @@ export default function ProductDetailsPage() {
   // =====================================================
   const ramOptions = useMemo(() => {
     return [
-      ...new Set(
-        variants
-          .map((variant) => variant?.ram)
-          .filter(Boolean)
-      ),
+      ...new Set(variants.map((variant) => variant?.ram).filter(Boolean)),
     ];
   }, [variants]);
 
@@ -282,11 +240,7 @@ export default function ProductDetailsPage() {
   // =====================================================
   const variantStorageOptions = useMemo(() => {
     return [
-      ...new Set(
-        variants
-          .map((variant) => variant?.storage)
-          .filter(Boolean)
-      ),
+      ...new Set(variants.map((variant) => variant?.storage).filter(Boolean)),
     ];
   }, [variants]);
 
@@ -304,29 +258,18 @@ export default function ProductDetailsPage() {
           return size;
         }
 
-        return (
-          size?.name ||
-          size?.value ||
-          size?.storage ||
-          ""
-        );
+        return size?.name || size?.value || size?.storage || "";
       })
       .filter(Boolean);
   }, [product]);
 
   const storageOptions =
-    variants.length > 0
-      ? variantStorageOptions
-      : oldStorageOptions;
+    variants.length > 0 ? variantStorageOptions : oldStorageOptions;
 
   // =====================================================
   // FIND EXACT VARIANT
   // =====================================================
-  const findVariant = (
-    color,
-    ram,
-    storage
-  ) => {
+  const findVariant = (color, ram, storage) => {
     if (!variants.length) {
       return null;
     }
@@ -334,15 +277,11 @@ export default function ProductDetailsPage() {
     return (
       variants.find((variant) => {
         const variantColor =
-          variant?.color?.name ||
-          variant?.color?.value ||
-          "";
+          variant?.color?.name || variant?.color?.value || "";
 
-        const variantRam =
-          variant?.ram || "";
+        const variantRam = variant?.ram || "";
 
-        const variantStorage =
-          variant?.storage || "";
+        const variantStorage = variant?.storage || "";
 
         return (
           variantColor === color &&
@@ -365,16 +304,11 @@ export default function ProductDetailsPage() {
     const exactVariant = findVariant(
       selectedColor,
       selectedRam,
-      selectedStorage
+      selectedStorage,
     );
 
     setSelectedVariant(exactVariant);
-  }, [
-    variants,
-    selectedColor,
-    selectedRam,
-    selectedStorage,
-  ]);
+  }, [variants, selectedColor, selectedRam, selectedStorage]);
 
   // =====================================================
   // RESET QUANTITY WHEN VARIANT CHANGES
@@ -398,33 +332,24 @@ export default function ProductDetailsPage() {
     selectedVariant.price !== undefined &&
     selectedVariant.price !== null
       ? Number(selectedVariant.price)
-      : Number(
-          product?.discountPrice ??
-            product?.price ??
-            0
-        );
+      : Number(product?.discountPrice ?? product?.price ?? 0);
 
   // =====================================================
   // ORIGINAL PRICE
   // =====================================================
-  const originalPrice =
-    selectedVariant
-      ? null
-      : product?.discountPrice &&
+  const originalPrice = selectedVariant
+    ? null
+    : product?.discountPrice &&
         product?.price &&
-        Number(product.price) >
-          Number(product.discountPrice)
+        Number(product.price) > Number(product.discountPrice)
       ? Number(product.price)
       : null;
 
   const hasVariants = variants.length > 0;
 
-  const variantFound =
-    !hasVariants ||
-    Boolean(selectedVariant);
+  const variantFound = !hasVariants || Boolean(selectedVariant);
 
-  const isOutOfStock =
-    currentStock <= 0;
+  const isOutOfStock = currentStock <= 0;
 
   // =====================================================
   // COLOR SELECT
@@ -447,8 +372,7 @@ export default function ProductDetailsPage() {
 
       // যদি color image product.images-এর মধ্যেও থাকে
       // তাহলে thumbnail active করা হবে
-      const imageIndex =
-        images.indexOf(color.image);
+      const imageIndex = images.indexOf(color.image);
 
       if (imageIndex !== -1) {
         setSelectedImage(imageIndex);
@@ -468,9 +392,7 @@ export default function ProductDetailsPage() {
   // =====================================================
   // STORAGE SELECT
   // =====================================================
-  const handleStorageSelect = (
-    storage
-  ) => {
+  const handleStorageSelect = (storage) => {
     setSelectedStorage(storage);
   };
 
@@ -483,90 +405,53 @@ export default function ProductDetailsPage() {
     }
 
     return variants.some((variant) => {
-      const variantColor =
-        variant?.color?.name ||
-        variant?.color?.value ||
-        "";
+      const variantColor = variant?.color?.name || variant?.color?.value || "";
 
-      const colorMatch =
-        !selectedColor ||
-        variantColor === selectedColor;
+      const colorMatch = !selectedColor || variantColor === selectedColor;
 
       const storageMatch =
-        !selectedStorage ||
-        variant?.storage ===
-          selectedStorage;
+        !selectedStorage || variant?.storage === selectedStorage;
 
-      return (
-        colorMatch &&
-        variant?.ram === ram &&
-        storageMatch
-      );
+      return colorMatch && variant?.ram === ram && storageMatch;
     });
   };
 
   // =====================================================
   // STORAGE AVAILABLE
   // =====================================================
-  const isStorageAvailable = (
-    storage
-  ) => {
+  const isStorageAvailable = (storage) => {
     if (!variants.length) {
       return true;
     }
 
     return variants.some((variant) => {
-      const variantColor =
-        variant?.color?.name ||
-        variant?.color?.value ||
-        "";
+      const variantColor = variant?.color?.name || variant?.color?.value || "";
 
-      const colorMatch =
-        !selectedColor ||
-        variantColor === selectedColor;
+      const colorMatch = !selectedColor || variantColor === selectedColor;
 
-      const ramMatch =
-        !selectedRam ||
-        variant?.ram === selectedRam;
+      const ramMatch = !selectedRam || variant?.ram === selectedRam;
 
-      return (
-        colorMatch &&
-        ramMatch &&
-        variant?.storage === storage
-      );
+      return colorMatch && ramMatch && variant?.storage === storage;
     });
   };
 
   // =====================================================
   // COLOR AVAILABLE
   // =====================================================
-  const isColorAvailable = (
-    colorName
-  ) => {
+  const isColorAvailable = (colorName) => {
     if (!variants.length) {
       return true;
     }
 
     return variants.some((variant) => {
-      const variantColor =
-        variant?.color?.name ||
-        variant?.color?.value ||
-        "";
+      const variantColor = variant?.color?.name || variant?.color?.value || "";
 
-      const ramMatch =
-        !selectedRam ||
-        variant?.ram === selectedRam;
+      const ramMatch = !selectedRam || variant?.ram === selectedRam;
 
       const storageMatch =
-        !selectedStorage ||
-        variant?.storage ===
-          selectedStorage;
+        !selectedStorage || variant?.storage === selectedStorage;
 
-      return (
-        variantColor === colorName &&
-        ramMatch &&
-        storageMatch
-      );
+      return variantColor === colorName && ramMatch && storageMatch;
     });
   };
 
@@ -574,13 +459,8 @@ export default function ProductDetailsPage() {
   // INCREASE QUANTITY
   // =====================================================
   const increaseQuantity = () => {
-    if (
-      currentStock > 0 &&
-      quantity < currentStock
-    ) {
-      setQuantity(
-        (prev) => prev + 1
-      );
+    if (currentStock > 0 && quantity < currentStock) {
+      setQuantity((prev) => prev + 1);
     }
   };
 
@@ -589,9 +469,7 @@ export default function ProductDetailsPage() {
   // =====================================================
   const decreaseQuantity = () => {
     if (quantity > 1) {
-      setQuantity(
-        (prev) => prev - 1
-      );
+      setQuantity((prev) => prev - 1);
     }
   };
 
@@ -599,20 +477,13 @@ export default function ProductDetailsPage() {
   // ORDER
   // =====================================================
   const handlePreOrder = () => {
-    if (
-      hasVariants &&
-      !selectedVariant
-    ) {
-      alert(
-        "Please select a valid Color, RAM and Storage combination."
-      );
+    if (hasVariants && !selectedVariant) {
+      alert("Please select a valid Color, RAM and Storage combination.");
       return;
     }
 
     if (currentStock <= 0) {
-      alert(
-        "This variant is out of stock."
-      );
+      alert("This variant is out of stock.");
       return;
     }
 
@@ -625,10 +496,7 @@ export default function ProductDetailsPage() {
       price: displayPrice,
       stock: currentStock,
       quantity,
-      sku:
-        selectedVariant?.sku ||
-        product.sku ||
-        "",
+      sku: selectedVariant?.sku || product.sku || "",
       variant: selectedVariant,
     });
   };
@@ -636,153 +504,116 @@ export default function ProductDetailsPage() {
   // =====================================================
   // WHATSAPP
   // =====================================================
-  const whatsappMessage =
-    encodeURIComponent(
-      `Hello, I want to know about ${
-        product?.name || "this product"
-      }`
-    );
+  const whatsappMessage = encodeURIComponent(
+    `Hello, I want to know about ${product?.name || "this product"}`,
+  );
 
-  const whatsappUrl =
-    `https://wa.me/?text=${whatsappMessage}`;
+  const whatsappUrl = `https://wa.me/?text=${whatsappMessage}`;
 
   // =====================================================
- // =====================================================
-// SAVE RECENTLY VIEWED PRODUCT
-// =====================================================
-// =====================================================
-// SAVE RECENTLY VIEWED PRODUCT
-// =====================================================
-// =====================================================
-// SAVE RECENTLY VIEWED
-// Maximum 10 products
-// Remove products older than 30 days
-// =====================================================
-useEffect(() => {
-  if (!product?._id) return;
+  // =====================================================
+  // SAVE RECENTLY VIEWED PRODUCT
+  // =====================================================
+  // =====================================================
+  // SAVE RECENTLY VIEWED PRODUCT
+  // =====================================================
+  // =====================================================
+  // SAVE RECENTLY VIEWED
+  // Maximum 10 products
+  // Remove products older than 30 days
+  // =====================================================
+  useEffect(() => {
+    if (!product?._id) return;
 
-  try {
-    const now = Date.now();
+    try {
+      const now = Date.now();
 
-    const THIRTY_DAYS =
-      7 * 24 * 60 * 60 * 1000;
+      const THIRTY_DAYS = 7 * 24 * 60 * 60 * 1000;
 
-    const saved = JSON.parse(
-      localStorage.getItem("recentlyViewed") || "[]"
-    );
+      const saved = JSON.parse(localStorage.getItem("recentlyViewed") || "[]");
 
-    const savedProducts =
-      Array.isArray(saved)
-        ? saved
-        : [];
+      const savedProducts = Array.isArray(saved) ? saved : [];
 
-    // =================================================
-    // REMOVE PRODUCTS OLDER THAN 30 DAYS
-    // =================================================
-    const validProducts = savedProducts
-      .map((item) => {
+      // =================================================
+      // REMOVE PRODUCTS OLDER THAN 30 DAYS
+      // =================================================
+      const validProducts = savedProducts
+        .map((item) => {
+          // Old data যদি viewedAt না থাকে
+          // তাহলে এখন থেকে 30 দিন ধরে রাখবে
+          if (!item?.viewedAt) {
+            return {
+              ...item,
+              viewedAt: now,
+            };
+          }
 
-        // Old data যদি viewedAt না থাকে
-        // তাহলে এখন থেকে 30 দিন ধরে রাখবে
-        if (!item?.viewedAt) {
-          return {
-            ...item,
-            viewedAt: now,
-          };
-        }
+          return item;
+        })
+        .filter((item) => {
+          const viewedAt = Number(item?.viewedAt || 0);
 
-        return item;
-      })
-      .filter((item) => {
-        const viewedAt =
-          Number(item?.viewedAt || 0);
+          return viewedAt > 0 && now - viewedAt < THIRTY_DAYS;
+        });
 
-        return (
-          viewedAt > 0 &&
-          now - viewedAt < THIRTY_DAYS
-        );
-      });
+      // =================================================
+      // CURRENT PRODUCT
+      // =================================================
+      const newProduct = {
+        _id: product._id,
 
-    // =================================================
-    // CURRENT PRODUCT
-    // =================================================
-    const newProduct = {
-      _id: product._id,
+        name: product.name,
 
-      name: product.name,
+        slug: product.slug || product._id,
 
-      slug:
-        product.slug ||
-        product._id,
+        brand: product.brand || "",
 
-      brand:
-        product.brand || "",
+        price: Number(product.price || 0),
 
-      price:
-        Number(product.price || 0),
+        discountPrice:
+          product.discountPrice !== null && product.discountPrice !== undefined
+            ? Number(product.discountPrice)
+            : null,
 
-      discountPrice:
-        product.discountPrice !== null &&
-        product.discountPrice !== undefined
-          ? Number(product.discountPrice)
-          : null,
+        images:
+          Array.isArray(product.images) && product.images.length > 0
+            ? product.images
+            : product.image
+              ? [product.image]
+              : [],
 
-      images:
-        Array.isArray(product.images) &&
-        product.images.length > 0
-          ? product.images
-          : product.image
-          ? [product.image]
-          : [],
+        // IMPORTANT
+        viewedAt: now,
+      };
 
-      // IMPORTANT
-      viewedAt: now,
-    };
+      // =================================================
+      // REMOVE SAME PRODUCT
+      // =================================================
+      const filtered = validProducts.filter(
+        (item) => item?._id !== product._id,
+      );
 
-    // =================================================
-    // REMOVE SAME PRODUCT
-    // =================================================
-    const filtered = validProducts.filter(
-      (item) =>
-        item?._id !== product._id
-    );
+      // =================================================
+      // CURRENT PRODUCT FIRST
+      // MAXIMUM 10 PRODUCTS
+      // =================================================
+      const updated = [newProduct, ...filtered].slice(0, 10);
 
-    // =================================================
-    // CURRENT PRODUCT FIRST
-    // MAXIMUM 10 PRODUCTS
-    // =================================================
-    const updated = [
-      newProduct,
-      ...filtered,
-    ].slice(0, 10);
+      // =================================================
+      // SAVE
+      // =================================================
+      localStorage.setItem("recentlyViewed", JSON.stringify(updated));
 
-    // =================================================
-    // SAVE
-    // =================================================
-    localStorage.setItem(
-      "recentlyViewed",
-      JSON.stringify(updated)
-    );
+      // =================================================
+      // UPDATE SAME TAB
+      // =================================================
+      window.dispatchEvent(new Event("recentlyViewedUpdated"));
 
-    // =================================================
-    // UPDATE SAME TAB
-    // =================================================
-    window.dispatchEvent(
-      new Event("recentlyViewedUpdated")
-    );
-
-    console.log(
-      "Recently Viewed Updated:",
-      updated
-    );
-
-  } catch (error) {
-    console.error(
-      "Recently viewed save error:",
-      error
-    );
-  }
-}, [product]);
+      console.log("Recently Viewed Updated:", updated);
+    } catch (error) {
+      console.error("Recently viewed save error:", error);
+    }
+  }, [product]);
   // =====================================================
   if (loading) {
     return (
@@ -813,8 +644,7 @@ useEffect(() => {
         </h1>
 
         <p className="text-gray-500 mt-2 text-center text-[15px]">
-          The product you are looking for
-          does not exist or has been removed.
+          The product you are looking for does not exist or has been removed.
         </p>
 
         <Link
@@ -839,10 +669,7 @@ useEffect(() => {
     4. Empty
   */
   const mainImage =
-    selectedColorImage ||
-    images[selectedImage] ||
-    images[0] ||
-    "";
+    selectedColorImage || images[selectedImage] || images[0] || "";
 
   // =====================================================
   // MAIN UI
@@ -854,31 +681,18 @@ useEffect(() => {
       {/* BREADCRUMB */}
       <div className="max-w-[1320px] mx-auto px-4 sm:px-6 pt-6">
         <nav className="flex items-center gap-1.5 text-[13px] text-gray-500">
-          <Link
-            href="/"
-            className="hover:text-orange-600 transition-colors"
-          >
+          <Link href="/" className="hover:text-orange-600 transition-colors">
             Home
           </Link>
 
-          <ChevronRight
-            size={13}
-            className="text-gray-400"
-          />
+          <ChevronRight size={13} className="text-gray-400" />
 
-          <span>
-            Mobile Phone
-          </span>
+          <span>Mobile Phone</span>
 
-          <ChevronRight
-            size={13}
-            className="text-gray-400"
-          />
+          <ChevronRight size={13} className="text-gray-400" />
 
           <span className="text-gray-800 font-medium truncate max-w-[180px]">
-            {product.brand ||
-              product.name?.split(" ")[0] ||
-              "Product"}
+            {product.brand || product.name?.split(" ")[0] || "Product"}
           </span>
         </nav>
       </div>
@@ -886,15 +700,12 @@ useEffect(() => {
       {/* MAIN PRODUCT AREA */}
       <section className="max-w-[1320px] mx-auto px-4 sm:px-6 pt-7 pb-20">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] xl:grid-cols-[500px_1fr] gap-10 lg:gap-14">
-
           {/* =================================================
               LEFT IMAGE GALLERY
           ================================================= */}
           <div className="space-y-5">
-
             {/* MAIN IMAGE */}
             <div className="relative aspect-square w-full rounded-3xl bg-white border border-gray-100 shadow-[0_2px_20px_-4px_rgba(0,0,0,0.06)] flex items-center justify-center overflow-hidden">
-
               {mainImage ? (
                 <img
                   src={mainImage}
@@ -906,9 +717,7 @@ useEffect(() => {
                   className="w-full h-full object-contain p-8 md:p-10 transition-all duration-500"
                 />
               ) : (
-                <div className="text-gray-400 text-sm">
-                  No Image Available
-                </div>
+                <div className="text-gray-400 text-sm">No Image Available</div>
               )}
 
               {/* OUT OF STOCK */}
@@ -926,43 +735,36 @@ useEffect(() => {
             ================================================= */}
             {images.length > 1 && (
               <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
-                {images.map(
-                  (image, index) => (
-                    <button
-                      key={`${image}-${index}`}
-                      onClick={() => {
-                        /*
+                {images.map((image, index) => (
+                  <button
+                    key={`${image}-${index}`}
+                    onClick={() => {
+                      /*
                           Normal image click করলে
                           color image override বন্ধ হবে।
                         */
-                        setSelectedImage(
-                          index
-                        );
-                        setSelectedColorImage(
-                          ""
-                        );
-                      }}
-                      className={`
+                      setSelectedImage(index);
+                      setSelectedColorImage("");
+                    }}
+                    className={`
                         relative flex-shrink-0
                         w-[76px] h-[76px] sm:w-20 sm:h-20
                         rounded-2xl border-2 overflow-hidden bg-white
                         transition-all duration-300
                         ${
-                          !selectedColorImage &&
-                          selectedImage === index
+                          !selectedColorImage && selectedImage === index
                             ? "border-orange-500 shadow-md shadow-orange-500/10"
                             : "border-gray-200/80 hover:border-gray-300"
                         }
                       `}
-                    >
-                      <img
-                        src={image}
-                        alt={`${product.name} ${index + 1}`}
-                        className="w-full h-full object-contain p-2"
-                      />
-                    </button>
-                  )
-                )}
+                  >
+                    <img
+                      src={image}
+                      alt={`${product.name} ${index + 1}`}
+                      className="w-full h-full object-contain p-2"
+                    />
+                  </button>
+                ))}
               </div>
             )}
           </div>
@@ -971,18 +773,14 @@ useEffect(() => {
               RIGHT PRODUCT INFORMATION
           ================================================= */}
           <div className="flex flex-col pt-1">
-
             {/* BRAND + COMPARE */}
             <div className="flex items-center justify-between mb-2">
               <span className="text-[15px] font-semibold text-blue-600 tracking-wide lowercase">
-                {product.brand?.toLowerCase() ||
-                  "brand"}
+                {product.brand?.toLowerCase() || "brand"}
               </span>
 
               <button className="flex items-center gap-1.5 text-orange-500 font-medium text-[13px] hover:text-orange-600 transition-colors">
-                <ArrowLeftRight
-                  size={15}
-                />
+                <ArrowLeftRight size={15} />
                 Add to Compare
               </button>
             </div>
@@ -994,38 +792,27 @@ useEffect(() => {
 
             {/* PRICE + AVAILABILITY + CODE */}
             <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[14px]">
-
               <span className="font-semibold text-gray-900">
                 {displayPrice > 0
-                  ? `৳${Number(
-                      displayPrice
-                    ).toLocaleString()}`
+                  ? `৳${Number(displayPrice).toLocaleString()}`
                   : "TBA"}{" "}
-                <span className="font-normal text-gray-500">
-                  (Cash Price)
-                </span>
+                <span className="font-normal text-gray-500">(Cash Price)</span>
               </span>
 
               {originalPrice && (
                 <>
-                  <span className="text-gray-300">
-                    |
-                  </span>
+                  <span className="text-gray-300">|</span>
 
                   <span className="text-gray-400 line-through">
-                    ৳
-                    {originalPrice.toLocaleString()}
+                    ৳{originalPrice.toLocaleString()}
                   </span>
                 </>
               )}
 
-              <span className="text-gray-300">
-                |
-              </span>
+              <span className="text-gray-300">|</span>
 
               <span className="text-gray-600">
                 Availability:{" "}
-
                 {!variantFound ? (
                   <span className="font-medium text-rose-500">
                     Variant Not Available
@@ -1041,17 +828,12 @@ useEffect(() => {
                 )}
               </span>
 
-              <span className="text-gray-300">
-                |
-              </span>
+              <span className="text-gray-300">|</span>
 
               <span className="text-gray-600">
                 Code:{" "}
-
                 <span className="font-medium text-blue-600 underline underline-offset-2 decoration-blue-300">
-                  {selectedVariant?.sku ||
-                    product.sku ||
-                    "N/A"}
+                  {selectedVariant?.sku || product.sku || "N/A"}
                 </span>
               </span>
             </div>
@@ -1060,40 +842,28 @@ useEffect(() => {
                 COLOR + STORAGE
             ================================================= */}
             <div className="mt-7 grid grid-cols-1 sm:grid-cols-2 gap-4">
-
               {/* COLOR */}
               {colors.length > 0 && (
                 <div className="rounded-2xl border border-gray-200/80 bg-white p-4 shadow-sm">
-
                   <h3 className="text-[13px] font-medium text-gray-600 mb-3 tracking-wide">
                     Color
                   </h3>
 
                   <div className="flex flex-wrap gap-2">
+                    {colors.map((color, index) => {
+                      const available = isColorAvailable(color.name);
 
-                    {colors.map(
-                      (color, index) => {
-                        const available =
-                          isColorAvailable(
-                            color.name
-                          );
-
-                        return (
-                          <button
-                            key={`${color.name}-${index}`}
-                            disabled={!available}
-                            onClick={() =>
-                              handleColorSelect(
-                                color
-                              )
-                            }
-                            className={`
+                      return (
+                        <button
+                          key={`${color.name}-${index}`}
+                          disabled={!available}
+                          onClick={() => handleColorSelect(color)}
+                          className={`
                               flex items-center gap-2
                               px-3.5 py-1.5
                               rounded-full border text-[13px] font-medium transition-all duration-200
                               ${
-                                selectedColor ===
-                                color.name
+                                selectedColor === color.name
                                   ? "border-orange-500 bg-orange-50 text-orange-700 shadow-sm"
                                   : "border-gray-200 text-gray-700 hover:border-gray-300"
                               }
@@ -1103,22 +873,18 @@ useEffect(() => {
                                   : ""
                               }
                             `}
-                          >
+                        >
+                          <span
+                            className="w-3.5 h-3.5 rounded-full border border-gray-300/80 shadow-inner"
+                            style={{
+                              backgroundColor: color.code,
+                            }}
+                          />
 
-                            <span
-                              className="w-3.5 h-3.5 rounded-full border border-gray-300/80 shadow-inner"
-                              style={{
-                                backgroundColor:
-                                  color.code,
-                              }}
-                            />
-
-                            {color.name}
-                          </button>
-                        );
-                      }
-                    )}
-
+                          {color.name}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -1126,35 +892,24 @@ useEffect(() => {
               {/* STORAGE */}
               {storageOptions.length > 0 && (
                 <div className="rounded-2xl border border-gray-200/80 bg-white p-4 shadow-sm">
-
                   <h3 className="text-[13px] font-medium text-gray-600 mb-3 tracking-wide">
                     Storage
                   </h3>
 
                   <div className="flex flex-wrap gap-2">
+                    {storageOptions.map((storage, index) => {
+                      const available = isStorageAvailable(storage);
 
-                    {storageOptions.map(
-                      (storage, index) => {
-                        const available =
-                          isStorageAvailable(
-                            storage
-                          );
-
-                        return (
-                          <button
-                            key={`${storage}-${index}`}
-                            disabled={!available}
-                            onClick={() =>
-                              handleStorageSelect(
-                                storage
-                              )
-                            }
-                            className={`
+                      return (
+                        <button
+                          key={`${storage}-${index}`}
+                          disabled={!available}
+                          onClick={() => handleStorageSelect(storage)}
+                          className={`
                               px-3.5 py-1.5
                               rounded-full border text-[13px] font-medium transition-all duration-200
                               ${
-                                selectedStorage ===
-                                storage
+                                selectedStorage === storage
                                   ? "border-orange-500 bg-orange-50 text-orange-700 shadow-sm"
                                   : "border-gray-200 text-gray-700 hover:border-gray-300"
                               }
@@ -1164,13 +919,11 @@ useEffect(() => {
                                   : ""
                               }
                             `}
-                          >
-                            {storage}
-                          </button>
-                        );
-                      }
-                    )}
-
+                        >
+                          {storage}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -1181,28 +934,20 @@ useEffect(() => {
             ================================================= */}
             {ramOptions.length > 0 && (
               <div className="mt-4 rounded-2xl border border-gray-200/80 bg-white p-4 shadow-sm">
-
                 <h3 className="text-[13px] font-medium text-gray-600 mb-3 tracking-wide">
                   RAM
                 </h3>
 
                 <div className="flex flex-wrap gap-2">
+                  {ramOptions.map((ram, index) => {
+                    const available = isRamAvailable(ram);
 
-                  {ramOptions.map(
-                    (ram, index) => {
-                      const available =
-                        isRamAvailable(ram);
-
-                      return (
-                        <button
-                          key={`${ram}-${index}`}
-                          disabled={!available}
-                          onClick={() =>
-                            handleRamSelect(
-                              ram
-                            )
-                          }
-                          className={`
+                    return (
+                      <button
+                        key={`${ram}-${index}`}
+                        disabled={!available}
+                        onClick={() => handleRamSelect(ram)}
+                        className={`
                             px-3.5 py-1.5
                             rounded-full border text-[13px] font-medium transition-all duration-200
                             ${
@@ -1216,13 +961,11 @@ useEffect(() => {
                                 : ""
                             }
                           `}
-                        >
-                          {ram}
-                        </button>
-                      );
-                    }
-                  )}
-
+                      >
+                        {ram}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -1230,34 +973,24 @@ useEffect(() => {
             {/* =================================================
                 VARIANT ERROR
             ================================================= */}
-            {hasVariants &&
-              !selectedVariant && (
-                <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50/80 px-4 py-3 text-[13px] text-rose-600">
-                  This Color, RAM and
-                  Storage combination is
-                  not available.
-                </div>
-              )}
+            {hasVariants && !selectedVariant && (
+              <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50/80 px-4 py-3 text-[13px] text-rose-600">
+                This Color, RAM and Storage combination is not available.
+              </div>
+            )}
 
             {/* =================================================
                 QUANTITY
             ================================================= */}
             <div className="mt-7">
-
               <h3 className="text-[13px] font-medium text-gray-600 mb-3 tracking-wide">
                 Select Quantity
               </h3>
 
               <div className="inline-flex items-center gap-1 bg-gray-100/80 rounded-full p-1 border border-gray-200/60">
-
                 <button
-                  onClick={
-                    decreaseQuantity
-                  }
-                  disabled={
-                    currentStock <= 0 ||
-                    quantity <= 1
-                  }
+                  onClick={decreaseQuantity}
+                  disabled={currentStock <= 0 || quantity <= 1}
                   className="w-9 h-9 rounded-full bg-white flex items-center justify-center text-gray-700 hover:bg-gray-50 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <Minus size={15} />
@@ -1268,18 +1001,12 @@ useEffect(() => {
                 </span>
 
                 <button
-                  onClick={
-                    increaseQuantity
-                  }
-                  disabled={
-                    currentStock <= 0 ||
-                    quantity >= currentStock
-                  }
+                  onClick={increaseQuantity}
+                  disabled={currentStock <= 0 || quantity >= currentStock}
                   className="w-9 h-9 rounded-full bg-white flex items-center justify-center text-gray-700 hover:bg-gray-50 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <Plus size={15} />
                 </button>
-
               </div>
             </div>
 
@@ -1287,17 +1014,10 @@ useEffect(() => {
                 EMI + WHATSAPP
             ================================================= */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-7">
-
               <button className="h-[48px] rounded-2xl bg-[#fff8f0] border border-orange-100/80 flex items-center justify-center gap-2.5 text-gray-800 hover:bg-orange-50/80 transition-all text-[13.5px]">
-                <Percent
-                  size={16}
-                  className="text-orange-500"
-                />
+                <Percent size={16} className="text-orange-500" />
 
-                <span>
-                  EMI Available for
-                  orders above ৳ 5000
-                </span>
+                <span>EMI Available for orders above ৳ 5000</span>
               </button>
 
               <a
@@ -1306,100 +1026,76 @@ useEffect(() => {
                 rel="noopener noreferrer"
                 className="h-[48px] rounded-2xl bg-emerald-50 border border-emerald-200/70 flex items-center justify-center gap-2.5 text-gray-800 hover:bg-emerald-100/60 transition-all text-[13.5px] font-medium"
               >
-                <MessageCircle
-                  size={17}
-                  className="text-emerald-600"
-                />
+                <MessageCircle size={17} className="text-emerald-600" />
 
-                <span>
-                  WhatsApp
-                </span>
+                <span>WhatsApp</span>
               </a>
-
             </div>
 
             {/* =================================================
                 DELIVERY
             ================================================= */}
             <div className="mt-4 flex items-center gap-3 rounded-2xl border border-gray-200/80 bg-white px-4 py-3.5 text-[13.5px] text-gray-700 shadow-sm">
-
-              <Truck
-                size={17}
-                className="text-gray-500 flex-shrink-0"
-              />
+              <Truck size={17} className="text-gray-500 flex-shrink-0" />
 
               <span>
                 Delivery Timescale:{" "}
-
-                <span className="font-medium text-gray-900">
-                  3-5 Days
-                </span>
+                <span className="font-medium text-gray-900">3-5 Days</span>
               </span>
-
             </div>
 
             {/* =================================================
                 ORDER BUTTON
             ================================================= */}
             <div className="flex justify-between gap-3">
-            <button
-              onClick={handlePreOrder}
-              disabled={
-                currentStock <= 0 ||
-                (hasVariants &&
-                  !selectedVariant)
-              }
-              className={`
+              <button
+                onClick={handlePreOrder}
+                disabled={
+                  currentStock <= 0 || (hasVariants && !selectedVariant)
+                }
+                className={`
                 mt-7 w-full h-[50px] rounded-2xl
                 font-semibold text-[15px]
                 transition-all duration-200 flex items-center justify-center gap-2.5
                 ${
-                  currentStock <= 0 ||
-                  (hasVariants &&
-                    !selectedVariant)
+                  currentStock <= 0 || (hasVariants && !selectedVariant)
                     ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                     : "bg-orange-500 hover:bg-orange-600 active:scale-[0.985] text-white shadow-lg shadow-orange-500/25"
                 }
               `}
-            >
-              <ShoppingBag size={18} />
+              >
+                <ShoppingBag size={18} />
 
-              {currentStock <= 0
-                ? "Out of Stock"
-                : !selectedVariant &&
-                  hasVariants
-                ? "Select Variant"
-                : "Add to Cart"}
-            </button>
-            <button
-              onClick={handlePreOrder}
-              disabled={
-                currentStock <= 0 ||
-                (hasVariants &&
-                  !selectedVariant)
-              }
-              className={`
+                {currentStock <= 0
+                  ? "Out of Stock"
+                  : !selectedVariant && hasVariants
+                    ? "Select Variant"
+                    : "Add to Cart"}
+              </button>
+              <button
+                onClick={handlePreOrder}
+                disabled={
+                  currentStock <= 0 || (hasVariants && !selectedVariant)
+                }
+                className={`
                 mt-7 w-full h-[50px] rounded-2xl
                 font-semibold text-[15px]
                 transition-all duration-200 flex items-center justify-center gap-2.5
                 ${
-                  currentStock <= 0 ||
-                  (hasVariants &&
-                    !selectedVariant)
+                  currentStock <= 0 || (hasVariants && !selectedVariant)
                     ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                     : "bg-orange-500 hover:bg-orange-600 active:scale-[0.985] text-white shadow-lg shadow-orange-500/25"
                 }
               `}
-            >
-              <ShoppingBag size={18} />
+              >
+                <ShoppingBag size={18} />
 
-              {currentStock <= 0
-                ? "Out of Stock"
-                : !selectedVariant &&
-                  hasVariants
-                ? "Select Variant"
-                : "Buy"}
-            </button>
+                {currentStock <= 0
+                  ? "Out of Stock"
+                  : !selectedVariant && hasVariants
+                    ? "Select Variant"
+                    : "Buy"}
+              </button>
             </div>
           </div>
         </div>
@@ -1410,113 +1106,89 @@ useEffect(() => {
         {/* =================================================
     SPECIFICATION + RECENTLY VIEWED
 ================================================= */}
-{/* =================================================
+        {/* =================================================
     SPECIFICATION + RECENTLY VIEWED
 ================================================= */}
-<section className="mt-16 sm:mt-20">
-
-  <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-8 lg:gap-10 items-start">
-
-    {/* =================================================
+        <section className="mt-16 sm:mt-20">
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-8 lg:gap-10 items-start">
+            {/* =================================================
         LEFT - SPECIFICATION
     ================================================= */}
-    <div className="min-w-0">
+            <div className="min-w-0">
+              {/* HEADER */}
+              <div className="mb-5">
+                <h2 className="text-[24px] sm:text-[26px] font-semibold text-gray-900 tracking-tight">
+                  Specification
+                </h2>
 
-      {/* HEADER */}
-      <div className="mb-5">
-        <h2 className="text-[24px] sm:text-[26px] font-semibold text-gray-900 tracking-tight">
-          Specification
-        </h2>
+                <p className="mt-1 text-[14px] text-gray-500">
+                  Product details and specifications
+                </p>
+              </div>
 
-        <p className="mt-1 text-[14px] text-gray-500">
-          Product details and specifications
-        </p>
-      </div>
+              {/* SPECIFICATION TABLE */}
+              <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-[0_2px_15px_-5px_rgba(0,0,0,0.08)]">
+                {/* BRAND */}
+                <SpecificationRow
+                  label="Brand"
+                  value={product.brand || "Apple"}
+                />
 
-      {/* SPECIFICATION TABLE */}
-      <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-[0_2px_15px_-5px_rgba(0,0,0,0.08)]">
+                {/* MODEL */}
+                <SpecificationRow label="Model" value={product.name} />
 
-        {/* BRAND */}
-        <SpecificationRow
-          label="Brand"
-          value={product.brand || "Apple"}
-        />
+                {/* SPECIFICATIONS */}
+                {Array.isArray(product.specifications) &&
+                  product.specifications.map((spec, index) => {
+                    const key = String(spec?.key || "").trim();
 
-        {/* MODEL */}
-        <SpecificationRow
-          label="Model"
-          value={product.name}
-        />
+                    const value = String(spec?.value || "").trim();
 
-        {/* SPECIFICATIONS */}
-        {Array.isArray(product.specifications) &&
-          product.specifications.map((spec, index) => {
+                    if (!key || !value) {
+                      return null;
+                    }
 
-            const key = String(
-              spec?.key || ""
-            ).trim();
+                    // Brand / Model already shown above
+                    if (
+                      key.toLowerCase() === "brand" ||
+                      key.toLowerCase() === "model"
+                    ) {
+                      return null;
+                    }
 
-            const value = String(
-              spec?.value || ""
-            ).trim();
+                    return (
+                      <SpecificationRow
+                        key={spec?._id || `${key}-${index}`}
+                        label={key}
+                        value={value}
+                      />
+                    );
+                  })}
+              </div>
+            </div>
 
-            if (!key || !value) {
-              return null;
-            }
-
-            // Brand / Model already shown above
-            if (
-              key.toLowerCase() === "brand" ||
-              key.toLowerCase() === "model"
-            ) {
-              return null;
-            }
-
-            return (
-              <SpecificationRow
-                key={
-                  spec?._id ||
-                  `${key}-${index}`
-                }
-                label={key}
-                value={value}
-              />
-            );
-          })}
-
-      </div>
-    </div>
-
-
-    {/* =================================================
+            {/* =================================================
         RIGHT - RECENTLY VIEWED
     ================================================= */}
-    <aside className="min-w-0 lg:sticky lg:top-24">
+            <aside className="min-w-0 lg:sticky lg:top-24">
+              <div className="mb-5">
+                <h2 className="text-[24px] sm:text-[26px] font-semibold text-gray-900 tracking-tight">
+                  Recently Viewed
+                </h2>
 
-      <div className="mb-5">
-        <h2 className="text-[24px] sm:text-[26px] font-semibold text-gray-900 tracking-tight">
-          Recently Viewed
-        </h2>
+                <p className="mt-1 text-[14px] text-gray-500">
+                  Products you viewed recently
+                </p>
+              </div>
 
-        <p className="mt-1 text-[14px] text-gray-500">
-          Products you viewed recently
-        </p>
-      </div>
-
-      {/* RecentlyViewed component */}
-      <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-[0_2px_15px_-5px_rgba(0,0,0,0.08)]">
-
-        <RecentlyViewed />
-
-      </div>
-
-    </aside>
-
-  </div>
-
-</section>
+              {/* RecentlyViewed component */}
+              <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-[0_2px_15px_-5px_rgba(0,0,0,0.08)]">
+                <RecentlyViewed />
+              </div>
+            </aside>
+          </div>
+        </section>
       </section>
-  
     </main>
   );
 }
@@ -1524,13 +1196,9 @@ useEffect(() => {
 // =========================================================
 // SPECIFICATION ROW
 // =========================================================
-function SpecificationRow({
-  label,
-  value,
-}) {
+function SpecificationRow({ label, value }) {
   return (
     <div className="grid grid-cols-[140px_1fr] sm:grid-cols-[180px_1fr] border-b border-gray-100 last:border-b-0">
-
       <div className="px-5 py-3.5 bg-gray-50/80 text-[13.5px] text-gray-600 font-medium">
         {label}
       </div>
@@ -1538,7 +1206,6 @@ function SpecificationRow({
       <div className="px-5 py-3.5 text-[13.5px] font-medium text-gray-900 border-l border-gray-100">
         {value}
       </div>
-
     </div>
   );
 }

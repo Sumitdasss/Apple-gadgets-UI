@@ -1,3 +1,4 @@
+
 /* eslint-disable react-hooks/set-state-in-effect */
 /* eslint-disable react-hooks/globals */
 /* eslint-disable react-hooks/static-components */
@@ -153,10 +154,7 @@ const MAX_FILTER_VALUE_LENGTH = 40;
 const MAX_AUTO_FILTER_OPTIONS = 25;
 
 // ============================================
-// STABLE FILTER CHECKBOX
-// IMPORTANT:
-// This component is OUTSIDE CategoryPageContent.
-// So searchText update will NOT remount it.
+// FILTER CHECKBOX
 // ============================================
 
 function FilterCheckbox({
@@ -201,7 +199,7 @@ function FilterCheckbox({
 }
 
 // ============================================
-// STABLE FILTER SECTION
+// FILTER SECTION
 // ============================================
 
 function FilterSection({
@@ -272,9 +270,7 @@ function FilterSection({
 }
 
 // ============================================
-// STABLE FILTER CONTENT
-// IMPORTANT FIX:
-// This component is OUTSIDE CategoryPageContent.
+// FILTER CONTENT
 // ============================================
 
 function FilterContent({
@@ -303,9 +299,7 @@ function FilterContent({
 }) {
   return (
     <>
-      {/* ======================================
-          SEARCH
-      ====================================== */}
+      {/* SEARCH */}
 
       <div
         className="px-4 py-3.5"
@@ -369,9 +363,7 @@ function FilterContent({
         </div>
       </div>
 
-      {/* ======================================
-          PRICE
-      ====================================== */}
+      {/* PRICE */}
 
       <div
         className="px-4 py-3.5"
@@ -454,9 +446,7 @@ function FilterContent({
         )}
       </div>
 
-      {/* ======================================
-          STOCK
-      ====================================== */}
+      {/* STOCK */}
 
       <div
         className="px-4 py-3.5"
@@ -473,9 +463,7 @@ function FilterContent({
         />
       </div>
 
-      {/* ======================================
-          DYNAMIC FILTERS
-      ====================================== */}
+      {/* DYNAMIC FILTERS */}
 
       {filterSections.map((section) => (
         <FilterSection
@@ -507,9 +495,7 @@ function FilterContent({
         </FilterSection>
       ))}
 
-      {/* ======================================
-          CLEAR
-      ====================================== */}
+      {/* CLEAR */}
 
       <div className="px-4 py-3.5">
         <button
@@ -543,7 +529,8 @@ function CategoryPageContent() {
   // SEARCH PAGE
   // ============================================
 
-  const isSearchPage = pathname === "/search";
+  const isSearchPage =
+    pathname === "/search";
 
   const urlSearch =
     searchParams.get("q") ||
@@ -574,8 +561,11 @@ function CategoryPageContent() {
   // PRODUCTS
   // ============================================
 
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [products, setProducts] =
+    useState([]);
+
+  const [loading, setLoading] =
+    useState(true);
 
   // ============================================
   // SEARCH
@@ -588,8 +578,11 @@ function CategoryPageContent() {
   // PRICE
   // ============================================
 
-  const [priceMin, setPriceMin] = useState("");
-  const [priceMax, setPriceMax] = useState("");
+  const [priceMin, setPriceMin] =
+    useState("");
+
+  const [priceMax, setPriceMax] =
+    useState("");
 
   // ============================================
   // STOCK
@@ -620,7 +613,7 @@ function CategoryPageContent() {
     useState({});
 
   // ============================================
-  // MOBILE FILTER DRAWER
+  // MOBILE FILTER
   // ============================================
 
   const [isFilterOpen, setIsFilterOpen] =
@@ -636,7 +629,7 @@ function CategoryPageContent() {
     useState(1);
 
   // ============================================
-  // SECTION
+  // SECTION OPEN / CLOSE
   // ============================================
 
   const isSectionOpen = (key) =>
@@ -689,7 +682,8 @@ function CategoryPageContent() {
 
   useEffect(() => {
     if (isFilterOpen) {
-      document.body.style.overflow = "hidden";
+      document.body.style.overflow =
+        "hidden";
     } else {
       document.body.style.overflow = "";
     }
@@ -1414,195 +1408,6 @@ function CategoryPageContent() {
     }, []);
 
   // ============================================
-  // DYNAMIC FILTER CONFIGS
-  // ============================================
-
-  const dynamicFilterConfigs =
-    useMemo(() => {
-      const collected =
-        new Map();
-
-      products.forEach(
-        (product) => {
-          getSpecEntries(
-            product
-          ).forEach(
-            (item) => {
-              const rawLabel =
-                getSpecKeyLabel(
-                  item
-                );
-
-              const normalized =
-                rawLabel.toLowerCase();
-
-              if (!normalized)
-                return;
-
-              if (
-                knownSynonymSet.has(
-                  normalized
-                )
-              ) {
-                return;
-              }
-
-              if (
-                IGNORED_SPEC_KEYS.has(
-                  normalized
-                )
-              ) {
-                return;
-              }
-
-              const values =
-                getSpecItemValues(
-                  item
-                ).filter(
-                  (value) =>
-                    value.length <=
-                    MAX_FILTER_VALUE_LENGTH
-                );
-
-              if (
-                values.length ===
-                0
-              ) {
-                return;
-              }
-
-              if (
-                !collected.has(
-                  normalized
-                )
-              ) {
-                collected.set(
-                  normalized,
-                  {
-                    label:
-                      rawLabel,
-                    values:
-                      new Set(),
-                  }
-                );
-              }
-
-              const entry =
-                collected.get(
-                  normalized
-                );
-
-              values.forEach(
-                (value) =>
-                  entry.values.add(
-                    value
-                  )
-              );
-            }
-          );
-        }
-      );
-
-      const configs = [];
-
-      collected.forEach(
-        (
-          entry,
-          normalizedKey
-        ) => {
-          const uniqueValues = [
-            ...entry.values,
-          ];
-
-          if (
-            uniqueValues.length <
-            2
-          ) {
-            return;
-          }
-
-          if (
-            uniqueValues.length >
-            MAX_AUTO_FILTER_OPTIONS
-          ) {
-            return;
-          }
-
-          configs.push({
-            key: `spec:${normalizedKey}`,
-            label:
-              entry.label,
-            values:
-              uniqueValues,
-            synonyms: [
-              normalizedKey,
-            ],
-          });
-        }
-      );
-
-      configs.sort((a, b) =>
-        a.label.localeCompare(
-          b.label
-        )
-      );
-
-      return configs;
-    }, [
-      products,
-      knownSynonymSet,
-    ]);
-
-  // ============================================
-  // FILTER SECTIONS
-  // ============================================
-
-  const filterSections =
-    useMemo(() => {
-      const allConfigs = [
-        ...KNOWN_FILTER_GROUPS,
-        ...dynamicFilterConfigs,
-      ];
-
-      return allConfigs
-        .map((config) => {
-          const values =
-            products.flatMap(
-              (product) =>
-                getValuesForFilter(
-                  product,
-                  config
-                )
-            );
-
-          const uniqueValues = [
-            ...new Set(values),
-          ].filter(
-            (value) =>
-              Boolean(value) &&
-              String(value).length <=
-                MAX_FILTER_VALUE_LENGTH
-          );
-
-          return {
-            ...config,
-            options:
-              sortFilterOptions(
-                uniqueValues
-              ),
-          };
-        })
-        .filter(
-          (section) =>
-            section.options
-              .length > 0
-        );
-    }, [
-      products,
-      dynamicFilterConfigs,
-    ]);
-
-  // ============================================
   // SEARCH TEXT
   // ============================================
 
@@ -1738,6 +1543,237 @@ function CategoryPageContent() {
   };
 
   // ============================================
+  // IMPORTANT FIX
+  //
+  // SEARCH MATCHED PRODUCTS
+  //
+  // Search করলে শুধু matching products
+  // filter option-এর source হবে।
+  //
+  // Search না করলে সব loaded/category products
+  // source হবে।
+  // ============================================
+
+  const searchMatchedProducts =
+    useMemo(() => {
+      const query =
+        searchText.trim();
+
+      if (!query) {
+        return products;
+      }
+
+      return products.filter(
+        (product) =>
+          searchProduct(
+            product,
+            query
+          )
+      );
+    }, [
+      products,
+      searchText,
+    ]);
+
+  // ============================================
+  // DYNAMIC FILTER CONFIGS
+  //
+  // IMPORTANT:
+  // এখানে products নয়,
+  // searchMatchedProducts ব্যবহার করা হয়েছে।
+  // ============================================
+
+  const dynamicFilterConfigs =
+    useMemo(() => {
+      const collected =
+        new Map();
+
+      searchMatchedProducts.forEach(
+        (product) => {
+          getSpecEntries(
+            product
+          ).forEach(
+            (item) => {
+              const rawLabel =
+                getSpecKeyLabel(
+                  item
+                );
+
+              const normalized =
+                rawLabel.toLowerCase();
+
+              if (!normalized) {
+                return;
+              }
+
+              if (
+                knownSynonymSet.has(
+                  normalized
+                )
+              ) {
+                return;
+              }
+
+              if (
+                IGNORED_SPEC_KEYS.has(
+                  normalized
+                )
+              ) {
+                return;
+              }
+
+              const values =
+                getSpecItemValues(
+                  item
+                ).filter(
+                  (value) =>
+                    value.length <=
+                    MAX_FILTER_VALUE_LENGTH
+                );
+
+              if (
+                values.length ===
+                0
+              ) {
+                return;
+              }
+
+              if (
+                !collected.has(
+                  normalized
+                )
+              ) {
+                collected.set(
+                  normalized,
+                  {
+                    label:
+                      rawLabel,
+                    values:
+                      new Set(),
+                  }
+                );
+              }
+
+              const entry =
+                collected.get(
+                  normalized
+                );
+
+              values.forEach(
+                (value) => {
+                  entry.values.add(
+                    value
+                  );
+                }
+              );
+            }
+          );
+        }
+      );
+
+      const configs = [];
+
+      collected.forEach(
+        (
+          entry,
+          normalizedKey
+        ) => {
+          const uniqueValues = [
+            ...entry.values,
+          ];
+
+          if (
+            uniqueValues.length <
+            2
+          ) {
+            return;
+          }
+
+          if (
+            uniqueValues.length >
+            MAX_AUTO_FILTER_OPTIONS
+          ) {
+            return;
+          }
+
+          configs.push({
+            key: `spec:${normalizedKey}`,
+            label:
+              entry.label,
+            values:
+              uniqueValues,
+            synonyms: [
+              normalizedKey,
+            ],
+          });
+        }
+      );
+
+      configs.sort((a, b) =>
+        a.label.localeCompare(
+          b.label
+        )
+      );
+
+      return configs;
+    }, [
+      searchMatchedProducts,
+      knownSynonymSet,
+    ]);
+
+  // ============================================
+  // FILTER SECTIONS
+  //
+  // IMPORTANT:
+  // searchMatchedProducts থেকে options তৈরি হচ্ছে।
+  // ============================================
+
+  const filterSections =
+    useMemo(() => {
+      const allConfigs = [
+        ...KNOWN_FILTER_GROUPS,
+        ...dynamicFilterConfigs,
+      ];
+
+      return allConfigs
+        .map((config) => {
+          const values =
+            searchMatchedProducts.flatMap(
+              (product) =>
+                getValuesForFilter(
+                  product,
+                  config
+                )
+            );
+
+          const uniqueValues = [
+            ...new Set(values),
+          ].filter(
+            (value) =>
+              Boolean(value) &&
+              String(value).length <=
+                MAX_FILTER_VALUE_LENGTH
+          );
+
+          return {
+            ...config,
+            options:
+              sortFilterOptions(
+                uniqueValues
+              ),
+          };
+        })
+        .filter(
+          (section) =>
+            section.options
+              .length > 0
+        );
+    }, [
+      searchMatchedProducts,
+      dynamicFilterConfigs,
+    ]);
+
+  // ============================================
   // TOGGLE FILTER
   // ============================================
 
@@ -1770,6 +1806,10 @@ function CategoryPageContent() {
       }
     );
   };
+
+  // ============================================
+  // SELECTED COUNT
+  // ============================================
 
   const getSelectedCount = (
     filterKey
@@ -1841,27 +1881,18 @@ function CategoryPageContent() {
 
   // ============================================
   // FILTER PRODUCTS
+  //
+  // IMPORTANT:
+  // Search result থেকেই filtering শুরু হচ্ছে।
   // ============================================
 
   const filteredProducts =
     useMemo(() => {
       let result = [
-        ...products,
+        ...searchMatchedProducts,
       ];
 
-      if (
-        searchText.trim() !==
-        ""
-      ) {
-        result =
-          result.filter(
-            (product) =>
-              searchProduct(
-                product,
-                searchText
-              )
-          );
-      }
+      // PRICE MIN
 
       if (
         priceMin !== ""
@@ -1878,6 +1909,8 @@ function CategoryPageContent() {
           );
       }
 
+      // PRICE MAX
+
       if (
         priceMax !== ""
       ) {
@@ -1892,6 +1925,8 @@ function CategoryPageContent() {
               )
           );
       }
+
+      // STOCK
 
       if (
         excludeStock
@@ -1908,6 +1943,8 @@ function CategoryPageContent() {
               ) > 0
           );
       }
+
+      // DYNAMIC FILTERS
 
       filterSections.forEach(
         (config) => {
@@ -1944,6 +1981,8 @@ function CategoryPageContent() {
         }
       );
 
+      // SORT LOW
+
       if (
         sortBy ===
         "low"
@@ -1959,6 +1998,8 @@ function CategoryPageContent() {
         );
       }
 
+      // SORT HIGH
+
       if (
         sortBy ===
         "high"
@@ -1973,6 +2014,8 @@ function CategoryPageContent() {
             )
         );
       }
+
+      // SORT NEWEST
 
       if (
         sortBy ===
@@ -1993,8 +2036,7 @@ function CategoryPageContent() {
 
       return result;
     }, [
-      products,
-      searchText,
+      searchMatchedProducts,
       priceMin,
       priceMax,
       excludeStock,
@@ -2002,6 +2044,21 @@ function CategoryPageContent() {
       filterSections,
       sortBy,
     ]);
+
+  // ============================================
+  // RESET PAGE WHEN FILTER CHANGES
+  // ============================================
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [
+    searchText,
+    priceMin,
+    priceMax,
+    excludeStock,
+    selectedFilters,
+    sortBy,
+  ]);
 
   // ============================================
   // PAGINATION
@@ -2015,17 +2072,6 @@ function CategoryPageContent() {
           PRODUCTS_PER_PAGE
       )
     );
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [
-    searchText,
-    priceMin,
-    priceMax,
-    excludeStock,
-    selectedFilters,
-    sortBy,
-  ]);
 
   useEffect(() => {
     if (
@@ -2193,9 +2239,7 @@ function CategoryPageContent() {
 
       <div className="mx-auto max-w-7xl px-4 pb-14 pt-5 sm:px-6 lg:px-8">
 
-        {/* ========================================
-            BREADCRUMB
-        ======================================== */}
+        {/* BREADCRUMB */}
 
         <div
           className="mb-3 flex flex-wrap items-center gap-1.5 text-[11.5px]"
@@ -2266,9 +2310,7 @@ function CategoryPageContent() {
           )}
         </div>
 
-        {/* ========================================
-            TITLE
-        ======================================== */}
+        {/* TITLE */}
 
         <h1
           className="mb-6 text-[28px] tracking-tight sm:mb-7 sm:text-[34px] lg:text-[38px]"
@@ -2283,9 +2325,7 @@ function CategoryPageContent() {
           {categoryName}
         </h1>
 
-        {/* ========================================
-            SEARCH RESULT NOTICE
-        ======================================== */}
+        {/* SEARCH NOTICE */}
 
         {searchText.trim() !==
           "" && (
@@ -2324,22 +2364,19 @@ function CategoryPageContent() {
                   COLOR.inkMuted,
               }}
             >
-              Product category
-              does not limit
-              this search.
+              Filters below are
+              based only on the
+              matching search
+              results.
             </p>
           </div>
         )}
 
-        {/* ========================================
-            MAIN LAYOUT
-        ======================================== */}
+        {/* MAIN LAYOUT */}
 
         <div className="grid gap-5 lg:grid-cols-[260px_minmax(0,1fr)]">
 
-          {/* ======================================
-              DESKTOP SIDEBAR
-          ====================================== */}
+          {/* DESKTOP SIDEBAR */}
 
           <aside
             className="hidden h-fit overflow-hidden rounded-[20px] lg:block"
@@ -2382,9 +2419,15 @@ function CategoryPageContent() {
               priceMax={priceMax}
               setPriceMax={setPriceMax}
               excludeStock={excludeStock}
-              setExcludeStock={setExcludeStock}
-              filterSections={filterSections}
-              selectedFilters={selectedFilters}
+              setExcludeStock={
+                setExcludeStock
+              }
+              filterSections={
+                filterSections
+              }
+              selectedFilters={
+                selectedFilters
+              }
               getSelectedCount={
                 getSelectedCount
               }
@@ -2403,9 +2446,7 @@ function CategoryPageContent() {
             />
           </aside>
 
-          {/* ======================================
-              MOBILE DRAWER
-          ====================================== */}
+          {/* MOBILE DRAWER */}
 
           {isFilterOpen && (
             <div className="fixed inset-0 z-[9999] lg:hidden">
@@ -2577,19 +2618,13 @@ function CategoryPageContent() {
             </div>
           )}
 
-          {/* ======================================
-              PRODUCTS
-          ====================================== */}
+          {/* PRODUCTS */}
 
           <section className="min-w-0">
 
-            {/* ====================================
-                TOP BAR
-            ==================================== */}
+            {/* TOP BAR */}
 
             <div className="mb-4 flex min-w-0 items-center justify-between gap-2">
-
-              {/* LEFT */}
 
               <div className="flex min-w-0 flex-1 items-center gap-2">
 
@@ -2652,7 +2687,6 @@ function CategoryPageContent() {
               {/* SORT */}
 
               <div className="relative shrink-0">
-
                 <select
                   value={
                     sortBy
@@ -2704,9 +2738,7 @@ function CategoryPageContent() {
               </div>
             </div>
 
-            {/* ====================================
-                ACTIVE SEARCH
-            ==================================== */}
+            {/* ACTIVE SEARCH */}
 
             {searchText.trim() !==
               "" && (
@@ -2755,9 +2787,7 @@ function CategoryPageContent() {
               </div>
             )}
 
-            {/* ====================================
-                NO PRODUCTS
-            ==================================== */}
+            {/* NO PRODUCTS */}
 
             {filteredProducts.length ===
             0 ? (
@@ -2816,9 +2846,7 @@ function CategoryPageContent() {
             ) : (
               <>
 
-                {/* ==================================
-                    PRODUCT GRID
-                ================================== */}
+                {/* PRODUCT GRID */}
 
                 <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-3">
 
@@ -2928,7 +2956,7 @@ function CategoryPageContent() {
                           <div className="px-2.5 pb-2.5 pt-3 sm:px-4 sm:pb-4 sm:pt-3.5">
 
                             <Link
-                              href={`/Product/${product.slug}`}
+                              href={`/product/${product.slug}`}
                               className="block"
                             >
                               <h3
@@ -2979,7 +3007,7 @@ function CategoryPageContent() {
                             <div className="mt-2.5 flex items-center gap-1.5 sm:mt-3 sm:gap-2">
 
                               <Link
-                                href={`/Product/${product.slug}`}
+                                href={`/product/${product.slug}`}
                                 className="flex h-8 min-w-0 flex-1 items-center justify-center rounded-full text-[9.5px] font-medium sm:h-10 sm:text-[13px]"
                                 style={
                                   outOfStock
@@ -3034,9 +3062,7 @@ function CategoryPageContent() {
                   )}
                 </div>
 
-                {/* ==================================
-                    PAGINATION
-                ================================== */}
+                {/* PAGINATION */}
 
                 {totalPages >
                   1 && (
@@ -3308,3 +3334,4 @@ export default function CategoryPage() {
     </Suspense>
   );
 }
+

@@ -1,7 +1,4 @@
 /* eslint-disable react-hooks/set-state-in-effect */
-/* eslint-disable react-hooks/globals */
-/* eslint-disable react-hooks/static-components */
-
 "use client";
 
 import React, { Suspense, useEffect, useMemo, useState } from "react";
@@ -24,6 +21,12 @@ import {
 } from "lucide-react";
 
 const API_BASE = "https://apple-gadgets-ui-backend.vercel.app";
+
+// Fast client-side product cache.
+// Keeps category/search data for 30 seconds so returning to the same
+// category does not wait for the API again.
+const PRODUCT_CACHE_TTL = 30 * 1000;
+const productCache = new Map();
 
 // ============================================
 // DESIGN TOKENS
@@ -635,23 +638,35 @@ function CategoryPageContent() {
   useEffect(() => {
     if (!slug && !isSearchPage) return;
 
+    const controller = new AbortController();
+
     const fetchProducts = async () => {
+      const hasSearch = urlSearch.trim() !== "";
+
+      const endpoint =
+        isSearchPage || hasSearch
+          ? `${API_BASE}/getallProduct`
+          : `${API_BASE}/getallProduct?category=${encodeURIComponent(slug)}`;
+
+      const cached = productCache.get(endpoint);
+
+      // Show cached data immediately when it is still fresh.
+      if (cached && Date.now() - cached.time < PRODUCT_CACHE_TTL) {
+        setProducts(cached.data);
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
 
-        const hasSearch = urlSearch.trim() !== "";
-
-        const endpoint =
-          isSearchPage || hasSearch
-            ? `${API_BASE}/getallProduct`
-            : `${API_BASE}/getallProduct?category=${encodeURIComponent(slug)}`;
-
         const response = await fetch(endpoint, {
-          cache: "no-store",
+          cache: "default",
+          signal: controller.signal,
         });
 
         if (!response.ok) {
-          throw new Error("Failed to fetch products");
+          throw new Error(`Failed to fetch products: ${response.status}`);
         }
 
         const data = await response.json();
@@ -660,17 +675,35 @@ function CategoryPageContent() {
           ? data
           : data?.products || data?.data || [];
 
-        setProducts(productList);
+        // Cache the response for fast repeat navigation/search.
+        productCache.set(endpoint, {
+          data: productList,
+          time: Date.now(),
+        });
+
+        if (!controller.signal.aborted) {
+          setProducts(productList);
+        }
       } catch (error) {
+        if (error?.name === "AbortError") return;
+
         console.error("Category products error:", error);
 
-        setProducts([]);
+        if (!controller.signal.aborted) {
+          setProducts([]);
+        }
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchProducts();
+
+    return () => {
+      controller.abort();
+    };
   }, [slug, urlSearch, isSearchPage]);
 
   // ============================================
@@ -1482,7 +1515,8 @@ function CategoryPageContent() {
             color: COLOR.inkMuted,
           }}
         >
-          <Link href="/" className="transition-colors hover:text-[#211F1C]">
+          <Link
+                              prefetch={false} href="/" className="transition-colors hover:text-[#211F1C]">
             Home
           </Link>
 
@@ -1506,6 +1540,7 @@ function CategoryPageContent() {
                   </span>
                 ) : (
                   <Link
+                              prefetch={false}
                     href={href}
                     className="transition-colors hover:text-[#211F1C]"
                   >
@@ -1968,6 +2003,7 @@ function CategoryPageContent() {
                         {/* IMAGE */}
 
                         <Link
+                              prefetch={false}
                           href={`/Product/${product.slug}`}
                           className="relative block h-[165px] w-full overflow-hidden sm:h-[230px] lg:h-[240px]"
                           style={{
@@ -2000,6 +2036,7 @@ function CategoryPageContent() {
 
                         <div className="px-2.5 pb-2.5 pt-3 sm:px-4 sm:pb-4 sm:pt-3.5">
                           <Link
+                              prefetch={false}
                             href={`/Product/${product.slug}`}
                             className="block"
                           >
@@ -2037,6 +2074,7 @@ function CategoryPageContent() {
 
                           <div className="mt-2.5 flex items-center gap-1.5 sm:mt-3 sm:gap-2">
                             <Link
+                              prefetch={false}
                               href={`/product/${product.slug}`}
                               className="flex h-8 min-w-0 flex-1 items-center justify-center rounded-full text-[9.5px] font-medium sm:h-10 sm:text-[13px]"
                               style={

@@ -717,6 +717,7 @@ export default function Header() {
           {/* LOGO */}
 
           <Link
+      prefetch={false}
             href="/"
             aria-label="Homepage"
             onClick={closeAll}
@@ -790,6 +791,7 @@ export default function Header() {
                       categories.map(
                         (category) => (
                           <Link
+      prefetch={false}
                             key={
                               category._id
                             }
@@ -907,6 +909,7 @@ export default function Header() {
           <nav className="flex shrink-0 items-center gap-1.5 sm:gap-2.5 lg:gap-4 xl:gap-5">
 
             <Link
+      prefetch={false}
               href="/blog"
               className="hidden text-[14px] font-medium text-gray-700 transition hover:text-[#f47421] dark:text-gray-200 lg:block"
             >
@@ -914,6 +917,7 @@ export default function Header() {
             </Link>
 
             <Link
+      prefetch={false}
               href="/pre-order"
               className="hidden text-[14px] font-medium text-gray-700 transition hover:text-[#f47421] dark:text-gray-200 lg:block"
             >
@@ -921,6 +925,7 @@ export default function Header() {
             </Link>
 
             <Link
+      prefetch={false}
               href="/offers"
               className="hidden items-center gap-1 text-[14px] font-semibold text-[#f47421] lg:flex"
             >
@@ -929,6 +934,7 @@ export default function Header() {
             </Link>
 
             <Link
+      prefetch={false}
               href="/compare"
               className="hidden text-[14px] font-medium text-gray-700 transition hover:text-[#f47421] dark:text-gray-200 lg:block"
             >
@@ -961,6 +967,7 @@ export default function Header() {
             {/* CART */}
 
             <Link
+      prefetch={false}
               href="/cart"
               aria-label="Cart"
               className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gray-300 text-gray-800 transition hover:border-[#f47421] hover:text-[#f47421] dark:border-slate-700 dark:text-gray-200 sm:h-10 sm:w-10"
@@ -975,6 +982,7 @@ export default function Header() {
             {/* ACCOUNT */}
 
             <Link
+      prefetch={false}
               href="/account"
               aria-label="Account"
               className="hidden h-10 w-10 items-center justify-center rounded-full border border-gray-200 text-gray-700 transition hover:border-[#f47421] hover:text-[#f47421] dark:border-slate-800 dark:text-gray-200 sm:flex"
@@ -1235,6 +1243,7 @@ export default function Header() {
             <div className="mb-5 grid grid-cols-2 gap-2">
 
               <Link
+      prefetch={false}
                 href="/blog"
                 onClick={
                   closeMobileMenu
@@ -1245,6 +1254,7 @@ export default function Header() {
               </Link>
 
               <Link
+      prefetch={false}
                 href="/offers"
                 onClick={
                   closeMobileMenu
@@ -1255,6 +1265,7 @@ export default function Header() {
               </Link>
 
               <Link
+      prefetch={false}
                 href="/pre-order"
                 onClick={
                   closeMobileMenu
@@ -1265,6 +1276,7 @@ export default function Header() {
               </Link>
 
               <Link
+      prefetch={false}
                 href="/compare"
                 onClick={
                   closeMobileMenu
@@ -1306,6 +1318,7 @@ export default function Header() {
                         <div className="flex items-center justify-between px-4 py-3.5">
 
                           <Link
+      prefetch={false}
                             href={`/category/${makeSlug(
                               category
                             )}`}
@@ -1398,6 +1411,7 @@ function DesktopCategory({
     <div className="group relative h-full">
 
       <Link
+      prefetch={false}
         href={`/category/${makeSlug(
           category
         )}`}
@@ -1453,6 +1467,7 @@ function DesktopSubCategory({
     <div className="group/sub relative">
 
       <Link
+      prefetch={false}
         href={`/category/${makeSlug(
           category
         )}`}
@@ -1530,6 +1545,7 @@ function MobileCategoryChildren({
             <div className="flex items-center justify-between px-3 py-2.5">
 
               <Link
+      prefetch={false}
                 href={`/category/${makeSlug(
                   item
                 )}`}
@@ -1630,6 +1646,7 @@ function ProductSearchCard({
 
   return (
     <Link
+      prefetch={false}
       href={`/Product/${
         slug || product._id
       }`}

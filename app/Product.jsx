@@ -5,6 +5,15 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 
 const API_BASE = "https://apple-gadgets-ui-backend.vercel.app";
 
+// New 4-level category API
+const CATEGORY_API = {
+  tree: `${API_BASE}/category/tree`,
+  main: `${API_BASE}/category/main`,
+  sub: `${API_BASE}/category/sub`,
+  child: `${API_BASE}/category/child`,
+  subChild: `${API_BASE}/category/sub-child`,
+};
+
 const initialFormData = {
   name: "",
   slug: "",
@@ -90,53 +99,26 @@ const [subChildCategoryAdding, setSubChildCategoryAdding] =
 const [showSubChildCategoryModal, setShowSubChildCategoryModal] =
   useState(false);
   // ==============================
-  // LOAD CATEGORIES (3 level tree)
+  // LOAD 4-LEVEL CATEGORY TREE
+  // Main → Sub → Child → Sub Child
   // ==============================
   const loadCategories = useCallback(async () => {
     try {
       setCategoriesLoading(true);
       setCategoriesError("");
 
-      const response = await fetch(`${API_BASE}/getallcatgoris`);
+      const response = await fetch(CATEGORY_API.tree, {
+        method: "GET",
+        cache: "no-store",
+      });
+
       const data = await response.json();
 
       if (!response.ok) {
         throw new Error(data?.message || "Could not load categories");
       }
 
-      // API shape যাই হোক (array / {categories} / {data}) — সবগুলো handle
-      const list = Array.isArray(data)
-        ? data
-        : data.categories || data.data || [];
-
-      const parentIdOf = (item) => item.parent?._id || item.parent || null;
-
-      // API আগে থেকেই nested children দিলে
-      const normalize = (node) => ({
-        ...node,
-        children: (node.children || []).map(normalize),
-      });
-
-      // flat list হলে parent ধরে recursive tree
-      const buildChildren = (parentId) =>
-        list
-          .filter((item) => parentIdOf(item) === parentId)
-          .map((item) => ({ ...item, children: buildChildren(item._id) }));
-
-      const hasNested = list.some(
-        (item) => Array.isArray(item.children) && item.children.length > 0
-      );
-
-      const roots = list.filter((item) => !parentIdOf(item));
-
-      const tree = hasNested
-        ? roots.map(normalize)
-        : roots.map((item) => ({
-            ...item,
-            children: buildChildren(item._id),
-          }));
-
-      setCategories(tree);
+      setCategories(Array.isArray(data?.categories) ? data.categories : []);
     } catch (error) {
       console.error("Load categories error:", error);
       setCategoriesError(error.message || "Could not load categories");
@@ -150,7 +132,7 @@ const [showSubChildCategoryModal, setShowSubChildCategoryModal] =
   }, [loadCategories]);
 
   // ==============================
-  // CATEGORY → SUB CATEGORIES
+  // MAIN → SUB
   // ==============================
   useEffect(() => {
     if (!formData.category) {
@@ -162,11 +144,11 @@ const [showSubChildCategoryModal, setShowSubChildCategoryModal] =
       (category) => category._id === formData.category
     );
 
-    setSubCategories(selected?.children || []);
+    setSubCategories(selected?.subCategories || []);
   }, [formData.category, categories]);
 
   // ==============================
-  // SUB CATEGORY → CHILD CATEGORIES
+  // SUB → CHILD
   // ==============================
   useEffect(() => {
     if (!formData.subCategory) {
@@ -181,19 +163,22 @@ const [showSubChildCategoryModal, setShowSubChildCategoryModal] =
     setChildCategories(selected?.children || []);
   }, [formData.subCategory, subCategories]);
 
-
+  // ==============================
+  // CHILD → SUB CHILD
+  // ==============================
   useEffect(() => {
-  if (!formData.childCategory) {
-    setSubChildCategories([]);
-    return;
-  }
+    if (!formData.childCategory) {
+      setSubChildCategories([]);
+      return;
+    }
 
-  const selected = childCategories.find(
-    (childCategory) => childCategory._id === formData.childCategory
-  );
+    const selected = childCategories.find(
+      (childCategory) => childCategory._id === formData.childCategory
+    );
 
-  setSubChildCategories(selected?.children || []);
-}, [formData.childCategory, childCategories]);
+    setSubChildCategories(selected?.subChildren || []);
+  }, [formData.childCategory, childCategories]);
+
   // ==============================
   // INPUT CHANGE
   // ==============================
@@ -216,15 +201,22 @@ const [showSubChildCategoryModal, setShowSubChildCategoryModal] =
           .replace(/-+/g, "-");
       }
 
-      // category বদলালে নিচের দুই লেভেল বাদ
+      // Main category বদলালে নিচের সব level reset
       if (name === "category") {
         updated.subCategory = "";
         updated.childCategory = "";
+        updated.subChildCategory = "";
       }
 
-      // sub category বদলালে child category বাদ
+      // Sub category বদলালে নিচের দুই level reset
       if (name === "subCategory") {
         updated.childCategory = "";
+        updated.subChildCategory = "";
+      }
+
+      // Child category বদলালে sub child reset
+      if (name === "childCategory") {
+        updated.subChildCategory = "";
       }
 
       // Auto calculate discount percentage
@@ -491,86 +483,106 @@ const removeRam = (index) => {
   // ==============================
   // VARIANTS (color + ram + storage → stock/price/sku)
   // ==============================
-  const addVariant = () => {
-    if (!variantColorName) {
-      alert("Select a color for this variant");
-      return;
-    }
+const addVariant = () => {
+  if (!variantColorName) {
+    alert("Select a color for this variant");
+    return;
+  }
 
-    if (!variantRam.trim()) {
-      alert("Enter RAM for this variant");
-      return;
-    }
+  if (!variantRam.trim()) {
+    alert("Enter RAM for this variant");
+    return;
+  }
 
-    if (!variantStorage.trim()) {
-      alert("Enter storage for this variant");
-      return;
-    }
+  if (!variantStorage.trim()) {
+    alert("Enter storage for this variant");
+    return;
+  }
 
-    if (variantStock === "" || Number(variantStock) < 0) {
-      alert("Enter a valid stock quantity");
-      return;
-    }
+  if (variantStock === "" || Number(variantStock) < 0) {
+    alert("Enter a valid stock quantity");
+    return;
+  }
 
-    if (!variantPrice || Number(variantPrice) <= 0) {
-      alert("Enter a valid price for this variant");
-      return;
-    }
+  if (!variantPrice || Number(variantPrice) <= 0) {
+    alert("Enter a valid price for this variant");
+    return;
+  }
 
-    if (!variantSku.trim()) {
-      alert("Enter a SKU for this variant");
-      return;
-    }
+  if (!variantSku.trim()) {
+    alert("Enter a SKU for this variant");
+    return;
+  }
 
-    const duplicate = formData.variants.some(
-      (v) =>
-        v.color.name.toLowerCase() === variantColorName.toLowerCase() &&
-        v.ram.toLowerCase() === variantRam.trim().toLowerCase() &&
-        v.storage.toLowerCase() === variantStorage.trim().toLowerCase()
-    );
+  // ==============================
+  // SKU MUST BE UNIQUE
+  // ==============================
+  const skuTaken = formData.variants.some(
+    (v) =>
+      v.sku?.trim().toLowerCase() ===
+      variantSku.trim().toLowerCase()
+  );
 
-    if (duplicate) {
-      alert("This color / RAM / storage combination is already added");
-      return;
-    }
+  if (skuTaken) {
+    alert("This SKU is already used by another variant");
+    return;
+  }
 
-    const skuTaken = formData.variants.some(
-      (v) => v.sku.toLowerCase() === variantSku.trim().toLowerCase()
-    );
+  // ==============================
+  // FIND SELECTED COLOR
+  // ==============================
+  const selectedColor = formData.colors.find(
+    (c) =>
+      c.name.trim().toLowerCase() ===
+      variantColorName.trim().toLowerCase()
+  );
 
-    if (skuTaken) {
-      alert("This SKU is already used by another variant");
-      return;
-    }
+  if (!selectedColor) {
+    alert("Selected color was not found");
+    return;
+  }
 
-    const selectedColor = formData.colors.find(
-      (c) => c.name === variantColorName
-    );
+  // ==============================
+  // CREATE NEW VARIANT
+  // ==============================
+  const newVariant = {
+    color: {
+      name: selectedColor.name,
+      code: selectedColor.code || "#000000",
+    },
 
-    const newVariant = {
-      color: {
-        name: selectedColor?.name || variantColorName,
-        code: selectedColor?.code || "#000000",
-      },
-      ram: variantRam.trim(),
-      storage: variantStorage.trim(),
-      stock: Number(variantStock),
-      price: Number(variantPrice),
-      sku: variantSku.trim(),
-    };
+    ram: variantRam.trim(),
 
-    setFormData((prev) => ({
-      ...prev,
-      variants: [...prev.variants, newVariant],
-    }));
+    storage: variantStorage.trim(),
 
-    setVariantColorName("");
-    setVariantRam("");
-    setVariantStorage("");
-    setVariantStock("");
-    setVariantPrice("");
-    setVariantSku("");
+    stock: Number(variantStock),
+
+    price: Number(variantPrice),
+
+    sku: variantSku.trim(),
   };
+
+  // ==============================
+  // ADD VARIANT
+  // ==============================
+  setFormData((prev) => ({
+    ...prev,
+    variants: [
+      ...prev.variants,
+      newVariant,
+    ],
+  }));
+
+  // ==============================
+  // CLEAR VARIANT FORM
+  // ==============================
+  setVariantColorName("");
+  setVariantRam("");
+  setVariantStorage("");
+  setVariantStock("");
+  setVariantPrice("");
+  setVariantSku("");
+};
 
   const removeVariant = (index) => {
     setFormData((prev) => ({
@@ -717,7 +729,7 @@ data.append(
   data.append("images", image);
 });
 
-      const response = await fetch(`${API_BASE}/addproduct`, {
+      const response = await fetch(`${API_BASE}/products/addproduct`, {
         method: "POST",
         body: data,
       });
@@ -746,31 +758,35 @@ data.append(
   };
 
   // ==============================
-  // ADD NEW CATEGORY
+  // ADD MAIN CATEGORY
   // ==============================
   const handleAddCategory = async () => {
     if (!newCategoryName.trim()) {
-      alert("Enter a category name");
+      alert("Enter a main category name");
       return;
     }
 
     try {
       setCategoryAdding(true);
 
-      const response = await fetch(`${API_BASE}/creatcatagori`, {
+      const response = await fetch(CATEGORY_API.main, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newCategoryName.trim(), parent: null }),
+        body: JSON.stringify({
+          name: newCategoryName.trim(),
+        }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Could not add category");
+        throw new Error(data?.message || "Could not add main category");
       }
 
-      const created = data.category || data.data || data;
-      const newCategory = { ...created, children: [] };
+      const created = data?.category;
+      if (!created?._id) throw new Error("Invalid category response");
+
+      const newCategory = { ...created, subCategories: [] };
 
       setCategories((prev) => [...prev, newCategory]);
 
@@ -779,24 +795,25 @@ data.append(
         category: newCategory._id,
         subCategory: "",
         childCategory: "",
+        subChildCategory: "",
       }));
 
       setNewCategoryName("");
       setShowCategoryModal(false);
     } catch (error) {
-      console.error("Add category error:", error);
-      alert(error.message || "Could not add category");
+      console.error("Add main category error:", error);
+      alert(error.message || "Could not add main category");
     } finally {
       setCategoryAdding(false);
     }
   };
 
   // ==============================
-  // ADD NEW SUB CATEGORY
+  // ADD SUB CATEGORY
   // ==============================
   const handleAddSubCategory = async () => {
     if (!formData.category) {
-      alert("Select a category first");
+      alert("Select a main category first");
       return;
     }
 
@@ -808,33 +825,37 @@ data.append(
     try {
       setSubCategoryAdding(true);
 
-      const response = await fetch(`${API_BASE}/creatcatagori`, {
+      const response = await fetch(CATEGORY_API.sub, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: newSubCategoryName.trim(),
-          parent: formData.category,
+          mainCategory: formData.category,
         }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Could not add sub category");
+        throw new Error(data?.message || "Could not add sub category");
       }
 
-      const created = data.category || data.data || data;
+      const created = data?.category;
+      if (!created?._id) throw new Error("Invalid sub category response");
+
       const newSubCategory = { ...created, children: [] };
 
-      // category tree update — এখান থেকেই subCategories dropdown আপডেট হবে
       setCategories((prev) =>
-        prev.map((category) =>
-          category._id === formData.category
+        prev.map((mainCategory) =>
+          mainCategory._id === formData.category
             ? {
-                ...category,
-                children: [...(category.children || []), newSubCategory],
+                ...mainCategory,
+                subCategories: [
+                  ...(mainCategory.subCategories || []),
+                  newSubCategory,
+                ],
               }
-            : category
+            : mainCategory
         )
       );
 
@@ -842,6 +863,7 @@ data.append(
         ...prev,
         subCategory: newSubCategory._id,
         childCategory: "",
+        subChildCategory: "",
       }));
 
       setNewSubCategoryName("");
@@ -855,7 +877,7 @@ data.append(
   };
 
   // ==============================
-  // ADD NEW CHILD CATEGORY
+  // ADD CHILD CATEGORY
   // ==============================
   const handleAddChildCategory = async () => {
     if (!formData.subCategory) {
@@ -871,49 +893,52 @@ data.append(
     try {
       setChildCategoryAdding(true);
 
-      const response = await fetch(`${API_BASE}/creatcatagori`, {
+      const response = await fetch(CATEGORY_API.child, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: newChildCategoryName.trim(),
-          parent: formData.subCategory,
+          subCategory: formData.subCategory,
         }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Could not add child category");
+        throw new Error(data?.message || "Could not add child category");
       }
 
-      const created = data.category || data.data || data;
-      const newChildCategory = { ...created, children: [] };
+      const created = data?.category;
+      if (!created?._id) throw new Error("Invalid child category response");
 
-      // tree-র তৃতীয় লেভেল আপডেট
+      const newChildCategory = { ...created, subChildren: [] };
+
       setCategories((prev) =>
-        prev.map((category) =>
-          category._id !== formData.category
-            ? category
-            : {
-                ...category,
-                children: (category.children || []).map((subCategory) =>
-                  subCategory._id !== formData.subCategory
-                    ? subCategory
-                    : {
-                        ...subCategory,
-                        children: [
-                          ...(subCategory.children || []),
-                          newChildCategory,
-                        ],
-                      }
-                ),
-              }
-        )
+        prev.map((mainCategory) => {
+          if (mainCategory._id !== formData.category) return mainCategory;
+
+          return {
+            ...mainCategory,
+            subCategories: (mainCategory.subCategories || []).map(
+              (subCategory) =>
+                subCategory._id === formData.subCategory
+                  ? {
+                      ...subCategory,
+                      children: [
+                        ...(subCategory.children || []),
+                        newChildCategory,
+                      ],
+                    }
+                  : subCategory
+            ),
+          };
+        })
       );
 
       setFormData((prev) => ({
         ...prev,
         childCategory: newChildCategory._id,
+        subChildCategory: "",
       }));
 
       setNewChildCategoryName("");
@@ -926,109 +951,94 @@ data.append(
     }
   };
 
-
-const handleAddSubChildCategory = async () => {
-  if (!formData.childCategory) {
-    alert("Select a child category first");
-    return;
-  }
-
-  if (!newSubChildCategoryName.trim()) {
-    alert("Enter a sub child category name");
-    return;
-  }
-
-  try {
-    setSubChildCategoryAdding(true);
-
-    const response = await fetch(`${API_BASE}/creatcatagori`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        name: newSubChildCategoryName.trim(),
-
-        // নতুন category-এর parent হবে Child Category
-        parent: formData.childCategory,
-      }),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(
-        data.message || "Could not add sub child category"
-      );
+  // ==============================
+  // ADD SUB CHILD CATEGORY
+  // ==============================
+  const handleAddSubChildCategory = async () => {
+    if (!formData.childCategory) {
+      alert("Select a child category first");
+      return;
     }
 
-    const created = data.category || data.data || data;
+    if (!newSubChildCategoryName.trim()) {
+      alert("Enter a sub child category name");
+      return;
+    }
 
-    const newSubChildCategory = {
-      ...created,
-      children: [],
-    };
+    try {
+      setSubChildCategoryAdding(true);
 
-    // Category
-    //   ↓
-    // Sub Category
-    //   ↓
-    // Child Category
-    //   ↓
-    // এখানে নতুন category ঢুকবে
-    setCategories((prev) =>
-      prev.map((category) => {
-        if (category._id !== formData.category) {
-          return category;
-        }
+      const response = await fetch(CATEGORY_API.subChild, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newSubChildCategoryName.trim(),
+          childCategory: formData.childCategory,
+        }),
+      });
 
-        return {
-          ...category,
-          children: (category.children || []).map((subCategory) => {
-            if (subCategory._id !== formData.subCategory) {
-              return subCategory;
-            }
+      const data = await response.json();
 
-            return {
-              ...subCategory,
-              children: (subCategory.children || []).map(
-                (childCategory) => {
-                  if (childCategory._id !== formData.childCategory) {
-                    return childCategory;
-                  }
+      if (!response.ok) {
+        throw new Error(
+          data?.message || "Could not add sub child category"
+        );
+      }
 
-                  return {
-                    ...childCategory,
+      const created = data?.category;
+      if (!created?._id) {
+        throw new Error("Invalid sub child category response");
+      }
 
-                    // Child-এর ভিতরে নতুন level
-                    children: [
-                      ...(childCategory.children || []),
-                      newSubChildCategory,
-                    ],
-                  };
+      const newSubChildCategory = { ...created };
+
+      setCategories((prev) =>
+        prev.map((mainCategory) => {
+          if (mainCategory._id !== formData.category) return mainCategory;
+
+          return {
+            ...mainCategory,
+            subCategories: (mainCategory.subCategories || []).map(
+              (subCategory) => {
+                if (subCategory._id !== formData.subCategory) {
+                  return subCategory;
                 }
-              ),
-            };
-          }),
-        };
-      })
-    );
 
-    setFormData((prev) => ({
-      ...prev,
-      subChildCategory: newSubChildCategory._id,
-    }));
+                return {
+                  ...subCategory,
+                  children: (subCategory.children || []).map(
+                    (childCategory) =>
+                      childCategory._id === formData.childCategory
+                        ? {
+                            ...childCategory,
+                            subChildren: [
+                              ...(childCategory.subChildren || []),
+                              newSubChildCategory,
+                            ],
+                          }
+                        : childCategory
+                  ),
+                };
+              }
+            ),
+          };
+        })
+      );
 
-    setNewSubChildCategoryName("");
-    setShowSubChildCategoryModal(false);
-  } catch (error) {
-    console.error("Add sub child category error:", error);
-    alert(error.message || "Could not add sub child category");
-  } finally {
-    setSubChildCategoryAdding(false);
-  }
-};
+      setFormData((prev) => ({
+        ...prev,
+        subChildCategory: newSubChildCategory._id,
+      }));
 
+      setNewSubChildCategoryName("");
+      setShowSubChildCategoryModal(false);
+    } catch (error) {
+      console.error("Add sub child category error:", error);
+      alert(error.message || "Could not add sub child category");
+    } finally {
+      setSubChildCategoryAdding(false);
+    }
+  };
 
   const selectedCategoryName =
     categories.find((c) => c._id === formData.category)?.name || "—";

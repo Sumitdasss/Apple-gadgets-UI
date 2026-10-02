@@ -1,4 +1,3 @@
-
 /* eslint-disable react-hooks/set-state-in-effect */
 
 "use client";
@@ -15,7 +14,6 @@ import {
   Menu,
   X,
   TrendingUp,
-  Clock3,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import {
@@ -27,9 +25,10 @@ import {
 } from "react";
 
 const API_BASE =
-  "https://apple-gadgets-ui-backend.vercel.app";
+  "http://localhost:4000";
 
-const SEARCH_HISTORY_KEY = "apple_gadgets_search_history";
+const SEARCH_HISTORY_KEY =
+  "apple_gadgets_search_history";
 
 export default function Header() {
   // =====================================================
@@ -37,19 +36,22 @@ export default function Header() {
   // =====================================================
 
   const [search, setSearch] = useState("");
-  const [searchFocused, setSearchFocused] = useState(false);
+  const [searchFocused, setSearchFocused] =
+    useState(false);
 
   const [allProducts, setAllProducts] = useState([]);
-  const [searchResults, setSearchResults] = useState([]);
+  const [searchResults, setSearchResults] =
+    useState([]);
 
   const [productsLoading, setProductsLoading] =
     useState(false);
 
   // =====================================================
-  // SEARCH HISTORY / TRENDING
+  // SEARCH HISTORY
   // =====================================================
 
-  const [searchHistory, setSearchHistory] = useState([]);
+  const [searchHistory, setSearchHistory] =
+    useState([]);
 
   // =====================================================
   // CATEGORY
@@ -58,6 +60,7 @@ export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
 
   const [categories, setCategories] = useState([]);
+
   const [categoriesLoading, setCategoriesLoading] =
     useState(true);
 
@@ -78,7 +81,9 @@ export default function Header() {
   // =====================================================
 
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+
+  const [mounted, setMounted] =
+    useState(false);
 
   // =====================================================
   // REFS
@@ -95,12 +100,14 @@ export default function Header() {
     setMounted(true);
 
     try {
-      const saved = localStorage.getItem(
-        SEARCH_HISTORY_KEY
-      );
+      const saved =
+        localStorage.getItem(
+          SEARCH_HISTORY_KEY
+        );
 
       if (saved) {
-        const parsed = JSON.parse(saved);
+        const parsed =
+          JSON.parse(saved);
 
         if (Array.isArray(parsed)) {
           setSearchHistory(parsed);
@@ -134,7 +141,8 @@ export default function Header() {
       .filter(
         (item) =>
           item &&
-          typeof item.keyword === "string" &&
+          typeof item.keyword ===
+            "string" &&
           item.keyword.trim()
       )
       .sort(
@@ -142,7 +150,9 @@ export default function Header() {
           Number(b.count || 0) -
           Number(a.count || 0)
       )
-      .map((item) => item.keyword.trim())
+      .map((item) =>
+        item.keyword.trim()
+      )
       .filter(Boolean);
 
     const unique = [];
@@ -159,21 +169,25 @@ export default function Header() {
       }
     }
 
-    const finalTrending = unique.slice(0, 6);
+    const finalTrending =
+      unique.slice(0, 6);
 
     if (finalTrending.length < 4) {
       for (const item of defaultTrending) {
-        const exists = finalTrending.some(
-          (keyword) =>
-            keyword.toLowerCase() ===
-            item.toLowerCase()
-        );
+        const exists =
+          finalTrending.some(
+            (keyword) =>
+              keyword.toLowerCase() ===
+              item.toLowerCase()
+          );
 
         if (!exists) {
           finalTrending.push(item);
         }
 
-        if (finalTrending.length >= 4) {
+        if (
+          finalTrending.length >= 4
+        ) {
           break;
         }
       }
@@ -186,8 +200,8 @@ export default function Header() {
   // SAVE SEARCH HISTORY
   // =====================================================
 
-  const saveSearchHistory = useCallback(
-    (keyword) => {
+  const saveSearchHistory =
+    useCallback((keyword) => {
       const cleanKeyword =
         String(keyword || "").trim();
 
@@ -203,16 +217,20 @@ export default function Header() {
           ? JSON.parse(saved)
           : [];
 
-        const list = Array.isArray(current)
+        const list = Array.isArray(
+          current
+        )
           ? current
           : [];
 
-        const existingIndex = list.findIndex(
-          (item) =>
-            String(item?.keyword || "")
-              .toLowerCase() ===
-            cleanKeyword.toLowerCase()
-        );
+        const existingIndex =
+          list.findIndex(
+            (item) =>
+              String(
+                item?.keyword || ""
+              ).toLowerCase() ===
+              cleanKeyword.toLowerCase()
+          );
 
         let updated = [...list];
 
@@ -221,10 +239,12 @@ export default function Header() {
             ...updated[existingIndex],
             keyword:
               updated[existingIndex]
-                .keyword || cleanKeyword,
+                .keyword ||
+              cleanKeyword,
             count:
               Number(
-                updated[existingIndex].count || 0
+                updated[existingIndex]
+                  .count || 0
               ) + 1,
             lastSearched: Date.now(),
           };
@@ -236,7 +256,6 @@ export default function Header() {
           });
         }
 
-        // বেশি বড় history না রাখার জন্য
         updated = updated
           .sort(
             (a, b) =>
@@ -257,87 +276,189 @@ export default function Header() {
           error
         );
       }
-    },
-    []
-  );
+    }, []);
 
   // =====================================================
   // LOAD CATEGORIES
+  //
+  // Backend:
+  // GET /category/tree
+  //
+  // Backend:
+  // Main
+  //   subCategories
+  //      childCategories
+  //         subChildCategories
+  //
+  // Frontend:
+  // Main
+  //   children
+  //      children
+  //         children
   // =====================================================
 
   useEffect(() => {
-    const loadCategories = async () => {
-      try {
-        setCategoriesLoading(true);
+    const loadCategories =
+      async () => {
+        try {
+          setCategoriesLoading(true);
 
-        const response = await fetch(
-          `${API_BASE}/getallcatgoris`,
-          {
-            cache: "no-store",
-          }
-        );
+          const response =
+            await fetch(
+              `${API_BASE}/category/tree`,
+              {
+                method: "GET",
+                cache: "no-store",
+              }
+            );
 
-        const data = await response.json();
+          const contentType =
+            response.headers.get(
+              "content-type"
+            ) || "";
 
-        if (!response.ok) {
-          throw new Error(
-            data?.message ||
-              "Failed to load categories"
-          );
-        }
+          // ---------------------------------------------
+          // Prevent:
+          // Unexpected token '<'
+          // ---------------------------------------------
 
-        const list = Array.isArray(data)
-          ? data
-          : data.categories ||
-            data.data ||
-            [];
-
-        const getParentId = (item) => {
-          return (
-            item?.parent?._id ||
-            item?.parent ||
-            null
-          );
-        };
-
-        const buildChildren = (parentId) => {
-          return list
-            .filter(
-              (item) =>
-                String(getParentId(item)) ===
-                String(parentId)
+          if (
+            !contentType.includes(
+              "application/json"
             )
-            .map((item) => ({
-              ...item,
-              children: buildChildren(
-                item._id
-              ),
-            }));
-        };
+          ) {
+            const text =
+              await response.text();
 
-        const roots = list.filter(
-          (item) => !getParentId(item)
-        );
+            console.error(
+              "Category API returned non-JSON:",
+              text
+            );
 
-        const tree = roots.map((item) => ({
-          ...item,
-          children: buildChildren(
-            item._id
-          ),
-        }));
+            throw new Error(
+              `Category API returned ${response.status}`
+            );
+          }
 
-        setCategories(tree);
-      } catch (error) {
-        console.error(
-          "Header category loading error:",
-          error
-        );
+          const data =
+            await response.json();
 
-        setCategories([]);
-      } finally {
-        setCategoriesLoading(false);
-      }
-    };
+          if (!response.ok) {
+            throw new Error(
+              data?.message ||
+                "Failed to load categories"
+            );
+          }
+
+          // ---------------------------------------------
+          // Get categories
+          // ---------------------------------------------
+
+          const list =
+            Array.isArray(
+              data?.categories
+            )
+              ? data.categories
+              : [];
+
+          // ---------------------------------------------
+          // Normalize SubChild
+          // ---------------------------------------------
+
+          const normalizeSubChild = (
+            subChild
+          ) => {
+            return {
+              ...subChild,
+              children: [],
+            };
+          };
+
+          // ---------------------------------------------
+          // Normalize Child
+          // ---------------------------------------------
+
+          const normalizeChild = (
+            child
+          ) => {
+            const subChildren =
+              Array.isArray(
+                child?.subChildCategories
+              )
+                ? child.subChildCategories
+                : [];
+
+            return {
+              ...child,
+
+              children:
+                subChildren.map(
+                  normalizeSubChild
+                ),
+            };
+          };
+
+          // ---------------------------------------------
+          // Normalize Sub
+          // ---------------------------------------------
+
+          const normalizeSub = (
+            sub
+          ) => {
+            const children =
+              Array.isArray(
+                sub?.childCategories
+              )
+                ? sub.childCategories
+                : [];
+
+            return {
+              ...sub,
+
+              children:
+                children.map(
+                  normalizeChild
+                ),
+            };
+          };
+
+          // ---------------------------------------------
+          // Normalize Main
+          // ---------------------------------------------
+
+          const normalized =
+            list.map((main) => {
+              const subCategories =
+                Array.isArray(
+                  main?.subCategories
+                )
+                  ? main.subCategories
+                  : [];
+
+              return {
+                ...main,
+
+                children:
+                  subCategories.map(
+                    normalizeSub
+                  ),
+              };
+            });
+
+          setCategories(
+            normalized
+          );
+        } catch (error) {
+          console.error(
+            "Header category loading error:",
+            error
+          );
+
+          setCategories([]);
+        } finally {
+          setCategoriesLoading(false);
+        }
+      };
 
     loadCategories();
   }, []);
@@ -345,80 +466,127 @@ export default function Header() {
   // =====================================================
   // LOAD PRODUCTS
   // =====================================================
+useEffect(() => {
+  const loadProducts = async () => {
+    try {
+      setProductsLoading(true);
 
-  useEffect(() => {
-    const loadProducts = async () => {
-      try {
-        setProductsLoading(true);
+      const url = `${API_BASE}/products/getALLproducts`;
 
-        const response = await fetch(
-          `${API_BASE}/getallProduct`,
-          {
-            cache: "no-store",
-          }
-        );
+      console.log("Loading products from:", url);
 
-        const data = await response.json();
+      const response = await fetch(url, {
+        method: "GET",
+        cache: "no-store",
+      });
 
-        if (!response.ok) {
-          throw new Error(
-            data?.message ||
-              "Failed to load products"
-          );
-        }
+      const contentType =
+        response.headers.get("content-type") || "";
 
-        const list = Array.isArray(data)
-          ? data
-          : data.products ||
-            data.data ||
-            [];
+      let data;
 
-        setAllProducts(list);
+      if (contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
 
-        setSearchResults(
-          list.slice(0, 8)
-        );
-      } catch (error) {
         console.error(
-          "Header product loading error:",
-          error
+          "Product API returned non-JSON:",
+          text
         );
 
-        setAllProducts([]);
-        setSearchResults([]);
-      } finally {
-        setProductsLoading(false);
+        throw new Error(
+          `Product API returned ${response.status}`
+        );
       }
-    };
 
-    loadProducts();
-  }, []);
+      console.log("Product API response:", data);
 
-  // =====================================================
-  // SLUG GENERATOR
-  // =====================================================
+      if (!response.ok) {
+        throw new Error(
+          data?.message ||
+            data?.error ||
+            `Failed to get products (${response.status})`
+        );
+      }
 
-  const makeSlug = useCallback((item) => {
-    if (item?.slug) {
-      return item.slug;
+      // Backend response support:
+      // []
+      // { products: [] }
+      // { data: [] }
+
+      const list = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.products)
+        ? data.products
+        : Array.isArray(data?.data)
+        ? data.data
+        : [];
+
+      console.log(
+        "Products loaded:",
+        list.length
+      );
+
+      setAllProducts(list);
+      setSearchResults(list.slice(0, 8));
+    } catch (error) {
+      console.error(
+        "Header product loading error:",
+        error
+      );
+
+      setAllProducts([]);
+      setSearchResults([]);
+    } finally {
+      setProductsLoading(false);
     }
+  };
 
-    return String(item?.name || "")
-      .toLowerCase()
-      .trim()
-      .replace(/[^\w\s-]/g, "")
-      .replace(/\s+/g, "-")
-      .replace(/-+/g, "-");
-  }, []);
+  loadProducts();
+}, []);
+
+  // =====================================================
+  // SLUG
+  // =====================================================
+
+  const makeSlug = useCallback(
+    (item) => {
+      if (item?.slug) {
+        return item.slug;
+      }
+
+      return String(
+        item?.name || ""
+      )
+        .toLowerCase()
+        .trim()
+        .replace(
+          /[^\w\s-]/g,
+          ""
+        )
+        .replace(
+          /\s+/g,
+          "-"
+        )
+        .replace(
+          /-+/g,
+          "-"
+        );
+    },
+    []
+  );
 
   // =====================================================
   // PRODUCT IMAGE
   // =====================================================
 
-  const getProductImage = useCallback(
-    (product) => {
+  const getProductImage =
+    useCallback((product) => {
       if (
-        Array.isArray(product?.images) &&
+        Array.isArray(
+          product?.images
+        ) &&
         product.images.length > 0
       ) {
         return product.images[0];
@@ -429,25 +597,27 @@ export default function Header() {
       }
 
       return "";
-    },
-    []
-  );
+    }, []);
 
   // =====================================================
   // PRODUCT PRICE
   // =====================================================
 
-  const getProductPrice = useCallback(
-    (product) => {
+  const getProductPrice =
+    useCallback((product) => {
       const price = Number(
         product?.price || 0
       );
 
       const discountPrice =
-        product?.discountPrice !== null &&
-        product?.discountPrice !== undefined &&
+        product?.discountPrice !==
+          null &&
+        product?.discountPrice !==
+          undefined &&
         product?.discountPrice !== ""
-          ? Number(product.discountPrice)
+          ? Number(
+              product.discountPrice
+            )
           : null;
 
       const hasDiscount =
@@ -462,173 +632,215 @@ export default function Header() {
         finalPrice: hasDiscount
           ? discountPrice
           : price,
-        discountAmount: hasDiscount
-          ? price - discountPrice
-          : 0,
+        discountAmount:
+          hasDiscount
+            ? price -
+              discountPrice
+            : 0,
       };
-    },
-    []
-  );
+    }, []);
 
   // =====================================================
   // SEARCH CHANGE
   // =====================================================
 
-  const handleSearchChange = useCallback(
-    (value) => {
-      setSearch(value);
+  const handleSearchChange =
+    useCallback(
+      (value) => {
+        setSearch(value);
 
-      const keyword = value
-        .trim()
-        .toLowerCase();
+        const keyword =
+          value
+            .trim()
+            .toLowerCase();
 
-      if (!keyword) {
-        setSearchResults(
-          allProducts.slice(0, 8)
-        );
-        return;
-      }
-
-      const filtered = allProducts
-        .filter((product) => {
-          const name = String(
-            product?.name || ""
-          ).toLowerCase();
-
-          const brand = String(
-            product?.brand || ""
-          ).toLowerCase();
-
-          const sku = String(
-            product?.sku || ""
-          ).toLowerCase();
-
-          const category = String(
-            product?.category?.name ||
-              product?.category ||
-              ""
-          ).toLowerCase();
-
-          const shortDescription = String(
-            product?.shortDescription || ""
-          ).toLowerCase();
-
-          const description = String(
-            product?.description || ""
-          ).toLowerCase();
-
-          return (
-            name.includes(keyword) ||
-            brand.includes(keyword) ||
-            sku.includes(keyword) ||
-            category.includes(keyword) ||
-            shortDescription.includes(keyword) ||
-            description.includes(keyword)
+        if (!keyword) {
+          setSearchResults(
+            allProducts.slice(0, 8)
           );
-        })
-        .slice(0, 12);
+          return;
+        }
 
-      setSearchResults(filtered);
-    },
-    [allProducts]
-  );
+        const filtered =
+          allProducts
+            .filter((product) => {
+              const name =
+                String(
+                  product?.name || ""
+                ).toLowerCase();
+
+              const brand =
+                String(
+                  product?.brand || ""
+                ).toLowerCase();
+
+              const sku =
+                String(
+                  product?.sku || ""
+                ).toLowerCase();
+
+              const category =
+                String(
+                  product?.category
+                    ?.name ||
+                    product?.category ||
+                    ""
+                ).toLowerCase();
+
+              const shortDescription =
+                String(
+                  product?.shortDescription ||
+                    ""
+                ).toLowerCase();
+
+              const description =
+                String(
+                  product?.description ||
+                    ""
+                ).toLowerCase();
+
+              return (
+                name.includes(
+                  keyword
+                ) ||
+                brand.includes(
+                  keyword
+                ) ||
+                sku.includes(
+                  keyword
+                ) ||
+                category.includes(
+                  keyword
+                ) ||
+                shortDescription.includes(
+                  keyword
+                ) ||
+                description.includes(
+                  keyword
+                )
+              );
+            })
+            .slice(0, 12);
+
+        setSearchResults(
+          filtered
+        );
+      },
+      [allProducts]
+    );
 
   // =====================================================
   // SEARCH SUBMIT
   // =====================================================
 
-  const handleSearch = useCallback(
-    (e) => {
-      e.preventDefault();
+  const handleSearch =
+    useCallback(
+      (e) => {
+        e.preventDefault();
 
-      const keyword = search.trim();
+        const keyword =
+          search.trim();
 
-      if (!keyword) {
-        setSearchFocused(true);
-        return;
-      }
+        if (!keyword) {
+          setSearchFocused(true);
+          return;
+        }
 
-      // Save search
-      saveSearchHistory(keyword);
-
-      setSearchFocused(false);
-      setIsOpen(false);
-
-      // Go to search page
-      window.location.href =
-        `/search?q=${encodeURIComponent(
+        saveSearchHistory(
           keyword
-        )}`;
-    },
-    [search, saveSearchHistory]
-  );
+        );
+
+        setSearchFocused(false);
+        setIsOpen(false);
+
+        window.location.href =
+          `/search?q=${encodeURIComponent(
+            keyword
+          )}`;
+      },
+      [
+        search,
+        saveSearchHistory,
+      ]
+    );
 
   // =====================================================
   // TRENDING SEARCH CLICK
   // =====================================================
 
-  const handleTrendingSearch = useCallback(
-    (value) => {
-      const keyword = String(
-        value || ""
-      ).trim();
+  const handleTrendingSearch =
+    useCallback(
+      (value) => {
+        const keyword =
+          String(
+            value || ""
+          ).trim();
 
-      if (!keyword) return;
+        if (!keyword) return;
 
-      setSearch(keyword);
+        setSearch(keyword);
 
-      saveSearchHistory(keyword);
+        saveSearchHistory(
+          keyword
+        );
 
-      handleSearchChange(keyword);
+        handleSearchChange(
+          keyword
+        );
 
-      setSearchFocused(true);
-    },
-    [
-      handleSearchChange,
-      saveSearchHistory,
-    ]
-  );
+        setSearchFocused(true);
+      },
+      [
+        handleSearchChange,
+        saveSearchHistory,
+      ]
+    );
 
   // =====================================================
   // CLOSE SEARCH
   // =====================================================
 
-  const closeSearch = useCallback(() => {
-    setSearchFocused(false);
-  }, []);
+  const closeSearch =
+    useCallback(() => {
+      setSearchFocused(false);
+    }, []);
 
   // =====================================================
-  // OUTSIDE CLICK + ESCAPE
+  // OUTSIDE CLICK
   // =====================================================
 
   useEffect(() => {
-    const handleOutsideClick = (event) => {
-      const desktopInside =
-        desktopSearchRef.current?.contains(
-          event.target
-        );
+    const handleOutsideClick =
+      (event) => {
+        const desktopInside =
+          desktopSearchRef.current?.contains(
+            event.target
+          );
 
-      const mobileInside =
-        mobileSearchRef.current?.contains(
-          event.target
-        );
+        const mobileInside =
+          mobileSearchRef.current?.contains(
+            event.target
+          );
 
-      if (
-        !desktopInside &&
-        !mobileInside
-      ) {
-        setSearchFocused(false);
-        setIsOpen(false);
-      }
-    };
+        if (
+          !desktopInside &&
+          !mobileInside
+        ) {
+          setSearchFocused(false);
+          setIsOpen(false);
+        }
+      };
 
-    const handleEscape = (event) => {
-      if (event.key === "Escape") {
-        setSearchFocused(false);
-        setIsOpen(false);
-        setIsMobileMenuOpen(false);
-      }
-    };
+    const handleEscape =
+      (event) => {
+        if (
+          event.key === "Escape"
+        ) {
+          setSearchFocused(false);
+          setIsOpen(false);
+          setIsMobileMenuOpen(false);
+        }
+      };
 
     document.addEventListener(
       "mousedown",
@@ -657,22 +869,24 @@ export default function Header() {
   // MOBILE CATEGORY TOGGLE
   // =====================================================
 
-  const toggleMobileCategory = (id) => {
-    setExpandedMobileCategories(
-      (prev) => ({
-        ...prev,
-        [id]: !prev[id],
-      })
-    );
-  };
+  const toggleMobileCategory =
+    (id) => {
+      setExpandedMobileCategories(
+        (prev) => ({
+          ...prev,
+          [id]: !prev[id],
+        })
+      );
+    };
 
   // =====================================================
-  // CLOSE MOBILE MENU
+  // CLOSE MOBILE
   // =====================================================
 
-  const closeMobileMenu = () => {
-    setIsMobileMenuOpen(false);
-  };
+  const closeMobileMenu =
+    () => {
+      setIsMobileMenuOpen(false);
+    };
 
   // =====================================================
   // CLOSE EVERYTHING
@@ -683,6 +897,10 @@ export default function Header() {
     setIsOpen(false);
     setIsMobileMenuOpen(false);
   };
+
+  // =====================================================
+  // RETURN
+  // =====================================================
 
   return (
     <header className="sticky top-0 z-[9999] w-full border-b border-gray-200/80 bg-white/95 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95">
@@ -717,7 +935,7 @@ export default function Header() {
           {/* LOGO */}
 
           <Link
-      prefetch={false}
+            prefetch={false}
             href="/"
             aria-label="Homepage"
             onClick={closeAll}
@@ -746,6 +964,7 @@ export default function Header() {
               {/* CATEGORY */}
 
               <div className="relative shrink-0">
+
                 <button
                   type="button"
                   onClick={() =>
@@ -755,7 +974,9 @@ export default function Header() {
                   }
                   className="group flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-semibold text-gray-700 transition hover:text-[#f47421] dark:text-gray-200"
                 >
-                  <span>Category</span>
+                  <span>
+                    Category
+                  </span>
 
                   <ChevronDown
                     size={15}
@@ -768,60 +989,38 @@ export default function Header() {
                 </button>
 
                 {/* CATEGORY DROPDOWN */}
+<div
+  className={`absolute left-0 top-[50px] z-[10000] w-[300px] rounded-2xl border border-gray-100 bg-white p-2 shadow-2xl transition-all duration-200 dark:border-slate-800 dark:bg-slate-900 ${
+    isOpen
+      ? "visible translate-y-0 opacity-100"
+      : "invisible -translate-y-2 opacity-0"
+  }`}
+>
+  <div className="max-h-[420px] overflow-y-auto rounded-xl p-1">
+    {categoriesLoading ? (
+      <div className="px-3 py-4 text-sm text-gray-400">
+        Loading categories...
+      </div>
+    ) : categories.length === 0 ? (
+      <div className="px-3 py-4 text-sm text-gray-400">
+        No categories found
+      </div>
+    ) : (
+      categories.map((category) => (
+        <Link
+          key={category._id}
+          prefetch={false}
+          href={`/category/${makeSlug(category)}`}
+          onClick={closeAll}
+          className="flex items-center justify-between rounded-lg px-3 py-2.5 text-[14px] font-medium text-gray-700 transition hover:bg-orange-50 hover:text-[#f47421] dark:text-gray-200 dark:hover:bg-slate-800 dark:hover:text-[#f47421]"
+        >
+          <span>{category.name}</span>
+        </Link>
+      ))
+    )}
+  </div>
+</div>
 
-                <div
-                  className={`absolute left-0 top-[50px] z-[10000] w-[270px] rounded-2xl border border-gray-100 bg-white p-2 shadow-2xl transition-all duration-200 dark:border-slate-800 dark:bg-slate-900 ${
-                    isOpen
-                      ? "visible translate-y-0 opacity-100"
-                      : "invisible -translate-y-2 opacity-0"
-                  }`}
-                >
-                  <div className="max-h-[420px] overflow-y-auto rounded-xl p-1">
-
-                    {categoriesLoading ? (
-                      <div className="px-3 py-4 text-sm text-gray-400">
-                        Loading categories...
-                      </div>
-                    ) : categories.length ===
-                      0 ? (
-                      <div className="px-3 py-4 text-sm text-gray-400">
-                        No categories found
-                      </div>
-                    ) : (
-                      categories.map(
-                        (category) => (
-                          <Link
-      prefetch={false}
-                            key={
-                              category._id
-                            }
-                            href={`/category/${makeSlug(
-                              category
-                            )}`}
-                            onClick={closeAll}
-                            className="flex items-center justify-between rounded-lg px-3 py-2.5 text-[14px] font-medium text-gray-700 transition hover:bg-orange-50 hover:text-[#f47421] dark:text-gray-200 dark:hover:bg-slate-800 dark:hover:text-[#f47421]"
-                          >
-                            <span>
-                              {
-                                category.name
-                              }
-                            </span>
-
-                            {category
-                              .children
-                              ?.length >
-                              0 && (
-                              <ChevronRight
-                                size={14}
-                              />
-                            )}
-                          </Link>
-                        )
-                      )
-                    )}
-
-                  </div>
-                </div>
               </div>
 
               <div className="h-5 w-px shrink-0 bg-gray-300 dark:bg-slate-700" />
@@ -843,7 +1042,9 @@ export default function Header() {
                       true
                     );
 
-                    if (!search.trim()) {
+                    if (
+                      !search.trim()
+                    ) {
                       setSearchResults(
                         allProducts.slice(
                           0,
@@ -875,12 +1076,14 @@ export default function Header() {
 
             </form>
 
-            {/* DESKTOP SEARCH PANEL */}
+            {/* SEARCH PANEL */}
 
             {searchFocused && (
               <SearchPanel
                 search={search}
-                searchResults={searchResults}
+                searchResults={
+                  searchResults
+                }
                 productsLoading={
                   productsLoading
                 }
@@ -890,16 +1093,21 @@ export default function Header() {
                 onTrendingClick={
                   handleTrendingSearch
                 }
-                onClose={closeSearch}
+                onClose={
+                  closeSearch
+                }
                 getProductImage={
                   getProductImage
                 }
                 getProductPrice={
                   getProductPrice
                 }
-                makeSlug={makeSlug}
+                makeSlug={
+                  makeSlug
+                }
               />
             )}
+
           </div>
 
           {/* =================================================
@@ -909,7 +1117,7 @@ export default function Header() {
           <nav className="flex shrink-0 items-center gap-1.5 sm:gap-2.5 lg:gap-4 xl:gap-5">
 
             <Link
-      prefetch={false}
+              prefetch={false}
               href="/blog"
               className="hidden text-[14px] font-medium text-gray-700 transition hover:text-[#f47421] dark:text-gray-200 lg:block"
             >
@@ -917,7 +1125,7 @@ export default function Header() {
             </Link>
 
             <Link
-      prefetch={false}
+              prefetch={false}
               href="/pre-order"
               className="hidden text-[14px] font-medium text-gray-700 transition hover:text-[#f47421] dark:text-gray-200 lg:block"
             >
@@ -925,7 +1133,7 @@ export default function Header() {
             </Link>
 
             <Link
-      prefetch={false}
+              prefetch={false}
               href="/offers"
               className="hidden items-center gap-1 text-[14px] font-semibold text-[#f47421] lg:flex"
             >
@@ -934,7 +1142,7 @@ export default function Header() {
             </Link>
 
             <Link
-      prefetch={false}
+              prefetch={false}
               href="/compare"
               className="hidden text-[14px] font-medium text-gray-700 transition hover:text-[#f47421] dark:text-gray-200 lg:block"
             >
@@ -967,7 +1175,7 @@ export default function Header() {
             {/* CART */}
 
             <Link
-      prefetch={false}
+              prefetch={false}
               href="/cart"
               aria-label="Cart"
               className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gray-300 text-gray-800 transition hover:border-[#f47421] hover:text-[#f47421] dark:border-slate-700 dark:text-gray-200 sm:h-10 sm:w-10"
@@ -982,7 +1190,7 @@ export default function Header() {
             {/* ACCOUNT */}
 
             <Link
-      prefetch={false}
+              prefetch={false}
               href="/account"
               aria-label="Account"
               className="hidden h-10 w-10 items-center justify-center rounded-full border border-gray-200 text-gray-700 transition hover:border-[#f47421] hover:text-[#f47421] dark:border-slate-800 dark:text-gray-200 sm:flex"
@@ -991,6 +1199,7 @@ export default function Header() {
             </Link>
 
           </nav>
+
         </div>
 
         {/* =================================================
@@ -1020,7 +1229,9 @@ export default function Header() {
                   true
                 );
 
-                if (!search.trim()) {
+                if (
+                  !search.trim()
+                ) {
                   setSearchResults(
                     allProducts.slice(
                       0,
@@ -1057,6 +1268,7 @@ export default function Header() {
               <div className="border-b border-gray-100 p-4 dark:border-slate-800">
 
                 <div className="mb-3 flex items-center gap-2">
+
                   <TrendingUp
                     size={17}
                     className="text-[#f47421]"
@@ -1065,12 +1277,16 @@ export default function Header() {
                   <h3 className="text-[15px] font-bold text-gray-900 dark:text-white">
                     Trending Search
                   </h3>
+
                 </div>
 
                 <div className="flex flex-wrap gap-2">
 
                   {trendingSearches.map(
-                    (item, index) => (
+                    (
+                      item,
+                      index
+                    ) => (
                       <button
                         key={`${item}-${index}`}
                         type="button"
@@ -1091,6 +1307,7 @@ export default function Header() {
                   )}
 
                 </div>
+
               </div>
 
               {/* PRODUCTS */}
@@ -1107,7 +1324,9 @@ export default function Header() {
 
                   <button
                     type="button"
-                    onClick={closeSearch}
+                    onClick={
+                      closeSearch
+                    }
                     className="text-xs text-gray-400 hover:text-[#f47421]"
                   >
                     Close
@@ -1167,6 +1386,7 @@ export default function Header() {
                   )}
 
                 </div>
+
               </div>
 
             </div>
@@ -1188,7 +1408,8 @@ export default function Header() {
             <span className="text-sm text-gray-400">
               Loading categories...
             </span>
-          ) : categories.length === 0 ? (
+          ) : categories.length ===
+            0 ? (
             <span className="text-sm text-gray-400">
               No categories
             </span>
@@ -1196,15 +1417,22 @@ export default function Header() {
             categories.map(
               (category) => (
                 <DesktopCategory
-                  key={category._id}
-                  category={category}
-                  makeSlug={makeSlug}
+                  key={
+                    category._id
+                  }
+                  category={
+                    category
+                  }
+                  makeSlug={
+                    makeSlug
+                  }
                 />
               )
             )
           )}
 
         </div>
+
       </nav>
 
       {/* =====================================================
@@ -1243,7 +1471,7 @@ export default function Header() {
             <div className="mb-5 grid grid-cols-2 gap-2">
 
               <Link
-      prefetch={false}
+                prefetch={false}
                 href="/blog"
                 onClick={
                   closeMobileMenu
@@ -1254,7 +1482,7 @@ export default function Header() {
               </Link>
 
               <Link
-      prefetch={false}
+                prefetch={false}
                 href="/offers"
                 onClick={
                   closeMobileMenu
@@ -1265,7 +1493,7 @@ export default function Header() {
               </Link>
 
               <Link
-      prefetch={false}
+                prefetch={false}
                 href="/pre-order"
                 onClick={
                   closeMobileMenu
@@ -1276,7 +1504,7 @@ export default function Header() {
               </Link>
 
               <Link
-      prefetch={false}
+                prefetch={false}
                 href="/compare"
                 onClick={
                   closeMobileMenu
@@ -1287,6 +1515,8 @@ export default function Header() {
               </Link>
 
             </div>
+
+            {/* MOBILE CATEGORIES */}
 
             {categoriesLoading ? (
               <div className="py-8 text-center text-sm text-gray-400">
@@ -1318,7 +1548,7 @@ export default function Header() {
                         <div className="flex items-center justify-between px-4 py-3.5">
 
                           <Link
-      prefetch={false}
+                            prefetch={false}
                             href={`/category/${makeSlug(
                               category
                             )}`}
@@ -1332,9 +1562,7 @@ export default function Header() {
                             }
                           </Link>
 
-                          {category
-                            .children
-                            ?.length >
+                          {category.children?.length >
                             0 && (
                             <button
                               type="button"
@@ -1359,9 +1587,7 @@ export default function Header() {
                         </div>
 
                         {expanded &&
-                          category
-                            .children
-                            ?.length >
+                          category.children?.length >
                             0 && (
                             <MobileCategoryChildren
                               items={
@@ -1392,6 +1618,7 @@ export default function Header() {
             )}
 
           </div>
+
         </div>
       )}
 
@@ -1399,47 +1626,130 @@ export default function Header() {
   );
 }
 
-/* =========================================================
-   DESKTOP CATEGORY
-========================================================= */
+
+// =========================================================
+// SEARCH CATEGORY ITEM
+// =========================================================
+
+function SearchCategoryItem({
+  category,
+  makeSlug,
+  closeAll,
+  level = 0,
+}) {
+  const hasChildren =
+    Array.isArray(
+      category?.children
+    ) &&
+    category.children.length > 0;
+
+  return (
+    <div>
+
+      <Link
+        prefetch={false}
+        href={`/category/${makeSlug(
+          category
+        )}`}
+        onClick={closeAll}
+        className="flex items-center justify-between rounded-lg px-3 py-2.5 text-[14px] font-medium text-gray-700 transition hover:bg-orange-50 hover:text-[#f47421] dark:text-gray-200 dark:hover:bg-slate-800 dark:hover:text-[#f47421]"
+        style={{
+          paddingLeft:
+            `${12 + level * 14}px`,
+        }}
+      >
+
+        <span>
+          {category.name}
+        </span>
+
+        {hasChildren && (
+          <ChevronRight
+            size={14}
+            className="shrink-0"
+          />
+        )}
+
+      </Link>
+
+      {hasChildren && (
+        <div>
+          {category.children.map(
+            (child) => (
+              <SearchCategoryItem
+                key={
+                  child._id
+                }
+                category={
+                  child
+                }
+                makeSlug={
+                  makeSlug
+                }
+                closeAll={
+                  closeAll
+                }
+                level={
+                  level + 1
+                }
+              />
+            )
+          )}
+        </div>
+      )}
+
+    </div>
+  );
+}
+
+
+// =========================================================
+// DESKTOP CATEGORY
+// =========================================================
 
 function DesktopCategory({
   category,
   makeSlug,
 }) {
+  const hasChildren =
+    category?.children?.length >
+    0;
+
   return (
     <div className="group relative h-full">
 
       <Link
-      prefetch={false}
+        prefetch={false}
         href={`/category/${makeSlug(
           category
         )}`}
         className="flex h-full items-center gap-1.5 whitespace-nowrap text-[14px] font-medium text-gray-700 transition hover:text-[#f47421] dark:text-gray-300"
       >
-        <span>{category.name}</span>
 
-        {category.children?.length >
-          0 && (
+        <span>
+          {category.name}
+        </span>
+
+        {hasChildren && (
           <ChevronDown
             size={12}
             className="transition-transform group-hover:rotate-180"
           />
         )}
+
       </Link>
 
-      {category.children?.length >
-        0 && (
+      {hasChildren && (
         <div className="invisible absolute left-0 top-full z-[9999] min-w-[235px] translate-y-1 rounded-xl border border-gray-100 bg-white py-2 opacity-0 shadow-xl transition-all duration-200 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 dark:border-slate-800 dark:bg-slate-900">
 
           {category.children.map(
-            (subCategory) => (
+            (child) => (
               <DesktopSubCategory
                 key={
-                  subCategory._id
+                  child._id
                 }
                 category={
-                  subCategory
+                  child
                 }
                 makeSlug={
                   makeSlug
@@ -1455,47 +1765,55 @@ function DesktopCategory({
   );
 }
 
-/* =========================================================
-   DESKTOP SUB CATEGORY
-========================================================= */
+
+// =========================================================
+// DESKTOP SUB CATEGORY
+// Recursive
+// =========================================================
 
 function DesktopSubCategory({
   category,
   makeSlug,
 }) {
+  const hasChildren =
+    category?.children?.length >
+    0;
+
   return (
     <div className="group/sub relative">
 
       <Link
-      prefetch={false}
+        prefetch={false}
         href={`/category/${makeSlug(
           category
         )}`}
         className="flex items-center justify-between px-4 py-2.5 text-[13px] font-medium text-gray-700 transition hover:bg-orange-50 hover:text-[#f47421] dark:text-gray-300 dark:hover:bg-slate-800"
       >
-        <span>{category.name}</span>
 
-        {category.children?.length >
-          0 && (
+        <span>
+          {category.name}
+        </span>
+
+        {hasChildren && (
           <ChevronRight
             size={14}
             className="text-gray-400"
           />
         )}
+
       </Link>
 
-      {category.children?.length >
-        0 && (
+      {hasChildren && (
         <div className="invisible absolute left-full top-0 z-[9999] min-w-[235px] -translate-x-2 rounded-xl border border-gray-100 bg-white py-2 opacity-0 shadow-xl transition-all duration-200 group-hover/sub:visible group-hover/sub:translate-x-0 group-hover/sub:opacity-100 dark:border-slate-800 dark:bg-slate-900">
 
           {category.children.map(
-            (childCategory) => (
+            (child) => (
               <DesktopSubCategory
                 key={
-                  childCategory._id
+                  child._id
                 }
                 category={
-                  childCategory
+                  child
                 }
                 makeSlug={
                   makeSlug
@@ -1511,9 +1829,11 @@ function DesktopSubCategory({
   );
 }
 
-/* =========================================================
-   MOBILE CATEGORY CHILDREN
-========================================================= */
+
+// =========================================================
+// MOBILE CATEGORY CHILDREN
+// Recursive
+// =========================================================
 
 function MobileCategoryChildren({
   items,
@@ -1532,98 +1852,112 @@ function MobileCategoryChildren({
       }`}
     >
 
-      {items.map((item) => {
-        const expanded =
-          expandedState[item._id];
+      {items.map(
+        (item) => {
+          const expanded =
+            expandedState[
+              item._id
+            ];
 
-        return (
-          <div
-            key={item._id}
-            className="rounded-lg bg-white dark:bg-slate-800"
-          >
+          const hasChildren =
+            item?.children
+              ?.length > 0;
 
-            <div className="flex items-center justify-between px-3 py-2.5">
+          return (
+            <div
+              key={
+                item._id
+              }
+              className="rounded-lg bg-white dark:bg-slate-800"
+            >
 
-              <Link
-      prefetch={false}
-                href={`/category/${makeSlug(
-                  item
-                )}`}
-                onClick={closeMenu}
-                className={`flex-1 font-medium text-gray-700 dark:text-gray-200 ${
-                  level === 1
-                    ? "text-sm"
-                    : level === 2
-                    ? "text-xs"
-                    : "text-[11px]"
-                }`}
-              >
-                {item.name}
-              </Link>
+              <div className="flex items-center justify-between px-3 py-2.5">
 
-              {item.children?.length >
-                0 && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    toggle(
-                      item._id
-                    )
-                  }
-                  className="flex h-7 w-7 items-center justify-center rounded-full text-gray-400"
-                >
-                  <ChevronDown
-                    size={
-                      level === 1
-                        ? 16
-                        : 14
-                    }
-                    className={`transition-transform ${
-                      expanded
-                        ? "rotate-180 text-[#f47421]"
-                        : ""
-                    }`}
-                  />
-                </button>
-              )}
-
-            </div>
-
-            {expanded &&
-              item.children
-                ?.length >
-                0 && (
-                <MobileCategoryChildren
-                  items={
-                    item.children
-                  }
-                  level={
-                    level + 1
-                  }
-                  expandedState={
-                    expandedState
-                  }
-                  toggle={toggle}
-                  makeSlug={
-                    makeSlug
-                  }
-                  closeMenu={
+                <Link
+                  prefetch={false}
+                  href={`/category/${makeSlug(
+                    item
+                  )}`}
+                  onClick={
                     closeMenu
                   }
-                />
-              )}
+                  className={`flex-1 font-medium text-gray-700 dark:text-gray-200 ${
+                    level === 1
+                      ? "text-sm"
+                      : level === 2
+                      ? "text-xs"
+                      : "text-[11px]"
+                  }`}
+                >
+                  {item.name}
+                </Link>
 
-          </div>
-        );
-      })}
+                {hasChildren && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      toggle(
+                        item._id
+                      )
+                    }
+                    className="flex h-7 w-7 items-center justify-center rounded-full text-gray-400"
+                  >
+
+                    <ChevronDown
+                      size={
+                        level === 1
+                          ? 16
+                          : 14
+                      }
+                      className={`transition-transform ${
+                        expanded
+                          ? "rotate-180 text-[#f47421]"
+                          : ""
+                      }`}
+                    />
+
+                  </button>
+                )}
+
+              </div>
+
+              {expanded &&
+                hasChildren && (
+                  <MobileCategoryChildren
+                    items={
+                      item.children
+                    }
+                    level={
+                      level + 1
+                    }
+                    expandedState={
+                      expandedState
+                    }
+                    toggle={
+                      toggle
+                    }
+                    makeSlug={
+                      makeSlug
+                    }
+                    closeMenu={
+                      closeMenu
+                    }
+                  />
+                )}
+
+            </div>
+          );
+        }
+      )}
 
     </div>
   );
 }
 
-/* =========================================================
-   PRODUCT SEARCH CARD
-========================================================= */
+
+// =========================================================
+// PRODUCT SEARCH CARD
+// =========================================================
 
 function ProductSearchCard({
   product,
@@ -1633,22 +1967,29 @@ function ProductSearchCard({
   onClick,
 }) {
   const image =
-    getProductImage(product);
+    getProductImage(
+      product
+    );
 
   const {
     price,
     finalPrice,
     hasDiscount,
     discountAmount,
-  } = getProductPrice(product);
+  } =
+    getProductPrice(
+      product
+    );
 
-  const slug = makeSlug(product);
+  const slug =
+    makeSlug(product);
 
   return (
     <Link
       prefetch={false}
       href={`/Product/${
-        slug || product._id
+        slug ||
+        product._id
       }`}
       onClick={onClick}
       className="group block"
@@ -1717,9 +2058,10 @@ function ProductSearchCard({
   );
 }
 
-/* =========================================================
-   DESKTOP SEARCH PANEL
-========================================================= */
+
+// =========================================================
+// DESKTOP SEARCH PANEL
+// =========================================================
 
 function SearchPanel({
   search,
@@ -1737,9 +2079,7 @@ function SearchPanel({
 
       <div className="grid grid-cols-[190px_minmax(0,1fr)]">
 
-        {/* =================================================
-            TRENDING
-        ================================================= */}
+        {/* TRENDING */}
 
         <div className="border-r border-gray-100 p-5 dark:border-slate-800">
 
@@ -1759,7 +2099,10 @@ function SearchPanel({
           <div className="space-y-3">
 
             {trendingSearches.map(
-              (item, index) => (
+              (
+                item,
+                index
+              ) => (
                 <button
                   key={`${item}-${index}`}
                   type="button"
@@ -1788,9 +2131,7 @@ function SearchPanel({
 
         </div>
 
-        {/* =================================================
-            PRODUCTS
-        ================================================= */}
+        {/* PRODUCTS */}
 
         <div className="min-w-0 p-5">
 
@@ -1806,7 +2147,8 @@ function SearchPanel({
 
               {search.trim() && (
                 <p className="mt-1 text-xs text-gray-400">
-                  Results for {search}
+                  Results for{" "}
+                  {search}
                 </p>
               )}
 

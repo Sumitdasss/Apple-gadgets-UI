@@ -54,7 +54,7 @@ export default function ProductDetailsPage() {
         setLoading(true);
 
         const res = await fetch(
-          `${API_BASE}/getallProduct?slug=${encodeURIComponent(slug)}`,
+          `${API_BASE}/products/getALLproducts?slug=${encodeURIComponent(slug)}`,
         );
 
         if (!res.ok) {

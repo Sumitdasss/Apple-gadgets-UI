@@ -645,8 +645,8 @@ function CategoryPageContent() {
 
       const endpoint =
         isSearchPage || hasSearch
-          ? `${API_BASE}/getallProduct`
-          : `${API_BASE}/getallProduct?category=${encodeURIComponent(slug)}`;
+          ? `${API_BASE}/products/getALLproducts`
+          : `${API_BASE}/products/getALLproducts?category=${encodeURIComponent(slug)}`;
 
       const cached = productCache.get(endpoint);
 

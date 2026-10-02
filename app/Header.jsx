@@ -25,7 +25,7 @@ import {
 } from "react";
 
 const API_BASE =
-  "http://localhost:4000";
+  "https://apple-gadgets-ui-backend.vercel.app";
 
 const SEARCH_HISTORY_KEY =
   "apple_gadgets_search_history";

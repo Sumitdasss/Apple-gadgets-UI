@@ -436,12 +436,12 @@ export default function CartPage() {
 
             {/* CONTINUE */}
 
-            <button
-              type="button"
-              className="mt-6 w-full rounded-full bg-[#f47421] py-3.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#e06211]"
-            >
-              Continue
-            </button>
+           <Link
+  href="/CheakOut"
+  className="mt-6 flex w-full items-center justify-center rounded-full bg-[#f47421] py-3.5 text-sm font-bold text-white shadow-sm transition-all duration-200 hover:bg-[#e06211] hover:shadow-md active:scale-[0.98]"
+>
+  Continue
+</Link>
 
           </div>
 

@@ -19,7 +19,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-
+import useStore from "../../Store/store";
 const API_BASE = "https://apple-gadgets-ui-backend.vercel.app";
 
 // Fast client-side product cache.
@@ -549,7 +549,7 @@ function CategoryPageContent() {
   // ============================================
 
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-
+ const {addTocart}=useStore();
   // ============================================
   // PAGINATION
   // ============================================
@@ -2101,6 +2101,7 @@ function CategoryPageContent() {
                             <button
                               type="button"
                               disabled={outOfStock}
+                              onClick={()=>addTocart(product)}
                               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full disabled:cursor-not-allowed disabled:opacity-40 sm:h-10 sm:w-10"
                               style={{
                                 border: `1px solid ${COLOR.line}`,

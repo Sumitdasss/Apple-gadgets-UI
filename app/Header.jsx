@@ -29,7 +29,7 @@ const API_BASE =
 
 const SEARCH_HISTORY_KEY =
   "apple_gadgets_search_history";
-
+import useStore from "./Store/store";
 export default function Header() {
   // =====================================================
   // SEARCH
@@ -38,7 +38,9 @@ export default function Header() {
   const [search, setSearch] = useState("");
   const [searchFocused, setSearchFocused] =
     useState(false);
-
+const { cart } = useStore();
+;
+  const totalItems = cart.length;
   const [allProducts, setAllProducts] = useState([]);
   const [searchResults, setSearchResults] =
     useState([]);
@@ -1183,7 +1185,7 @@ useEffect(() => {
               <ShoppingBag size={18} />
 
               <span className="absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#f47421] px-1 text-[10px] font-bold text-white">
-                0
+                {totalItems}
               </span>
             </Link>
 

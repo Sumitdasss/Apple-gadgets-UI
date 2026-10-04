@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import useStore from "../Store/store";
 
-const API_BASE = "https://apple-gadgets-ui-backend.vercel.app";
+const API_BASE = "http://localhost:4000";
 
 export default function CheckoutPage() {
   const {
@@ -314,7 +314,7 @@ export default function CheckoutPage() {
 
     try {
       const res = await fetch(
-        `${API_BASE}/orders`,
+        `${API_BASE}/products/CreateOrder`,
         {
           method: "POST",
 

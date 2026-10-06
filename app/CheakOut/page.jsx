@@ -1,9 +1,15 @@
+ /* eslint-disable react-hooks/set-state-in-effect */
 
-/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import Link from "next/link";
+
 import {
   ArrowLeft,
   Truck,
@@ -24,7 +30,7 @@ import {
 import useStore from "../Store/store";
 import { BANGLADESH_GEO } from "../../Data/BangladeshLocation";
 
-const API_BASE = "http://localhost:4000";
+const API_BASE = "https://apple-gadgets-ui-backend.vercel.app";
 
 /* =========================================================
    AREA SELECTOR
@@ -50,22 +56,33 @@ function AreaSelector({ value, onChange }) {
 
   useEffect(() => {
     const handleOutside = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) {
+      if (
+        ref.current &&
+        !ref.current.contains(e.target)
+      ) {
         setOpen(false);
       }
     };
 
-    document.addEventListener("mousedown", handleOutside);
+    document.addEventListener(
+      "mousedown",
+      handleOutside
+    );
 
     return () => {
-      document.removeEventListener("mousedown", handleOutside);
+      document.removeEventListener(
+        "mousedown",
+        handleOutside
+      );
     };
   }, []);
 
   const divisions = Object.keys(BANGLADESH_GEO);
 
   const districts = division
-    ? Object.keys(BANGLADESH_GEO[division] || {})
+    ? Object.keys(
+        BANGLADESH_GEO[division] || {}
+      )
     : [];
 
   const upazilas =
@@ -81,17 +98,32 @@ function AreaSelector({ value, onChange }) {
   };
 
   return (
-    <div ref={ref} className="relative">
+    <div
+      ref={ref}
+      className="relative"
+    >
       <button
         type="button"
-        onClick={() => setOpen((prev) => !prev)}
+        onClick={() =>
+          setOpen((prev) => !prev)
+        }
         className="flex w-full items-center justify-between rounded-md border border-gray-300 bg-white px-3 py-2 text-left text-sm"
       >
-        <span className={value ? "text-gray-900" : "text-gray-400"}>
-          {value || "Select delivery area"}
+        <span
+          className={
+            value
+              ? "text-gray-900"
+              : "text-gray-400"
+          }
+        >
+          {value ||
+            "Select delivery area"}
         </span>
 
-        <ChevronDown size={16} className="text-gray-400" />
+        <ChevronDown
+          size={16}
+          className="text-gray-400"
+        />
       </button>
 
       {open && (
@@ -126,7 +158,9 @@ function AreaSelector({ value, onChange }) {
               {districts.map((item) => (
                 <div
                   key={item}
-                  onMouseEnter={() => setDistrict(item)}
+                  onMouseEnter={() =>
+                    setDistrict(item)
+                  }
                   className={`flex cursor-pointer items-center justify-between px-3 py-2.5 text-sm ${
                     district === item
                       ? "bg-orange-50 text-orange-600"
@@ -146,12 +180,16 @@ function AreaSelector({ value, onChange }) {
           {district && (
             <div className="w-48 overflow-y-auto">
               {upazilas.map((item) => {
-                const selected = value === `${division} > ${district} > ${item}`;
+                const selected =
+                  value ===
+                  `${division} > ${district} > ${item}`;
 
                 return (
                   <div
                     key={item}
-                    onClick={() => selectUpazila(item)}
+                    onClick={() =>
+                      selectUpazila(item)
+                    }
                     className={`flex cursor-pointer items-center justify-between px-3 py-2.5 text-sm ${
                       selected
                         ? "bg-orange-50 text-orange-600"
@@ -160,7 +198,9 @@ function AreaSelector({ value, onChange }) {
                   >
                     {item}
 
-                    {selected && <Check size={14} />}
+                    {selected && (
+                      <Check size={14} />
+                    )}
                   </div>
                 );
               })}
@@ -182,98 +222,157 @@ export default function CheckoutPage() {
     increasePopulation,
     decreasePopulation,
     removeFromCart,
+    clearCart
   } = useStore();
 
-  const [formData, setFormData] = useState({
-    fullName: "",
-    email: "",
-    phone: "",
-    selectArea: "",
-    address: "",
-    note: "",
-    paymentMethod: "cash_on_delivery",
-    deliveryMethod: "courier_service",
-    couponCode: "",
-    termsAgreed: true,
-  });
+  const [formData, setFormData] =
+    useState({
+      fullName: "",
+      email: "",
+      phone: "",
+      selectArea: "",
+      address: "",
+      note: "",
+      paymentMethod:
+        "cash_on_delivery",
+      deliveryMethod:
+        "courier_service",
+      couponCode: "",
+      termsAgreed: true,
+    });
 
-  const [selectedVariants, setSelectedVariants] = useState({});
-  const [couponDiscount, setCouponDiscount] = useState(0);
-  const [loading, setLoading] = useState(false);
+  const [
+    selectedVariants,
+    setSelectedVariants,
+  ] = useState({});
+
+  const [couponDiscount, setCouponDiscount] =
+    useState(0);
+
+  const [loading, setLoading] =
+    useState(false);
 
   /* =========================================================
      HELPERS
   ========================================================= */
 
   const normalize = (value) => {
-    if (value === null || value === undefined) return "";
+    if (
+      value === null ||
+      value === undefined
+    ) {
+      return "";
+    }
 
     if (
       typeof value === "string" ||
       typeof value === "number"
     ) {
-      return String(value);
+      return String(value).trim();
     }
 
     if (typeof value === "object") {
       return String(
-        value.name ||
-          value.value ||
-          value.label ||
-          value.title ||
+        value.name ??
+          value.value ??
+          value.label ??
+          value.title ??
+          value._id ??
           ""
-      );
+      ).trim();
     }
 
     return "";
   };
 
+  /* =========================================================
+     PRODUCT ID
+  ========================================================= */
+
   const getProductId = (item) =>
     String(
       item?.productId ||
+        item?.product?._id ||
+        item?.product ||
         item?._id ||
         item?.id ||
         ""
     );
 
+  /* =========================================================
+     CART ID
+  ========================================================= */
+
   const getCartId = (item) =>
     item?.id ||
     item?._id ||
-    item?.productId;
+    item?.productId ||
+    item?.product?._id;
+
+  /* =========================================================
+     IMAGE
+  ========================================================= */
 
   const getImage = (item) => {
-    if (Array.isArray(item?.images) && item.images.length) {
+    if (
+      Array.isArray(item?.images) &&
+      item.images.length
+    ) {
       return item.images[0];
     }
 
     return item?.image || "";
   };
 
+  /* =========================================================
+     PRODUCT PRICE
+  ========================================================= */
+
   const getPrice = (item) =>
     Number(
-      item?.discountPrice ||
-        item?.price ||
+      item?.discountPrice ??
+        item?.price ??
         0
     );
 
-  const getVariants = (item) => {
-    if (!Array.isArray(item?.variants)) return [];
+  /* =========================================================
+     GET VARIANTS
+========================================================= */
 
-    return item.variants.map((variant, index) => ({
-      ...variant,
+ 
+const getVariants = (item) => {
+  if (!Array.isArray(item?.variants)) {
+    return [];
+  }
 
-      _variantIndex: index,
+  return item.variants.map((variant, index) => ({
+    ...variant,
 
-      color: normalize(variant?.color),
-      ram: normalize(variant?.ram),
-      storage: normalize(variant?.storage),
+    // Variant array index
+    _variantIndex: index,
 
-      price: Number(variant?.price || 0),
-      stock: Number(variant?.stock || 0),
+    // Variant values normalize
+    color: normalize(variant?.color),
+    ram: normalize(variant?.ram),
+    storage: normalize(variant?.storage),
 
-      sku: normalize(variant?.sku),
-    }));
-  };
+    // Numbers
+    price: Number(variant?.price ?? 0),
+    stock: Number(variant?.stock ?? 0),
+
+    // SKU
+    sku: normalize(variant?.sku),
+
+    // MongoDB Variant _id
+    variantId: variant?._id
+      ? String(variant._id)
+      : "",
+
+    // Variant image
+    image: variant?.image || "",
+  }));
+};
+
 
   /* =========================================================
      GET SELECTED VARIANT
@@ -296,27 +395,44 @@ export default function CheckoutPage() {
   ========================================================= */
 
   const getOptions = (item) => {
-    const variants = getVariants(item);
-    const selected = getSelected(item);
+    const variants =
+      getVariants(item);
+
+    const selected =
+      getSelected(item);
+
+    if (!variants.length) {
+      return {
+        colors: [],
+        rams: [],
+        storages: [],
+      };
+    }
 
     /* COLORS */
 
     const colors = [
       ...new Set(
         variants
-          .map((v) => v.color)
+          .map(
+            (variant) =>
+              variant.color
+          )
           .filter(Boolean)
       ),
     ];
 
-    /* FILTER BY COLOR */
+    /* FILTER COLOR */
 
     let filtered = variants;
 
     if (selected.color) {
-      filtered = filtered.filter(
-        (v) => v.color === selected.color
-      );
+      filtered =
+        filtered.filter(
+          (variant) =>
+            variant.color ===
+            selected.color
+        );
     }
 
     /* RAM */
@@ -324,17 +440,23 @@ export default function CheckoutPage() {
     const rams = [
       ...new Set(
         filtered
-          .map((v) => v.ram)
+          .map(
+            (variant) =>
+              variant.ram
+          )
           .filter(Boolean)
       ),
     ];
 
-    /* FILTER BY RAM */
+    /* FILTER RAM */
 
     if (selected.ram) {
-      filtered = filtered.filter(
-        (v) => v.ram === selected.ram
-      );
+      filtered =
+        filtered.filter(
+          (variant) =>
+            variant.ram ===
+            selected.ram
+        );
     }
 
     /* STORAGE */
@@ -342,7 +464,10 @@ export default function CheckoutPage() {
     const storages = [
       ...new Set(
         filtered
-          .map((v) => v.storage)
+          .map(
+            (variant) =>
+              variant.storage
+          )
           .filter(Boolean)
       ),
     ];
@@ -355,140 +480,419 @@ export default function CheckoutPage() {
   };
 
   /* =========================================================
-     MATCH VARIANT
-  ========================================================= */
+     EXACT VARIANT STATUS
+========================================================= */
 
-  const getMatchedVariant = (item) => {
-    const variants = getVariants(item);
-    const selected = getSelected(item);
+  const getVariantStatus = (item) => {
+    const variants =
+      getVariants(item);
 
-    if (!variants.length) return null;
+    const selected =
+      getSelected(item);
 
-    return variants.find((variant) => {
-      const colorOK =
-        !variant.color ||
-        variant.color === selected.color;
+    /* NORMAL PRODUCT */
 
-      const ramOK =
-        !variant.ram ||
-        variant.ram === selected.ram;
+    if (!variants.length) {
+      return {
+        hasVariant: false,
+        complete: true,
+        available: true,
+        stock: 0,
+        variant: null,
+        missingFields: [],
+        message: "",
+      };
+    }
 
-      const storageOK =
-        !variant.storage ||
-        variant.storage === selected.storage;
+    /* CHECK REQUIRED FIELDS */
 
-      return colorOK && ramOK && storageOK;
-    });
+    const hasColor =
+      variants.some(
+        (variant) =>
+          Boolean(variant.color)
+      );
+
+    const hasRam =
+      variants.some(
+        (variant) =>
+          Boolean(variant.ram)
+      );
+
+    const hasStorage =
+      variants.some(
+        (variant) =>
+          Boolean(variant.storage)
+      );
+
+    const missingFields = [];
+
+    if (
+      hasColor &&
+      !selected.color
+    ) {
+      missingFields.push("Color");
+    }
+
+    if (
+      hasRam &&
+      !selected.ram
+    ) {
+      missingFields.push("RAM");
+    }
+
+    if (
+      hasStorage &&
+      !selected.storage
+    ) {
+      missingFields.push(
+        "Storage"
+      );
+    }
+
+    /* NOT COMPLETE */
+
+    if (
+      missingFields.length > 0
+    ) {
+      return {
+        hasVariant: true,
+        complete: false,
+        available: false,
+        stock: 0,
+        variant: null,
+        missingFields,
+        message: `Please select ${missingFields.join(
+          ", "
+        )}`,
+      };
+    }
+
+    /* =======================================================
+       EXACT COMBINATION
+    ======================================================= */
+
+    const matchedVariant =
+      variants.find(
+        (variant) => {
+          const colorMatch =
+            hasColor
+              ? variant.color ===
+                selected.color
+              : true;
+
+          const ramMatch =
+            hasRam
+              ? variant.ram ===
+                selected.ram
+              : true;
+
+          const storageMatch =
+            hasStorage
+              ? variant.storage ===
+                selected.storage
+              : true;
+
+          return (
+            colorMatch &&
+            ramMatch &&
+            storageMatch
+          );
+        }
+      );
+
+    /* COMBINATION NOT FOUND */
+
+    if (!matchedVariant) {
+      return {
+        hasVariant: true,
+        complete: true,
+        available: false,
+        stock: 0,
+        variant: null,
+        missingFields: [],
+        message:
+          "এই combination-এর variant available নেই।",
+      };
+    }
+
+    /* STOCK */
+
+    const stock = Number(
+      matchedVariant.stock || 0
+    );
+
+    /* OUT OF STOCK */
+
+    if (stock <= 0) {
+      return {
+        hasVariant: true,
+        complete: true,
+        available: false,
+        stock: 0,
+        variant: matchedVariant,
+        missingFields: [],
+        message:
+          "এই selected variant-এর stock শেষ।",
+      };
+    }
+
+    /* AVAILABLE */
+
+    return {
+      hasVariant: true,
+      complete: true,
+      available: true,
+      stock,
+      variant: matchedVariant,
+      missingFields: [],
+      message:
+        "Variant available",
+    };
+  };
+
+  /* =========================================================
+     GET MATCHED VARIANT
+========================================================= */
+
+  const getMatchedVariant = (
+    item
+  ) => {
+    const status =
+      getVariantStatus(item);
+
+    return status.variant || null;
   };
 
   /* =========================================================
      CHANGE VARIANT
-  ========================================================= */
+========================================================= */
 
   const changeVariant = (
     productId,
     field,
     value
   ) => {
-    setSelectedVariants((prev) => ({
-      ...prev,
+    setSelectedVariants(
+      (prev) => ({
+        ...prev,
 
-      [productId]: {
-        ...(prev[productId] || {}),
+        [productId]: {
+          ...(prev[productId] || {}),
 
-        [field]: value,
+          [field]: value,
 
-        ...(field === "color" && {
-          ram: "",
-          storage: "",
-        }),
+          /* COLOR CHANGE */
 
-        ...(field === "ram" && {
-          storage: "",
-        }),
-      },
-    }));
+          ...(field === "color" && {
+            ram: "",
+            storage: "",
+          }),
+
+          /* RAM CHANGE */
+
+          ...(field === "ram" && {
+            storage: "",
+          }),
+        },
+      })
+    );
+  };
+
+  /* =========================================================
+     INCREASE QUANTITY
+========================================================= */
+
+  const handleIncreaseQuantity = (
+    item,
+    cartId
+  ) => {
+    const variants =
+      getVariants(item);
+
+    /* NORMAL PRODUCT */
+
+    if (!variants.length) {
+      increasePopulation(
+        cartId
+      );
+      return;
+    }
+
+    /* VARIANT STATUS */
+
+    const variantStatus =
+      getVariantStatus(item);
+
+    /* FIELD NOT COMPLETE */
+
+    if (
+      !variantStatus.complete
+    ) {
+      alert(
+        variantStatus.message
+      );
+      return;
+    }
+
+    /* VARIANT NOT FOUND */
+
+    if (
+      !variantStatus.variant
+    ) {
+      alert(
+        "এই selected combination-এর variant available নেই।"
+      );
+      return;
+    }
+
+    const stock = Number(
+      variantStatus.stock || 0
+    );
+
+    const currentQuantity =
+      Number(
+        item?.quantity || 1
+      );
+
+    /* STOCK 0 */
+
+    if (stock <= 0) {
+      alert(
+        "এই selected variant-এর stock শেষ।"
+      );
+      return;
+    }
+
+    /* MAX STOCK */
+
+    if (
+      currentQuantity >= stock
+    ) {
+      alert(
+        `এই variant-এর সর্বোচ্চ ${stock}টি available আছে।`
+      );
+      return;
+    }
+
+    /* INCREASE */
+
+    increasePopulation(
+      cartId
+    );
   };
 
   /* =========================================================
      TOTAL ITEMS
-  ========================================================= */
+========================================================= */
 
-  const totalItems = useMemo(() => {
-    return cart.reduce(
-      (total, item) =>
-        total + Number(item?.quantity || 1),
-      0
-    );
-  }, [cart]);
+  const totalItems =
+    useMemo(() => {
+      return cart.reduce(
+        (total, item) =>
+          total +
+          Number(
+            item?.quantity || 1
+          ),
+        0
+      );
+    }, [cart]);
 
   /* =========================================================
      SUB TOTAL
-  ========================================================= */
+========================================================= */
 
-  const subTotal = useMemo(() => {
-    return cart.reduce((total, item) => {
-      const variant = getMatchedVariant(item);
+  const subTotal =
+    useMemo(() => {
+      return cart.reduce(
+        (total, item) => {
+          const variant =
+            getMatchedVariant(
+              item
+            );
 
-      const price = variant
-        ? Number(variant.price || 0) ||
-          getPrice(item)
-        : getPrice(item);
+          const price = variant
+            ? Number(
+                variant.price || 0
+              ) ||
+              getPrice(item)
+            : getPrice(item);
 
-      const quantity =
-        Number(item?.quantity || 1);
+          const quantity =
+            Number(
+              item?.quantity || 1
+            );
 
-      return total + price * quantity;
-    }, 0);
-  }, [cart, selectedVariants]);
+          return (
+            total +
+            price * quantity
+          );
+        },
+        0
+      );
+    }, [
+      cart,
+      selectedVariants,
+    ]);
 
   /* =========================================================
      DELIVERY CHARGE
-  ========================================================= */
+========================================================= */
 
-  const deliveryCharge = useMemo(() => {
-    if (
-      formData.deliveryMethod ===
-      "shop_pickup"
-    ) {
-      return 0;
-    }
+  const deliveryCharge =
+    useMemo(() => {
+      if (
+        formData.deliveryMethod ===
+        "shop_pickup"
+      ) {
+        return 0;
+      }
 
-    if (!formData.selectArea) {
-      return 0;
-    }
+      if (
+        !formData.selectArea
+      ) {
+        return 0;
+      }
 
-    return formData.selectArea.startsWith(
-      "Dhaka"
-    )
-      ? 80
-      : 150;
-  }, [
-    formData.deliveryMethod,
-    formData.selectArea,
-  ]);
+      return formData.selectArea.startsWith(
+        "Dhaka"
+      )
+        ? 80
+        : 150;
+    }, [
+      formData.deliveryMethod,
+      formData.selectArea,
+    ]);
 
   /* =========================================================
      TOTAL
-  ========================================================= */
+========================================================= */
 
-  const totalAmount = Math.max(
-    0,
-    subTotal +
-      deliveryCharge -
-      couponDiscount
-  );
-
-  const formatPrice = (price) =>
-    Number(price || 0).toLocaleString(
-      "en-BD"
+  const totalAmount =
+    Math.max(
+      0,
+      subTotal +
+        deliveryCharge -
+        couponDiscount
     );
 
   /* =========================================================
-     FORM CHANGE
-  ========================================================= */
+     FORMAT PRICE
+========================================================= */
 
-  const handleChange = (e) => {
+  const formatPrice = (
+    price
+  ) =>
+    Number(
+      price || 0
+    ).toLocaleString("en-BD");
+
+  /* =========================================================
+     FORM CHANGE
+========================================================= */
+
+  const handleChange = (
+    e
+  ) => {
     const {
       name,
       value,
@@ -496,19 +900,22 @@ export default function CheckoutPage() {
       checked,
     } = e.target;
 
-    setFormData((prev) => ({
-      ...prev,
+    setFormData(
+      (prev) => ({
+        ...prev,
 
-      [name]:
-        type === "checkbox"
-          ? checked
-          : value,
-    }));
+        [name]:
+          type ===
+          "checkbox"
+            ? checked
+            : value,
+      })
+    );
   };
 
   /* =========================================================
      COUPON
-  ========================================================= */
+========================================================= */
 
   const applyCoupon = () => {
     const code =
@@ -518,13 +925,22 @@ export default function CheckoutPage() {
 
     if (!code) {
       setCouponDiscount(0);
-      alert("Please enter coupon code");
+
+      alert(
+        "Please enter coupon code"
+      );
+
       return;
     }
 
-    if (code === "SAVE500") {
+    if (
+      code === "SAVE500"
+    ) {
       setCouponDiscount(
-        Math.min(500, subTotal)
+        Math.min(
+          500,
+          subTotal
+        )
       );
 
       alert(
@@ -536,330 +952,374 @@ export default function CheckoutPage() {
 
     setCouponDiscount(0);
 
-    alert("Invalid coupon code");
+    alert(
+      "Invalid coupon code"
+    );
   };
 
   /* =========================================================
      SUBMIT ORDER
-  ========================================================= */
+========================================================= */
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit =
+    async (e) => {
+      e.preventDefault();
 
-    /* BASIC VALIDATION */
+      /* BASIC VALIDATION */
 
-    if (!cart.length) {
-      alert("Your cart is empty!");
-      return;
-    }
-
-    if (!formData.termsAgreed) {
-      alert(
-        "You must agree to the Terms and Conditions."
-      );
-      return;
-    }
-
-    if (!formData.fullName.trim()) {
-      alert("Please enter your full name.");
-      return;
-    }
-
-    if (!formData.phone.trim()) {
-      alert(
-        "Please enter your phone number."
-      );
-      return;
-    }
-
-    if (!formData.selectArea) {
-      alert(
-        "Please select delivery area."
-      );
-      return;
-    }
-
-    if (!formData.address.trim()) {
-      alert(
-        "Please enter your delivery address."
-      );
-      return;
-    }
-
-    /* =====================================================
-       CHECK VARIANTS
-    ===================================================== */
-
-    for (const item of cart) {
-      const variants = getVariants(item);
-
-      if (!variants.length) continue;
-
-      const selected = getSelected(item);
-
-      const hasColor = variants.some(
-        (v) => v.color
-      );
-
-      const hasRam = variants.some(
-        (v) => v.ram
-      );
-
-      const hasStorage = variants.some(
-        (v) => v.storage
-      );
-
-      if (hasColor && !selected.color) {
+      if (!cart.length) {
         alert(
-          `Please select color for ${item.name}`
-        );
-        return;
-      }
-
-      if (hasRam && !selected.ram) {
-        alert(
-          `Please select RAM for ${item.name}`
+          "Your cart is empty!"
         );
         return;
       }
 
       if (
-        hasStorage &&
-        !selected.storage
+        !formData.termsAgreed
       ) {
         alert(
-          `Please select storage for ${item.name}`
+          "You must agree to the Terms and Conditions."
         );
         return;
       }
 
-      const variant =
-        getMatchedVariant(item);
-
-      if (!variant) {
+      if (
+        !formData.fullName.trim()
+      ) {
         alert(
-          `Selected variant is not available for ${item.name}`
+          "Please enter your full name."
         );
         return;
       }
 
-      const quantity =
-        Number(item?.quantity || 1);
-
-      if (variant.stock <= 0) {
+      if (
+        !formData.phone.trim()
+      ) {
         alert(
-          `${item.name} selected variant is out of stock.`
+          "Please enter your phone number."
         );
         return;
       }
 
-      if (quantity > variant.stock) {
+      if (
+        !formData.selectArea
+      ) {
         alert(
-          `${item.name} only ${variant.stock} item(s) available.`
+          "Please select delivery area."
         );
         return;
       }
-    }
 
-    setLoading(true);
+      if (
+        !formData.address.trim()
+      ) {
+        alert(
+          "Please enter your delivery address."
+        );
+        return;
+      }
 
-    try {
       /* =====================================================
-         PRODUCTS
+         CHECK EVERY PRODUCT
       ===================================================== */
 
-      const products = cart.map((item) => {
-        const productId =
-          getProductId(item);
+      for (const item of cart) {
+        const variants =
+          getVariants(item);
 
-        const selected =
-          getSelected(item);
+        /* NORMAL PRODUCT */
 
-        const variant =
-          getMatchedVariant(item);
+        if (!variants.length) {
+          continue;
+        }
 
-        const price = variant
-          ? Number(variant.price || 0) ||
-            getPrice(item)
-          : getPrice(item);
+        const status =
+          getVariantStatus(item);
+
+        /* FIELD MISSING */
+
+        if (!status.complete) {
+          alert(
+            `${item.name}: ${status.message}`
+          );
+          return;
+        }
+
+        /* VARIANT NOT FOUND */
+
+        if (!status.variant) {
+          alert(
+            `${item.name}: এই selected combination-এর variant available নেই।`
+          );
+          return;
+        }
+
+        const variantStock =
+          Number(
+            status.stock || 0
+          );
 
         const quantity =
-          Number(item?.quantity || 1);
+          Number(
+            item?.quantity || 1
+          );
 
-        return {
-          productId,
+        /* STOCK ZERO */
 
-          name: item?.name || "",
-
-          image: getImage(item),
-
-          price,
-
-          quantity,
-
-          subtotal: price * quantity,
-
-          slug: item?.slug || "",
-
-          variant: {
-            color: selected.color || "",
-            ram: selected.ram || "",
-            storage:
-              selected.storage || "",
-
-            sku: variant?.sku || "",
-
-            variantId:
-              variant?._id || "",
-
-            variantPrice:
-              variant
-                ? Number(
-                    variant.price || 0
-                  )
-                : price,
-
-            variantStock:
-              variant
-                ? Number(
-                    variant.stock || 0
-                  )
-                : 0,
-          },
-        };
-      });
-
-      /* =====================================================
-         ORDER PAYLOAD
-      ===================================================== */
-
-      const payload = {
-        customerName:
-          formData.fullName.trim(),
-
-        email:
-          formData.email.trim(),
-
-        phone:
-          formData.phone.trim(),
-
-        selectArea:
-          formData.selectArea,
-
-        deliveryAddress:
-          formData.address.trim(),
-
-        note:
-          formData.note.trim(),
-
-        products,
-
-        totalItems,
-
-        subTotal,
-
-        deliveryCharge,
-
-        discountAmount:
-          couponDiscount,
-
-        totalAmount,
-
-        couponCode:
-          formData.couponCode
-            .trim()
-            .toUpperCase(),
-
-        paymentMethod:
-          formData.paymentMethod,
-
-        deliveryMethod:
-          formData.deliveryMethod,
-
-        termsAgreed:
-          formData.termsAgreed,
-
-        orderSource: "website",
-      };
-
-      console.log(
-        "ORDER PAYLOAD:",
-        payload
-      );
-
-      /* =====================================================
-         API
-      ===================================================== */
-
-      const response = await fetch(
-        `${API_BASE}/products/CreateOrder`,
-        {
-          method: "POST",
-
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
-
-          body: JSON.stringify(payload),
+        if (
+          variantStock <= 0
+        ) {
+          alert(
+            `${item.name} এর selected variant-এর stock শেষ।`
+          );
+          return;
         }
-      );
 
-      const data =
-        await response.json();
+        /* QUANTITY > STOCK */
 
-      console.log(
-        "ORDER RESPONSE:",
-        data
-      );
-
-      if (!response.ok) {
-        throw new Error(
-          data?.message ||
-            "Order creation failed"
-        );
+        if (
+          quantity >
+          variantStock
+        ) {
+          alert(
+            `${item.name} এর selected variant-এ মাত্র ${variantStock}টি available আছে।`
+          );
+          return;
+        }
       }
 
-      if (data?.success) {
-        alert(
-          `Order placed successfully!\nOrder ID: ${
-            data?.data?.orderId ||
-            data?.orderId ||
-            "Created"
-          }`
+      setLoading(true);
+
+      try {
+        /* ===================================================
+           CREATE PRODUCTS PAYLOAD
+        =================================================== */
+
+        const products =
+          cart.map((item) => {
+            const productId =
+              getProductId(item);
+
+            const variants =
+              getVariants(item);
+
+            const variant =
+              variants.length
+                ? getMatchedVariant(
+                    item
+                  )
+                : null;
+
+            const price = variant
+              ? Number(
+                  variant.price || 0
+                ) ||
+                getPrice(item)
+              : getPrice(item);
+
+            const quantity =
+              Number(
+                item?.quantity || 1
+              );
+
+            return {
+              productId,
+
+              name:
+                item?.name || "",
+
+              image:
+                variant?.image ||
+                getImage(item),
+
+              price,
+
+              quantity,
+
+              subtotal:
+                price * quantity,
+
+              slug:
+                item?.slug || "",
+
+              /* EXACT VARIANT */
+
+              variant: variant
+                ? {
+                    color:
+                      variant.color ||
+                      "",
+
+                    ram:
+                      variant.ram ||
+                      "",
+
+                    storage:
+                      variant.storage ||
+                      "",
+
+                    sku:
+                      variant.sku ||
+                      "",
+
+                    variantId:
+                      variant.variantId ||
+                      "",
+
+                    variantPrice:
+                      Number(
+                        variant.price ||
+                          0
+                      ),
+
+                    variantStock:
+                      Number(
+                        variant.stock ||
+                          0
+                      ),
+                  }
+                : null,
+            };
+          });
+
+        /* ===================================================
+           ORDER PAYLOAD
+        =================================================== */
+
+        const payload = {
+          customerName:
+            formData.fullName.trim(),
+
+          email:
+            formData.email.trim(),
+
+          phone:
+            formData.phone.trim(),
+
+          selectArea:
+            formData.selectArea,
+
+          deliveryAddress:
+            formData.address.trim(),
+
+          note:
+            formData.note.trim(),
+
+          products,
+
+          totalItems,
+
+          subTotal,
+
+          deliveryCharge,
+
+          discountAmount:
+            couponDiscount,
+
+          totalAmount,
+
+          couponCode:
+            formData.couponCode
+              .trim()
+              .toUpperCase(),
+
+          paymentMethod:
+            formData.paymentMethod,
+
+          deliveryMethod:
+            formData.deliveryMethod,
+
+          termsAgreed:
+            formData.termsAgreed,
+
+          orderSource:
+            "website",
+        };
+
+        console.log(
+          "FINAL ORDER PAYLOAD:",
+          payload
         );
 
-        window.location.href = "/";
-      } else {
-        alert(
-          data?.message ||
-            "Something went wrong!"
+        /* ===================================================
+           API
+        =================================================== */
+
+        const response =
+          await fetch(
+            `${API_BASE}/products/CreateOrder`,
+            {
+              method: "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+
+              body: JSON.stringify(
+                payload
+              ),
+            }
+          );
+
+        const data =
+          await response.json();
+
+        console.log(
+          "ORDER RESPONSE:",
+          data
         );
+
+        if (!response.ok) {
+          throw new Error(
+            data?.message ||
+              "Order creation failed"
+          );
+        }
+
+        if (data?.success) {
+          clearCart()
+          alert(
+            `Order placed successfully!\nOrder ID: ${
+              data?.data?.orderId ||
+              data?.orderId ||
+              "Created"
+            }`
+          );
+
+          window.location.href =
+            "/";
+        } else {
+          alert(
+            data?.message ||
+              "Something went wrong!"
+          );
+        }
+      } catch (error) {
+        console.error(
+          "ORDER ERROR:",
+          error
+        );
+
+        alert(
+          error?.message ||
+            "Failed to place order!"
+        );
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error(
-        "ORDER ERROR:",
-        error
-      );
-
-      alert(
-        error?.message ||
-          "Failed to place order!"
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
   /* =========================================================
      EMPTY CART
-  ========================================================= */
+========================================================= */
 
   if (!cart.length) {
     return (
       <main className="min-h-screen bg-gray-50 px-4 py-12">
         <div className="mx-auto max-w-[1440px]">
           <div className="rounded-2xl bg-white px-6 py-16 text-center shadow-sm">
+
             <ShoppingBag
               size={50}
               className="mx-auto mb-5 text-[#f47421]"
@@ -881,6 +1341,7 @@ export default function CheckoutPage() {
             >
               Continue Shopping
             </Link>
+
           </div>
         </div>
       </main>
@@ -889,7 +1350,7 @@ export default function CheckoutPage() {
 
   /* =========================================================
      PAGE
-  ========================================================= */
+========================================================= */
 
   return (
     <div className="min-h-screen bg-[#f8f9fa] px-4 py-8 text-gray-800">
@@ -898,6 +1359,7 @@ export default function CheckoutPage() {
         {/* HEADER */}
 
         <div className="flex items-center gap-3">
+
           <Link
             href="/cart"
             prefetch={false}
@@ -919,11 +1381,13 @@ export default function CheckoutPage() {
                 : "Items"}
             </p>
           </div>
+
         </div>
 
         {/* NOTICE */}
 
         <div className="rounded-lg border border-[#fde2c4] bg-[#fef4e8] p-3 text-sm text-[#8c5211]">
+
           {formData.paymentMethod !==
           "cash_on_delivery" ? (
             <>
@@ -931,6 +1395,7 @@ export default function CheckoutPage() {
               আপনার কাঙ্ক্ষিত পণ্যটি আমাদের
               স্টকে আছে কি না কাস্টমার সার্ভিস
               প্রতিনিধির সাথে কনফার্ম করে নিন।
+
               <span className="font-semibold">
                 {" "}
                 09678148148
@@ -941,12 +1406,14 @@ export default function CheckoutPage() {
               অর্ডার সংক্রান্ত যেকোনো প্রয়োজনে
               আমাদের কাস্টমার সার্ভিস প্রতিনিধির
               সাথে কথা বলুন -
+
               <span className="font-semibold">
                 {" "}
                 09678148148
               </span>
             </>
           )}
+
         </div>
 
         {/* FORM */}
@@ -965,6 +1432,7 @@ export default function CheckoutPage() {
             {/* DELIVERY */}
 
             <div>
+
               <h2 className="mb-4 text-lg font-semibold">
                 Delivery Information
               </h2>
@@ -1022,6 +1490,7 @@ export default function CheckoutPage() {
                   </label>
 
                   <div className="flex">
+
                     <span className="flex items-center rounded-l-md border border-r-0 bg-gray-50 px-3 text-sm text-gray-500">
                       +88
                     </span>
@@ -1039,12 +1508,14 @@ export default function CheckoutPage() {
                       placeholder="01XXXXXXXXX"
                       className="w-full rounded-r-md border px-3 py-2 text-sm"
                     />
+
                   </div>
                 </div>
 
                 {/* AREA */}
 
                 <div>
+
                   <label className="mb-1 block text-sm font-medium">
                     Select Area *
                   </label>
@@ -1053,7 +1524,9 @@ export default function CheckoutPage() {
                     value={
                       formData.selectArea
                     }
-                    onChange={(value) =>
+                    onChange={(
+                      value
+                    ) =>
                       setFormData(
                         (prev) => ({
                           ...prev,
@@ -1063,11 +1536,13 @@ export default function CheckoutPage() {
                       )
                     }
                   />
+
                 </div>
 
                 {/* ADDRESS */}
 
                 <div className="sm:col-span-2">
+
                   <label className="mb-1 block text-sm font-medium">
                     Address *
                   </label>
@@ -1085,11 +1560,13 @@ export default function CheckoutPage() {
                     placeholder="House# 123, Road# 24"
                     className="w-full rounded-md border px-3 py-2 text-sm"
                   />
+
                 </div>
 
                 {/* NOTE */}
 
                 <div className="sm:col-span-2">
+
                   <label className="mb-1 block text-sm font-medium">
                     Note
                   </label>
@@ -1106,13 +1583,16 @@ export default function CheckoutPage() {
                     placeholder="Any special delivery instructions..."
                     className="w-full rounded-md border px-3 py-2 text-sm"
                   />
+
                 </div>
+
               </div>
             </div>
 
             {/* PAYMENT */}
 
             <div>
+
               <h2 className="mb-3 text-lg font-semibold">
                 Payment Method
               </h2>
@@ -1122,17 +1602,20 @@ export default function CheckoutPage() {
                 {[
                   {
                     id: "cash_on_delivery",
-                    label: "Cash on Delivery",
+                    label:
+                      "Cash on Delivery",
                     icon: Banknote,
                   },
                   {
                     id: "online_payment",
-                    label: "Online Payment",
+                    label:
+                      "Online Payment",
                     icon: CreditCard,
                   },
                   {
                     id: "partial_payment",
-                    label: "Partial Payment",
+                    label:
+                      "Partial Payment",
                     icon: Wallet,
                   },
                 ].map((item) => {
@@ -1152,6 +1635,7 @@ export default function CheckoutPage() {
                           : "border-gray-200"
                       }`}
                     >
+
                       <Icon
                         size={20}
                         className={
@@ -1168,22 +1652,29 @@ export default function CheckoutPage() {
                       <input
                         type="radio"
                         name="paymentMethod"
-                        value={item.id}
-                        checked={selected}
+                        value={
+                          item.id
+                        }
+                        checked={
+                          selected
+                        }
                         onChange={
                           handleChange
                         }
                         className="ml-auto accent-orange-500"
                       />
+
                     </label>
                   );
                 })}
+
               </div>
             </div>
 
             {/* DELIVERY METHOD */}
 
             <div>
+
               <h2 className="mb-3 text-lg font-semibold">
                 Delivery Method
               </h2>
@@ -1193,12 +1684,14 @@ export default function CheckoutPage() {
                 {[
                   {
                     id: "courier_service",
-                    label: "Courier Service",
+                    label:
+                      "Courier Service",
                     icon: Truck,
                   },
                   {
                     id: "shop_pickup",
-                    label: "Shop Pickup",
+                    label:
+                      "Shop Pickup",
                     icon: Store,
                   },
                 ].map((item) => {
@@ -1218,6 +1711,7 @@ export default function CheckoutPage() {
                           : "border-gray-200"
                       }`}
                     >
+
                       <Icon
                         size={20}
                         className={
@@ -1234,18 +1728,25 @@ export default function CheckoutPage() {
                       <input
                         type="radio"
                         name="deliveryMethod"
-                        value={item.id}
-                        checked={selected}
+                        value={
+                          item.id
+                        }
+                        checked={
+                          selected
+                        }
                         onChange={
                           handleChange
                         }
                         className="ml-auto accent-orange-500"
                       />
+
                     </label>
                   );
                 })}
+
               </div>
             </div>
+
           </div>
 
           {/* =================================================
@@ -1263,26 +1764,40 @@ export default function CheckoutPage() {
             <div className="space-y-4">
 
               {cart.map(
-                (item, index) => {
+                (
+                  item,
+                  index
+                ) => {
                   const productId =
-                    getProductId(item);
+                    getProductId(
+                      item
+                    );
 
                   const cartId =
                     getCartId(item);
 
                   const variants =
-                    getVariants(item);
-
-                  const selected =
-                    getSelected(item);
-
-                  const options =
-                    getOptions(item);
-
-                  const matchedVariant =
-                    getMatchedVariant(
+                    getVariants(
                       item
                     );
+
+                  const selected =
+                    getSelected(
+                      item
+                    );
+
+                  const options =
+                    getOptions(
+                      item
+                    );
+
+                  const variantStatus =
+                    getVariantStatus(
+                      item
+                    );
+
+                  const matchedVariant =
+                    variantStatus.variant;
 
                   const price =
                     matchedVariant
@@ -1290,16 +1805,32 @@ export default function CheckoutPage() {
                           matchedVariant.price ||
                             0
                         ) ||
-                        getPrice(item)
-                      : getPrice(item);
+                        getPrice(
+                          item
+                        )
+                      : getPrice(
+                          item
+                        );
 
                   const quantity =
                     Number(
-                      item?.quantity || 1
+                      item?.quantity ||
+                        1
                     );
 
                   const itemTotal =
-                    price * quantity;
+                    price *
+                    quantity;
+
+                  const hasVariants =
+                    variants.length >
+                    0;
+
+                  const selectedVariantStock =
+                    Number(
+                      variantStatus.stock ||
+                        0
+                    );
 
                   return (
                     <div
@@ -1310,9 +1841,18 @@ export default function CheckoutPage() {
                       {/* IMAGE */}
 
                       <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-gray-50">
-                        {getImage(item) ? (
+
+                        {(
+                          matchedVariant?.image ||
+                          getImage(item)
+                        ) ? (
                           <img
-                            src={getImage(item)}
+                            src={
+                              matchedVariant?.image ||
+                              getImage(
+                                item
+                              )
+                            }
                             alt={
                               item?.name ||
                               "Product"
@@ -1325,6 +1865,7 @@ export default function CheckoutPage() {
                             className="text-gray-300"
                           />
                         )}
+
                       </div>
 
                       <div className="min-w-0 flex-1">
@@ -1332,6 +1873,7 @@ export default function CheckoutPage() {
                         {/* NAME */}
 
                         <div className="flex justify-between gap-2">
+
                           <p className="line-clamp-2 text-sm font-semibold">
                             {item?.name}
                           </p>
@@ -1345,8 +1887,11 @@ export default function CheckoutPage() {
                             }
                             className="text-gray-400 hover:text-red-500"
                           >
-                            <X size={16} />
+                            <X
+                              size={16}
+                            />
                           </button>
+
                         </div>
 
                         {/* PRICE */}
@@ -1358,10 +1903,11 @@ export default function CheckoutPage() {
                           )}
                         </p>
 
-                        {/* VARIANTS */}
+                        {/* =================================================
+                            VARIANTS
+                        ================================================= */}
 
-                        {variants.length >
-                          0 && (
+                        {hasVariants && (
                           <div className="mt-3 space-y-2">
 
                             {/* COLOR */}
@@ -1370,6 +1916,7 @@ export default function CheckoutPage() {
                               .length >
                               0 && (
                               <div>
+
                                 <label className="mb-1 block text-xs font-medium">
                                   Select Color
                                 </label>
@@ -1390,6 +1937,7 @@ export default function CheckoutPage() {
                                   }
                                   className="w-full rounded-md border px-2 py-1.5 text-xs"
                                 >
+
                                   <option value="">
                                     Select Color
                                   </option>
@@ -1406,11 +1954,15 @@ export default function CheckoutPage() {
                                           color
                                         }
                                       >
-                                        {color}
+                                        {
+                                          color
+                                        }
                                       </option>
                                     )
                                   )}
+
                                 </select>
+
                               </div>
                             )}
 
@@ -1420,6 +1972,7 @@ export default function CheckoutPage() {
                               .length >
                               0 && (
                               <div>
+
                                 <label className="mb-1 block text-xs font-medium">
                                   Select RAM
                                 </label>
@@ -1429,7 +1982,8 @@ export default function CheckoutPage() {
                                     selected.ram
                                   }
                                   disabled={
-                                    options.colors
+                                    options
+                                      .colors
                                       .length >
                                       0 &&
                                     !selected.color
@@ -1446,8 +2000,10 @@ export default function CheckoutPage() {
                                   }
                                   className="w-full rounded-md border px-2 py-1.5 text-xs disabled:bg-gray-100"
                                 >
+
                                   <option value="">
-                                    {options.colors
+                                    {options
+                                      .colors
                                       .length >
                                       0 &&
                                     !selected.color
@@ -1471,7 +2027,9 @@ export default function CheckoutPage() {
                                       </option>
                                     )
                                   )}
+
                                 </select>
+
                               </div>
                             )}
 
@@ -1481,6 +2039,7 @@ export default function CheckoutPage() {
                               .length >
                               0 && (
                               <div>
+
                                 <label className="mb-1 block text-xs font-medium">
                                   Select Storage
                                 </label>
@@ -1490,14 +2049,20 @@ export default function CheckoutPage() {
                                     selected.storage
                                   }
                                   disabled={
-                                    (options.colors
-                                      .length >
-                                      0 &&
-                                      !selected.color) ||
-                                    (options.rams
-                                      .length >
-                                      0 &&
-                                      !selected.ram)
+                                    (
+                                      options
+                                        .colors
+                                        .length >
+                                        0 &&
+                                      !selected.color
+                                    ) ||
+                                    (
+                                      options
+                                        .rams
+                                        .length >
+                                        0 &&
+                                      !selected.ram
+                                    )
                                   }
                                   onChange={(
                                     e
@@ -1511,6 +2076,7 @@ export default function CheckoutPage() {
                                   }
                                   className="w-full rounded-md border px-2 py-1.5 text-xs disabled:bg-gray-100"
                                 >
+
                                   <option value="">
                                     Select Storage
                                   </option>
@@ -1527,22 +2093,30 @@ export default function CheckoutPage() {
                                           storage
                                         }
                                       >
-                                        {storage}
+                                        {
+                                          storage
+                                        }
                                       </option>
                                     )
                                   )}
+
                                 </select>
+
                               </div>
                             )}
+
                           </div>
                         )}
 
-                        {/* SELECTED */}
+                        {/* =================================================
+                            SELECTED VARIANT
+                        ================================================= */}
 
                         {(selected.color ||
                           selected.ram ||
                           selected.storage) && (
                           <div className="mt-2 rounded-md bg-orange-50 px-2 py-1.5 text-[11px] text-orange-700">
+
                             <b>
                               Selected:
                             </b>{" "}
@@ -1555,6 +2129,7 @@ export default function CheckoutPage() {
 
                             {selected.storage &&
                               ` • Storage: ${selected.storage}`}
+
                           </div>
                         )}
 
@@ -1569,29 +2144,85 @@ export default function CheckoutPage() {
                           </p>
                         )}
 
-                        {/* STOCK */}
+                        {/* =================================================
+                            VARIANT STATUS
+                        ================================================= */}
 
-                        {matchedVariant && (
-                          <p
-                            className={`mt-1 text-[10px] ${
-                              matchedVariant.stock >
-                              0
-                                ? "text-green-600"
-                                : "text-red-500"
-                            }`}
-                          >
-                            {matchedVariant.stock >
-                            0
-                              ? `${matchedVariant.stock} available`
-                              : "Out of stock"}
-                          </p>
+                        {hasVariants && (
+                          <div className="mt-2">
+
+                            {/* NOT COMPLETE */}
+
+                            {!variantStatus.complete && (
+                              <p className="rounded-md bg-gray-50 px-2 py-1.5 text-[11px] text-gray-500">
+                                <b>
+                                  {
+                                    variantStatus.message
+                                  }
+                                </b>
+                              </p>
+                            )}
+
+                            {/* AVAILABLE */}
+
+                            {variantStatus.complete &&
+                              variantStatus.variant &&
+                              variantStatus.available && (
+                                <p className="rounded-md bg-green-50 px-2 py-1.5 text-[11px] text-green-700">
+
+                                  <b>
+                                    ✓ Variant Available
+                                  </b>
+
+                                  <span className="ml-2">
+                                    Stock:{" "}
+                                    {
+                                      variantStatus.stock
+                                    }
+                                  </span>
+
+                                </p>
+                              )}
+
+                            {/* COMBINATION NOT FOUND */}
+
+                            {variantStatus.complete &&
+                              !variantStatus.variant && (
+                                <p className="rounded-md bg-red-50 px-2 py-1.5 text-[11px] text-red-600">
+
+                                  <b>
+                                    ✕ এই combination-এর variant available নেই।
+                                  </b>
+
+                                </p>
+                              )}
+
+                            {/* STOCK ZERO */}
+
+                            {variantStatus.complete &&
+                              variantStatus.variant &&
+                              !variantStatus.available && (
+                                <p className="rounded-md bg-red-50 px-2 py-1.5 text-[11px] text-red-600">
+
+                                  <b>
+                                    ✕ এই selected variant-এর stock শেষ।
+                                  </b>
+
+                                </p>
+                              )}
+
+                          </div>
                         )}
 
-                        {/* QUANTITY */}
+                        {/* =================================================
+                            QUANTITY
+                        ================================================= */}
 
                         <div className="mt-2 flex items-center justify-between">
 
                           <div className="flex items-center rounded-full border">
+
+                            {/* MINUS */}
 
                             <button
                               type="button"
@@ -1602,23 +2233,40 @@ export default function CheckoutPage() {
                               }
                               className="flex h-7 w-7 items-center justify-center"
                             >
-                              <Minus size={13} />
+                              <Minus
+                                size={13}
+                              />
                             </button>
+
+                            {/* QUANTITY */}
 
                             <span className="w-7 text-center text-xs font-semibold">
                               {quantity}
                             </span>
 
+                            {/* PLUS */}
+
                             <button
                               type="button"
                               onClick={() =>
-                                increasePopulation(
+                                handleIncreaseQuantity(
+                                  item,
                                   cartId
                                 )
                               }
-                              className="flex h-7 w-7 items-center justify-center"
+                              disabled={
+                                hasVariants &&
+                                (
+                                  !variantStatus.available ||
+                                  selectedVariantStock <=
+                                    quantity
+                                )
+                              }
+                              className="flex h-7 w-7 items-center justify-center disabled:cursor-not-allowed disabled:opacity-40"
                             >
-                              <Plus size={13} />
+                              <Plus
+                                size={13}
+                              />
                             </button>
 
                           </div>
@@ -1631,16 +2279,21 @@ export default function CheckoutPage() {
                           </span>
 
                         </div>
+
                       </div>
                     </div>
                   );
                 }
               )}
+
             </div>
 
-            {/* COUPON */}
+            {/* =================================================
+                COUPON
+            ================================================= */}
 
             <div>
+
               <label className="mb-1.5 block text-xs font-semibold">
                 Apply Coupon
               </label>
@@ -1662,7 +2315,9 @@ export default function CheckoutPage() {
 
                 <button
                   type="button"
-                  onClick={applyCoupon}
+                  onClick={
+                    applyCoupon
+                  }
                   className="rounded-md bg-black px-4 py-2 text-xs font-medium text-white"
                 >
                   Apply
@@ -1671,13 +2326,17 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            {/* PRICE */}
+            {/* =================================================
+                PRICE
+            ================================================= */}
 
             <div className="space-y-3 border-y py-4 text-sm">
 
               <div className="flex justify-between">
+
                 <span>
-                  Sub Total ({totalItems} items)
+                  Sub Total (
+                  {totalItems} items)
                 </span>
 
                 <b>
@@ -1686,15 +2345,20 @@ export default function CheckoutPage() {
                     subTotal
                   )}
                 </b>
+
               </div>
 
               <div className="flex justify-between">
+
                 <span className="flex items-center gap-1">
+
                   Delivery
+
                   <Info
                     size={13}
                     className="text-orange-500"
                   />
+
                 </span>
 
                 <b>
@@ -1703,10 +2367,14 @@ export default function CheckoutPage() {
                     deliveryCharge
                   )}
                 </b>
+
               </div>
 
               <div className="flex justify-between">
-                <span>Discount</span>
+
+                <span>
+                  Discount
+                </span>
 
                 <b className="text-green-600">
                   - ৳{" "}
@@ -1714,13 +2382,18 @@ export default function CheckoutPage() {
                     couponDiscount
                   )}
                 </b>
+
               </div>
+
             </div>
 
             {/* TOTAL */}
 
             <div className="flex justify-between text-lg font-bold">
-              <span>Total Amount</span>
+
+              <span>
+                Total Amount
+              </span>
 
               <span>
                 ৳{" "}
@@ -1728,6 +2401,7 @@ export default function CheckoutPage() {
                   totalAmount
                 )}
               </span>
+
             </div>
 
             {/* TERMS */}
@@ -1766,6 +2440,7 @@ export default function CheckoutPage() {
             {/* SUBMIT */}
 
             <button
+           
               type="submit"
               disabled={loading}
               className="w-full rounded-lg bg-[#f47421] px-4 py-3 text-sm font-bold text-white shadow-md disabled:opacity-50"
@@ -1776,11 +2451,9 @@ export default function CheckoutPage() {
             </button>
 
           </div>
+
         </form>
       </div>
     </div>
   );
 }
-
-
-

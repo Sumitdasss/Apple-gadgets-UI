@@ -1,6 +1,8 @@
+
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -14,10 +16,165 @@ import {
   Plus,
   X,
   ShoppingBag,
+  ChevronRight,
+  Check,
+  ChevronDown,
 } from "lucide-react";
+
 import useStore from "../Store/store";
+import { BANGLADESH_GEO } from "../../Data/BangladeshLocation";
 
 const API_BASE = "http://localhost:4000";
+
+/* =========================================================
+   AREA SELECTOR
+========================================================= */
+
+function AreaSelector({ value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const [division, setDivision] = useState("");
+  const [district, setDistrict] = useState("");
+
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!value) return;
+
+    const parts = value.split(" > ");
+
+    if (parts.length === 3) {
+      setDivision(parts[0]);
+      setDistrict(parts[1]);
+    }
+  }, [value]);
+
+  useEffect(() => {
+    const handleOutside = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutside);
+    };
+  }, []);
+
+  const divisions = Object.keys(BANGLADESH_GEO);
+
+  const districts = division
+    ? Object.keys(BANGLADESH_GEO[division] || {})
+    : [];
+
+  const upazilas =
+    division && district
+      ? BANGLADESH_GEO[division]?.[district] || []
+      : [];
+
+  const selectUpazila = (upazila) => {
+    const fullValue = `${division} > ${district} > ${upazila}`;
+
+    onChange(fullValue);
+    setOpen(false);
+  };
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        className="flex w-full items-center justify-between rounded-md border border-gray-300 bg-white px-3 py-2 text-left text-sm"
+      >
+        <span className={value ? "text-gray-900" : "text-gray-400"}>
+          {value || "Select delivery area"}
+        </span>
+
+        <ChevronDown size={16} className="text-gray-400" />
+      </button>
+
+      {open && (
+        <div className="absolute left-0 top-full z-50 mt-1 flex max-h-[320px] overflow-hidden rounded-lg border bg-white shadow-xl">
+          {/* DIVISION */}
+
+          <div className="w-40 overflow-y-auto border-r">
+            {divisions.map((item) => (
+              <div
+                key={item}
+                onMouseEnter={() => {
+                  setDivision(item);
+                  setDistrict("");
+                }}
+                className={`flex cursor-pointer items-center justify-between px-3 py-2.5 text-sm ${
+                  division === item
+                    ? "bg-orange-50 text-orange-600"
+                    : "hover:bg-gray-50"
+                }`}
+              >
+                {item}
+
+                <ChevronRight size={14} />
+              </div>
+            ))}
+          </div>
+
+          {/* DISTRICT */}
+
+          {division && (
+            <div className="w-44 overflow-y-auto border-r">
+              {districts.map((item) => (
+                <div
+                  key={item}
+                  onMouseEnter={() => setDistrict(item)}
+                  className={`flex cursor-pointer items-center justify-between px-3 py-2.5 text-sm ${
+                    district === item
+                      ? "bg-orange-50 text-orange-600"
+                      : "hover:bg-gray-50"
+                  }`}
+                >
+                  {item}
+
+                  <ChevronRight size={14} />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* UPAZILA */}
+
+          {district && (
+            <div className="w-48 overflow-y-auto">
+              {upazilas.map((item) => {
+                const selected = value === `${division} > ${district} > ${item}`;
+
+                return (
+                  <div
+                    key={item}
+                    onClick={() => selectUpazila(item)}
+                    className={`flex cursor-pointer items-center justify-between px-3 py-2.5 text-sm ${
+                      selected
+                        ? "bg-orange-50 text-orange-600"
+                        : "hover:bg-gray-50"
+                    }`}
+                  >
+                    {item}
+
+                    {selected && <Check size={14} />}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* =========================================================
+   MAIN CHECKOUT
+========================================================= */
 
 export default function CheckoutPage() {
   const {
@@ -40,88 +197,280 @@ export default function CheckoutPage() {
     termsAgreed: true,
   });
 
+  const [selectedVariants, setSelectedVariants] = useState({});
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [loading, setLoading] = useState(false);
 
-  // ==========================================
-  // IMAGE
-  // ==========================================
+  /* =========================================================
+     HELPERS
+  ========================================================= */
 
-  const getImage = (item) => {
-    if (Array.isArray(item.images) && item.images.length > 0) {
-      return item.images[0];
+  const normalize = (value) => {
+    if (value === null || value === undefined) return "";
+
+    if (
+      typeof value === "string" ||
+      typeof value === "number"
+    ) {
+      return String(value);
     }
 
-    if (item.image) {
-      return item.image;
+    if (typeof value === "object") {
+      return String(
+        value.name ||
+          value.value ||
+          value.label ||
+          value.title ||
+          ""
+      );
     }
 
     return "";
   };
 
-  // ==========================================
-  // PRICE
-  // ==========================================
+  const getProductId = (item) =>
+    String(
+      item?.productId ||
+        item?._id ||
+        item?.id ||
+        ""
+    );
 
-  const getPrice = (item) => {
-    return Number(
-      item.discountPrice ||
-        item.price ||
+  const getCartId = (item) =>
+    item?.id ||
+    item?._id ||
+    item?.productId;
+
+  const getImage = (item) => {
+    if (Array.isArray(item?.images) && item.images.length) {
+      return item.images[0];
+    }
+
+    return item?.image || "";
+  };
+
+  const getPrice = (item) =>
+    Number(
+      item?.discountPrice ||
+        item?.price ||
         0
+    );
+
+  const getVariants = (item) => {
+    if (!Array.isArray(item?.variants)) return [];
+
+    return item.variants.map((variant, index) => ({
+      ...variant,
+
+      _variantIndex: index,
+
+      color: normalize(variant?.color),
+      ram: normalize(variant?.ram),
+      storage: normalize(variant?.storage),
+
+      price: Number(variant?.price || 0),
+      stock: Number(variant?.stock || 0),
+
+      sku: normalize(variant?.sku),
+    }));
+  };
+
+  /* =========================================================
+     GET SELECTED VARIANT
+  ========================================================= */
+
+  const getSelected = (item) => {
+    const id = getProductId(item);
+
+    return (
+      selectedVariants[id] || {
+        color: "",
+        ram: "",
+        storage: "",
+      }
     );
   };
 
-  // ==========================================
-  // TOTAL ITEMS
-  // ==========================================
+  /* =========================================================
+     GET VARIANT OPTIONS
+  ========================================================= */
+
+  const getOptions = (item) => {
+    const variants = getVariants(item);
+    const selected = getSelected(item);
+
+    /* COLORS */
+
+    const colors = [
+      ...new Set(
+        variants
+          .map((v) => v.color)
+          .filter(Boolean)
+      ),
+    ];
+
+    /* FILTER BY COLOR */
+
+    let filtered = variants;
+
+    if (selected.color) {
+      filtered = filtered.filter(
+        (v) => v.color === selected.color
+      );
+    }
+
+    /* RAM */
+
+    const rams = [
+      ...new Set(
+        filtered
+          .map((v) => v.ram)
+          .filter(Boolean)
+      ),
+    ];
+
+    /* FILTER BY RAM */
+
+    if (selected.ram) {
+      filtered = filtered.filter(
+        (v) => v.ram === selected.ram
+      );
+    }
+
+    /* STORAGE */
+
+    const storages = [
+      ...new Set(
+        filtered
+          .map((v) => v.storage)
+          .filter(Boolean)
+      ),
+    ];
+
+    return {
+      colors,
+      rams,
+      storages,
+    };
+  };
+
+  /* =========================================================
+     MATCH VARIANT
+  ========================================================= */
+
+  const getMatchedVariant = (item) => {
+    const variants = getVariants(item);
+    const selected = getSelected(item);
+
+    if (!variants.length) return null;
+
+    return variants.find((variant) => {
+      const colorOK =
+        !variant.color ||
+        variant.color === selected.color;
+
+      const ramOK =
+        !variant.ram ||
+        variant.ram === selected.ram;
+
+      const storageOK =
+        !variant.storage ||
+        variant.storage === selected.storage;
+
+      return colorOK && ramOK && storageOK;
+    });
+  };
+
+  /* =========================================================
+     CHANGE VARIANT
+  ========================================================= */
+
+  const changeVariant = (
+    productId,
+    field,
+    value
+  ) => {
+    setSelectedVariants((prev) => ({
+      ...prev,
+
+      [productId]: {
+        ...(prev[productId] || {}),
+
+        [field]: value,
+
+        ...(field === "color" && {
+          ram: "",
+          storage: "",
+        }),
+
+        ...(field === "ram" && {
+          storage: "",
+        }),
+      },
+    }));
+  };
+
+  /* =========================================================
+     TOTAL ITEMS
+  ========================================================= */
 
   const totalItems = useMemo(() => {
     return cart.reduce(
       (total, item) =>
-        total + Number(item.quantity || 1),
+        total + Number(item?.quantity || 1),
       0
     );
   }, [cart]);
 
-  // ==========================================
-  // SUB TOTAL
-  // ==========================================
+  /* =========================================================
+     SUB TOTAL
+  ========================================================= */
 
   const subTotal = useMemo(() => {
     return cart.reduce((total, item) => {
-      const price = getPrice(item);
-      const quantity = Number(item.quantity || 1);
+      const variant = getMatchedVariant(item);
+
+      const price = variant
+        ? Number(variant.price || 0) ||
+          getPrice(item)
+        : getPrice(item);
+
+      const quantity =
+        Number(item?.quantity || 1);
 
       return total + price * quantity;
     }, 0);
-  }, [cart]);
+  }, [cart, selectedVariants]);
 
-  // ==========================================
-  // DELIVERY
-  // ==========================================
+  /* =========================================================
+     DELIVERY CHARGE
+  ========================================================= */
 
   const deliveryCharge = useMemo(() => {
-    if (formData.deliveryMethod === "shop_pickup") {
+    if (
+      formData.deliveryMethod ===
+      "shop_pickup"
+    ) {
       return 0;
     }
 
-    if (formData.selectArea === "Dhaka Inside") {
-      return 80;
+    if (!formData.selectArea) {
+      return 0;
     }
 
-    if (formData.selectArea === "Dhaka Outside") {
-      return 150;
-    }
-
-    return 0;
+    return formData.selectArea.startsWith(
+      "Dhaka"
+    )
+      ? 80
+      : 150;
   }, [
     formData.deliveryMethod,
     formData.selectArea,
   ]);
 
-  // ==========================================
-  // TOTAL
-  // ==========================================
+  /* =========================================================
+     TOTAL
+  ========================================================= */
 
   const totalAmount = Math.max(
     0,
@@ -130,17 +479,14 @@ export default function CheckoutPage() {
       couponDiscount
   );
 
-  // ==========================================
-  // PRICE FORMAT
-  // ==========================================
+  const formatPrice = (price) =>
+    Number(price || 0).toLocaleString(
+      "en-BD"
+    );
 
-  const formatPrice = (price) => {
-    return Number(price || 0).toLocaleString("en-BD");
-  };
-
-  // ==========================================
-  // INPUT CHANGE
-  // ==========================================
+  /* =========================================================
+     FORM CHANGE
+  ========================================================= */
 
   const handleChange = (e) => {
     const {
@@ -152,6 +498,7 @@ export default function CheckoutPage() {
 
     setFormData((prev) => ({
       ...prev,
+
       [name]:
         type === "checkbox"
           ? checked
@@ -159,17 +506,19 @@ export default function CheckoutPage() {
     }));
   };
 
-  // ==========================================
-  // COUPON
-  // ==========================================
+  /* =========================================================
+     COUPON
+  ========================================================= */
 
   const applyCoupon = () => {
-    const code = formData.couponCode
-      .trim()
-      .toUpperCase();
+    const code =
+      formData.couponCode
+        .trim()
+        .toUpperCase();
 
     if (!code) {
       setCouponDiscount(0);
+      alert("Please enter coupon code");
       return;
     }
 
@@ -178,22 +527,28 @@ export default function CheckoutPage() {
         Math.min(500, subTotal)
       );
 
-      alert("Coupon applied successfully!");
+      alert(
+        "Coupon applied successfully!"
+      );
+
       return;
     }
 
     setCouponDiscount(0);
+
     alert("Invalid coupon code");
   };
 
-  // ==========================================
-  // SUBMIT ORDER
-  // ==========================================
+  /* =========================================================
+     SUBMIT ORDER
+  ========================================================= */
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (cart.length === 0) {
+    /* BASIC VALIDATION */
+
+    if (!cart.length) {
       alert("Your cart is empty!");
       return;
     }
@@ -211,109 +566,232 @@ export default function CheckoutPage() {
     }
 
     if (!formData.phone.trim()) {
-      alert("Please enter your phone number.");
+      alert(
+        "Please enter your phone number."
+      );
       return;
     }
 
     if (!formData.selectArea) {
-      alert("Please select delivery area.");
+      alert(
+        "Please select delivery area."
+      );
       return;
     }
 
     if (!formData.address.trim()) {
-      alert("Please enter your delivery address.");
+      alert(
+        "Please enter your delivery address."
+      );
       return;
+    }
+
+    /* =====================================================
+       CHECK VARIANTS
+    ===================================================== */
+
+    for (const item of cart) {
+      const variants = getVariants(item);
+
+      if (!variants.length) continue;
+
+      const selected = getSelected(item);
+
+      const hasColor = variants.some(
+        (v) => v.color
+      );
+
+      const hasRam = variants.some(
+        (v) => v.ram
+      );
+
+      const hasStorage = variants.some(
+        (v) => v.storage
+      );
+
+      if (hasColor && !selected.color) {
+        alert(
+          `Please select color for ${item.name}`
+        );
+        return;
+      }
+
+      if (hasRam && !selected.ram) {
+        alert(
+          `Please select RAM for ${item.name}`
+        );
+        return;
+      }
+
+      if (
+        hasStorage &&
+        !selected.storage
+      ) {
+        alert(
+          `Please select storage for ${item.name}`
+        );
+        return;
+      }
+
+      const variant =
+        getMatchedVariant(item);
+
+      if (!variant) {
+        alert(
+          `Selected variant is not available for ${item.name}`
+        );
+        return;
+      }
+
+      const quantity =
+        Number(item?.quantity || 1);
+
+      if (variant.stock <= 0) {
+        alert(
+          `${item.name} selected variant is out of stock.`
+        );
+        return;
+      }
+
+      if (quantity > variant.stock) {
+        alert(
+          `${item.name} only ${variant.stock} item(s) available.`
+        );
+        return;
+      }
     }
 
     setLoading(true);
 
-    // ==========================================
-    // CART PRODUCTS
-    // ==========================================
-
-    const products = cart.map((item) => ({
-      productId:
-        item.productId ||
-        item._id ||
-        item.id,
-
-      name: item.name,
-
-      image: getImage(item),
-
-      price: getPrice(item),
-
-      quantity: Number(
-        item.quantity || 1
-      ),
-
-      subtotal:
-        getPrice(item) *
-        Number(item.quantity || 1),
-
-      slug: item.slug || "",
-    }));
-
-    // ==========================================
-    // ORDER PAYLOAD
-    // ==========================================
-
-    const payload = {
-      customerName:
-        formData.fullName.trim(),
-
-      email:
-        formData.email.trim(),
-
-      phone:
-        formData.phone.trim(),
-
-      selectArea:
-        formData.selectArea,
-
-      deliveryAddress:
-        formData.address.trim(),
-
-      note:
-        formData.note.trim(),
-
-      products,
-
-      totalItems,
-
-      subTotal,
-
-      deliveryCharge,
-
-      discountAmount:
-        couponDiscount,
-
-      totalAmount,
-
-      couponCode:
-        formData.couponCode
-          .trim()
-          .toUpperCase(),
-
-      paymentMethod:
-        formData.paymentMethod,
-
-      deliveryMethod:
-        formData.deliveryMethod,
-
-      termsAgreed:
-        formData.termsAgreed,
-
-      orderSource: "website",
-    };
-
-    console.log(
-      "ORDER PAYLOAD:",
-      payload
-    );
-
     try {
-      const res = await fetch(
+      /* =====================================================
+         PRODUCTS
+      ===================================================== */
+
+      const products = cart.map((item) => {
+        const productId =
+          getProductId(item);
+
+        const selected =
+          getSelected(item);
+
+        const variant =
+          getMatchedVariant(item);
+
+        const price = variant
+          ? Number(variant.price || 0) ||
+            getPrice(item)
+          : getPrice(item);
+
+        const quantity =
+          Number(item?.quantity || 1);
+
+        return {
+          productId,
+
+          name: item?.name || "",
+
+          image: getImage(item),
+
+          price,
+
+          quantity,
+
+          subtotal: price * quantity,
+
+          slug: item?.slug || "",
+
+          variant: {
+            color: selected.color || "",
+            ram: selected.ram || "",
+            storage:
+              selected.storage || "",
+
+            sku: variant?.sku || "",
+
+            variantId:
+              variant?._id || "",
+
+            variantPrice:
+              variant
+                ? Number(
+                    variant.price || 0
+                  )
+                : price,
+
+            variantStock:
+              variant
+                ? Number(
+                    variant.stock || 0
+                  )
+                : 0,
+          },
+        };
+      });
+
+      /* =====================================================
+         ORDER PAYLOAD
+      ===================================================== */
+
+      const payload = {
+        customerName:
+          formData.fullName.trim(),
+
+        email:
+          formData.email.trim(),
+
+        phone:
+          formData.phone.trim(),
+
+        selectArea:
+          formData.selectArea,
+
+        deliveryAddress:
+          formData.address.trim(),
+
+        note:
+          formData.note.trim(),
+
+        products,
+
+        totalItems,
+
+        subTotal,
+
+        deliveryCharge,
+
+        discountAmount:
+          couponDiscount,
+
+        totalAmount,
+
+        couponCode:
+          formData.couponCode
+            .trim()
+            .toUpperCase(),
+
+        paymentMethod:
+          formData.paymentMethod,
+
+        deliveryMethod:
+          formData.deliveryMethod,
+
+        termsAgreed:
+          formData.termsAgreed,
+
+        orderSource: "website",
+      };
+
+      console.log(
+        "ORDER PAYLOAD:",
+        payload
+      );
+
+      /* =====================================================
+         API
+      ===================================================== */
+
+      const response = await fetch(
         `${API_BASE}/products/CreateOrder`,
         {
           method: "POST",
@@ -327,39 +805,34 @@ export default function CheckoutPage() {
         }
       );
 
-      const data = await res.json();
+      const data =
+        await response.json();
 
       console.log(
         "ORDER RESPONSE:",
         data
       );
 
-      if (!res.ok) {
+      if (!response.ok) {
         throw new Error(
-          data.message ||
+          data?.message ||
             "Order creation failed"
         );
       }
 
-      if (data.success) {
+      if (data?.success) {
         alert(
           `Order placed successfully!\nOrder ID: ${
-            data.data?.orderId ||
-            data.orderId ||
+            data?.data?.orderId ||
+            data?.orderId ||
             "Created"
           }`
         );
 
-        // এখানে তোমার store-এর clear cart function
-        // থাকলে সেটি call করবে।
-
-        // Example:
-        // clearCart();
-
         window.location.href = "/";
       } else {
         alert(
-          data.message ||
+          data?.message ||
             "Something went wrong!"
         );
       }
@@ -370,7 +843,7 @@ export default function CheckoutPage() {
       );
 
       alert(
-        error.message ||
+        error?.message ||
           "Failed to place order!"
       );
     } finally {
@@ -378,67 +851,64 @@ export default function CheckoutPage() {
     }
   };
 
-  // ==========================================
-  // EMPTY CART
-  // ==========================================
+  /* =========================================================
+     EMPTY CART
+  ========================================================= */
 
-  if (cart.length === 0) {
+  if (!cart.length) {
     return (
-      <main className="min-h-screen bg-gray-50 px-4 py-12 dark:bg-slate-950">
+      <main className="min-h-screen bg-gray-50 px-4 py-12">
         <div className="mx-auto max-w-[1440px]">
-          <div className="rounded-2xl bg-white px-6 py-16 text-center shadow-sm dark:bg-slate-900">
-
+          <div className="rounded-2xl bg-white px-6 py-16 text-center shadow-sm">
             <ShoppingBag
               size={50}
               className="mx-auto mb-5 text-[#f47421]"
             />
 
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            <h1 className="text-2xl font-bold">
               Your Cart is Empty
             </h1>
 
             <p className="mt-2 text-sm text-gray-500">
-              Please add some products before checkout.
+              Please add some products
+              before checkout.
             </p>
 
             <Link
               href="/"
               prefetch={false}
-              className="mt-6 inline-flex rounded-full bg-[#f47421] px-8 py-3 text-sm font-bold text-white hover:bg-[#e06211]"
+              className="mt-6 inline-flex rounded-full bg-[#f47421] px-8 py-3 text-sm font-bold text-white"
             >
               Continue Shopping
             </Link>
-
           </div>
         </div>
       </main>
     );
   }
 
-  // ==========================================
-  // PAGE
-  // ==========================================
+  /* =========================================================
+     PAGE
+  ========================================================= */
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa] px-4 py-8 font-sans text-gray-800 sm:px-6 lg:px-8">
-
+    <div className="min-h-screen bg-[#f8f9fa] px-4 py-8 text-gray-800">
       <div className="mx-auto max-w-[1440px] space-y-6">
 
         {/* HEADER */}
 
         <div className="flex items-center gap-3">
-
           <Link
             href="/cart"
             prefetch={false}
-            className="flex items-center gap-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm hover:bg-gray-50"
+            className="flex items-center gap-1 rounded-md border bg-white px-3 py-2 text-sm shadow-sm"
           >
             <ArrowLeft size={16} />
             Back
           </Link>
 
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-2xl font-bold">
               Checkout & Confirm Order
             </h1>
 
@@ -449,37 +919,34 @@ export default function CheckoutPage() {
                 : "Items"}
             </p>
           </div>
-
         </div>
 
         {/* NOTICE */}
 
         <div className="rounded-lg border border-[#fde2c4] bg-[#fef4e8] p-3 text-sm text-[#8c5211]">
-
-          {formData.paymentMethod ===
-            "online_payment" ||
-          formData.paymentMethod ===
-            "partial_payment" ? (
-            <span>
+          {formData.paymentMethod !==
+          "cash_on_delivery" ? (
+            <>
               অ্যাডভান্স পেমেন্ট করার আগে
               আপনার কাঙ্ক্ষিত পণ্যটি আমাদের
               স্টকে আছে কি না কাস্টমার সার্ভিস
               প্রতিনিধির সাথে কনফার্ম করে নিন।
               <span className="font-semibold">
-                {" "}09678148148
+                {" "}
+                09678148148
               </span>
-            </span>
+            </>
           ) : (
-            <span>
+            <>
               অর্ডার সংক্রান্ত যেকোনো প্রয়োজনে
               আমাদের কাস্টমার সার্ভিস প্রতিনিধির
               সাথে কথা বলুন -
               <span className="font-semibold">
-                {" "}09678148148
+                {" "}
+                09678148148
               </span>
-            </span>
+            </>
           )}
-
         </div>
 
         {/* FORM */}
@@ -489,17 +956,16 @@ export default function CheckoutPage() {
           className="grid grid-cols-1 gap-6 lg:grid-cols-12"
         >
 
-          {/* ======================================
+          {/* =================================================
               LEFT
-          ====================================== */}
+          ================================================= */}
 
-          <div className="space-y-6 rounded-xl border border-gray-200 bg-white p-6 shadow-sm lg:col-span-7">
+          <div className="space-y-6 rounded-xl border bg-white p-6 shadow-sm lg:col-span-7">
 
-            {/* DELIVERY INFORMATION */}
+            {/* DELIVERY */}
 
             <div>
-
-              <h2 className="mb-4 text-lg font-semibold text-gray-900">
+              <h2 className="mb-4 text-lg font-semibold">
                 Delivery Information
               </h2>
 
@@ -509,20 +975,21 @@ export default function CheckoutPage() {
 
                 <div>
                   <label className="mb-1 block text-sm font-medium">
-                    Full Name{" "}
-                    <span className="text-red-500">
-                      *
-                    </span>
+                    Full Name *
                   </label>
 
                   <input
                     type="text"
                     name="fullName"
                     required
+                    value={
+                      formData.fullName
+                    }
+                    onChange={
+                      handleChange
+                    }
                     placeholder="Enter full name"
-                    value={formData.fullName}
-                    onChange={handleChange}
-                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-500"
+                    className="w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-500"
                   />
                 </div>
 
@@ -536,10 +1003,14 @@ export default function CheckoutPage() {
                   <input
                     type="email"
                     name="email"
+                    value={
+                      formData.email
+                    }
+                    onChange={
+                      handleChange
+                    }
                     placeholder="Enter Email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-500"
+                    className="w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-500"
                   />
                 </div>
 
@@ -547,15 +1018,11 @@ export default function CheckoutPage() {
 
                 <div>
                   <label className="mb-1 block text-sm font-medium">
-                    Phone Number{" "}
-                    <span className="text-red-500">
-                      *
-                    </span>
+                    Phone Number *
                   </label>
 
                   <div className="flex">
-
-                    <span className="inline-flex items-center rounded-l-md border border-r-0 border-gray-300 bg-gray-50 px-3 text-sm text-gray-500">
+                    <span className="flex items-center rounded-l-md border border-r-0 bg-gray-50 px-3 text-sm text-gray-500">
                       +88
                     </span>
 
@@ -563,12 +1030,15 @@ export default function CheckoutPage() {
                       type="tel"
                       name="phone"
                       required
+                      value={
+                        formData.phone
+                      }
+                      onChange={
+                        handleChange
+                      }
                       placeholder="01XXXXXXXXX"
-                      value={formData.phone}
-                      onChange={handleChange}
-                      className="w-full rounded-r-md border border-gray-300 px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-500"
+                      className="w-full rounded-r-md border px-3 py-2 text-sm"
                     />
-
                   </div>
                 </div>
 
@@ -576,60 +1046,50 @@ export default function CheckoutPage() {
 
                 <div>
                   <label className="mb-1 block text-sm font-medium">
-                    Select Area{" "}
-                    <span className="text-red-500">
-                      *
-                    </span>
+                    Select Area *
                   </label>
 
-                  <select
-                    name="selectArea"
-                    required
-                    value={formData.selectArea}
-                    onChange={handleChange}
-                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-500"
-                  >
-                    <option value="">
-                      Select delivery area
-                    </option>
-
-                    <option value="Dhaka Inside">
-                      Inside Dhaka
-                    </option>
-
-                    <option value="Dhaka Outside">
-                      Outside Dhaka
-                    </option>
-                  </select>
+                  <AreaSelector
+                    value={
+                      formData.selectArea
+                    }
+                    onChange={(value) =>
+                      setFormData(
+                        (prev) => ({
+                          ...prev,
+                          selectArea:
+                            value,
+                        })
+                      )
+                    }
+                  />
                 </div>
 
                 {/* ADDRESS */}
 
                 <div className="sm:col-span-2">
-
                   <label className="mb-1 block text-sm font-medium">
-                    Address{" "}
-                    <span className="text-red-500">
-                      *
-                    </span>
+                    Address *
                   </label>
 
                   <input
                     type="text"
                     name="address"
                     required
-                    placeholder="House# 123, Road# 24, ABC Road"
-                    value={formData.address}
-                    onChange={handleChange}
-                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-500"
+                    value={
+                      formData.address
+                    }
+                    onChange={
+                      handleChange
+                    }
+                    placeholder="House# 123, Road# 24"
+                    className="w-full rounded-md border px-3 py-2 text-sm"
                   />
-
                 </div>
 
                 {/* NOTE */}
 
                 <div className="sm:col-span-2">
-
                   <label className="mb-1 block text-sm font-medium">
                     Note
                   </label>
@@ -637,27 +1097,27 @@ export default function CheckoutPage() {
                   <textarea
                     name="note"
                     rows={3}
+                    value={
+                      formData.note
+                    }
+                    onChange={
+                      handleChange
+                    }
                     placeholder="Any special delivery instructions..."
-                    value={formData.note}
-                    onChange={handleChange}
-                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-500"
+                    className="w-full rounded-md border px-3 py-2 text-sm"
                   />
-
                 </div>
-
               </div>
-
             </div>
 
             {/* PAYMENT */}
 
             <div>
-
               <h2 className="mb-3 text-lg font-semibold">
                 Payment Method
               </h2>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-3">
 
                 {[
                   {
@@ -676,27 +1136,26 @@ export default function CheckoutPage() {
                     icon: Wallet,
                   },
                 ].map((item) => {
+                  const Icon =
+                    item.icon;
 
-                  const Icon = item.icon;
-
-                  const isSelected =
+                  const selected =
                     formData.paymentMethod ===
                     item.id;
 
                   return (
                     <label
                       key={item.id}
-                      className={`flex cursor-pointer items-center gap-2 rounded-lg border p-3 transition ${
-                        isSelected
+                      className={`flex cursor-pointer items-center gap-2 rounded-lg border p-3 ${
+                        selected
                           ? "border-orange-500 bg-orange-50"
-                          : "border-gray-200 hover:border-gray-300"
+                          : "border-gray-200"
                       }`}
                     >
-
                       <Icon
                         size={20}
                         className={
-                          isSelected
+                          selected
                             ? "text-orange-500"
                             : "text-gray-500"
                         }
@@ -710,28 +1169,26 @@ export default function CheckoutPage() {
                         type="radio"
                         name="paymentMethod"
                         value={item.id}
-                        checked={isSelected}
-                        onChange={handleChange}
+                        checked={selected}
+                        onChange={
+                          handleChange
+                        }
                         className="ml-auto accent-orange-500"
                       />
-
                     </label>
                   );
                 })}
-
               </div>
-
             </div>
 
             {/* DELIVERY METHOD */}
 
             <div>
-
               <h2 className="mb-3 text-lg font-semibold">
                 Delivery Method
               </h2>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="grid gap-3 sm:grid-cols-2">
 
                 {[
                   {
@@ -745,27 +1202,26 @@ export default function CheckoutPage() {
                     icon: Store,
                   },
                 ].map((item) => {
+                  const Icon =
+                    item.icon;
 
-                  const Icon = item.icon;
-
-                  const isSelected =
+                  const selected =
                     formData.deliveryMethod ===
                     item.id;
 
                   return (
                     <label
                       key={item.id}
-                      className={`flex cursor-pointer items-center gap-2 rounded-lg border p-3 transition ${
-                        isSelected
+                      className={`flex cursor-pointer items-center gap-2 rounded-lg border p-3 ${
+                        selected
                           ? "border-orange-500 bg-orange-50"
-                          : "border-gray-200 hover:border-gray-300"
+                          : "border-gray-200"
                       }`}
                     >
-
                       <Icon
                         size={20}
                         className={
-                          isSelected
+                          selected
                             ? "text-orange-500"
                             : "text-gray-500"
                         }
@@ -779,161 +1235,412 @@ export default function CheckoutPage() {
                         type="radio"
                         name="deliveryMethod"
                         value={item.id}
-                        checked={isSelected}
-                        onChange={handleChange}
+                        checked={selected}
+                        onChange={
+                          handleChange
+                        }
                         className="ml-auto accent-orange-500"
                       />
-
                     </label>
                   );
                 })}
-
               </div>
-
             </div>
-
           </div>
 
-          {/* ======================================
-              RIGHT SIDE
-          ====================================== */}
+          {/* =================================================
+              RIGHT
+          ================================================= */}
 
-          <div className="h-fit space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-sm lg:col-span-5">
+          <div className="h-fit space-y-5 rounded-xl border bg-white p-6 shadow-sm lg:col-span-5">
 
             <h2 className="text-lg font-semibold">
               Order Summary
             </h2>
 
-            {/* CART PRODUCTS */}
+            {/* PRODUCTS */}
 
             <div className="space-y-4">
 
-              {cart.map((item) => {
+              {cart.map(
+                (item, index) => {
+                  const productId =
+                    getProductId(item);
 
-                const price =
-                  getPrice(item);
+                  const cartId =
+                    getCartId(item);
 
-                const quantity =
-                  Number(
-                    item.quantity || 1
-                  );
+                  const variants =
+                    getVariants(item);
 
-                const itemTotal =
-                  price * quantity;
+                  const selected =
+                    getSelected(item);
 
-                const image =
-                  getImage(item);
+                  const options =
+                    getOptions(item);
 
-                return (
-                  <div
-                    key={item.id}
-                    className="flex gap-3 border-b border-gray-100 pb-4"
-                  >
+                  const matchedVariant =
+                    getMatchedVariant(
+                      item
+                    );
 
-                    {/* IMAGE */}
+                  const price =
+                    matchedVariant
+                      ? Number(
+                          matchedVariant.price ||
+                            0
+                        ) ||
+                        getPrice(item)
+                      : getPrice(item);
 
-                    <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
+                  const quantity =
+                    Number(
+                      item?.quantity || 1
+                    );
 
-                      {image ? (
-                        <img
-                          src={image}
-                          alt={
-                            item.name ||
-                            "Product"
-                          }
-                          className="h-full w-full object-contain p-1"
-                        />
-                      ) : (
-                        <ShoppingBag
-                          size={25}
-                          className="text-gray-300"
-                        />
-                      )}
+                  const itemTotal =
+                    price * quantity;
 
-                    </div>
+                  return (
+                    <div
+                      key={`${productId}-${index}`}
+                      className="flex gap-3 border-b pb-4"
+                    >
 
-                    {/* INFO */}
+                      {/* IMAGE */}
 
-                    <div className="min-w-0 flex-1">
-
-                      <div className="flex justify-between gap-2">
-
-                        <p className="line-clamp-2 text-sm font-semibold text-gray-800">
-                          {item.name}
-                        </p>
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            removeFromCart(
-                              item.id
-                            )
-                          }
-                          className="shrink-0 text-gray-400 hover:text-red-500"
-                        >
-                          <X size={16} />
-                        </button>
-
+                      <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-gray-50">
+                        {getImage(item) ? (
+                          <img
+                            src={getImage(item)}
+                            alt={
+                              item?.name ||
+                              "Product"
+                            }
+                            className="h-full w-full object-contain p-1"
+                          />
+                        ) : (
+                          <ShoppingBag
+                            size={25}
+                            className="text-gray-300"
+                          />
+                        )}
                       </div>
 
-                      <p className="mt-1 text-xs text-gray-500">
-                        ৳ {formatPrice(price)}
-                      </p>
+                      <div className="min-w-0 flex-1">
 
-                      {/* QUANTITY */}
+                        {/* NAME */}
 
-                      <div className="mt-2 flex items-center justify-between">
-
-                        <div className="flex items-center rounded-full border border-gray-200">
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              decreasePopulation(
-                                item.id
-                              )
-                            }
-                            className="flex h-7 w-7 items-center justify-center"
-                          >
-                            <Minus size={13} />
-                          </button>
-
-                          <span className="w-7 text-center text-xs font-semibold">
-                            {quantity}
-                          </span>
+                        <div className="flex justify-between gap-2">
+                          <p className="line-clamp-2 text-sm font-semibold">
+                            {item?.name}
+                          </p>
 
                           <button
                             type="button"
                             onClick={() =>
-                              increasePopulation(
-                                item.id
+                              removeFromCart(
+                                cartId
                               )
                             }
-                            className="flex h-7 w-7 items-center justify-center"
+                            className="text-gray-400 hover:text-red-500"
                           >
-                            <Plus size={13} />
+                            <X size={16} />
                           </button>
-
                         </div>
 
-                        <span className="text-sm font-bold">
-                          ৳ {formatPrice(itemTotal)}
-                        </span>
+                        {/* PRICE */}
 
+                        <p className="mt-1 text-xs text-gray-500">
+                          ৳{" "}
+                          {formatPrice(
+                            price
+                          )}
+                        </p>
+
+                        {/* VARIANTS */}
+
+                        {variants.length >
+                          0 && (
+                          <div className="mt-3 space-y-2">
+
+                            {/* COLOR */}
+
+                            {options.colors
+                              .length >
+                              0 && (
+                              <div>
+                                <label className="mb-1 block text-xs font-medium">
+                                  Select Color
+                                </label>
+
+                                <select
+                                  value={
+                                    selected.color
+                                  }
+                                  onChange={(
+                                    e
+                                  ) =>
+                                    changeVariant(
+                                      productId,
+                                      "color",
+                                      e.target
+                                        .value
+                                    )
+                                  }
+                                  className="w-full rounded-md border px-2 py-1.5 text-xs"
+                                >
+                                  <option value="">
+                                    Select Color
+                                  </option>
+
+                                  {options.colors.map(
+                                    (
+                                      color
+                                    ) => (
+                                      <option
+                                        key={
+                                          color
+                                        }
+                                        value={
+                                          color
+                                        }
+                                      >
+                                        {color}
+                                      </option>
+                                    )
+                                  )}
+                                </select>
+                              </div>
+                            )}
+
+                            {/* RAM */}
+
+                            {options.rams
+                              .length >
+                              0 && (
+                              <div>
+                                <label className="mb-1 block text-xs font-medium">
+                                  Select RAM
+                                </label>
+
+                                <select
+                                  value={
+                                    selected.ram
+                                  }
+                                  disabled={
+                                    options.colors
+                                      .length >
+                                      0 &&
+                                    !selected.color
+                                  }
+                                  onChange={(
+                                    e
+                                  ) =>
+                                    changeVariant(
+                                      productId,
+                                      "ram",
+                                      e.target
+                                        .value
+                                    )
+                                  }
+                                  className="w-full rounded-md border px-2 py-1.5 text-xs disabled:bg-gray-100"
+                                >
+                                  <option value="">
+                                    {options.colors
+                                      .length >
+                                      0 &&
+                                    !selected.color
+                                      ? "Select Color First"
+                                      : "Select RAM"}
+                                  </option>
+
+                                  {options.rams.map(
+                                    (
+                                      ram
+                                    ) => (
+                                      <option
+                                        key={
+                                          ram
+                                        }
+                                        value={
+                                          ram
+                                        }
+                                      >
+                                        {ram}
+                                      </option>
+                                    )
+                                  )}
+                                </select>
+                              </div>
+                            )}
+
+                            {/* STORAGE */}
+
+                            {options.storages
+                              .length >
+                              0 && (
+                              <div>
+                                <label className="mb-1 block text-xs font-medium">
+                                  Select Storage
+                                </label>
+
+                                <select
+                                  value={
+                                    selected.storage
+                                  }
+                                  disabled={
+                                    (options.colors
+                                      .length >
+                                      0 &&
+                                      !selected.color) ||
+                                    (options.rams
+                                      .length >
+                                      0 &&
+                                      !selected.ram)
+                                  }
+                                  onChange={(
+                                    e
+                                  ) =>
+                                    changeVariant(
+                                      productId,
+                                      "storage",
+                                      e.target
+                                        .value
+                                    )
+                                  }
+                                  className="w-full rounded-md border px-2 py-1.5 text-xs disabled:bg-gray-100"
+                                >
+                                  <option value="">
+                                    Select Storage
+                                  </option>
+
+                                  {options.storages.map(
+                                    (
+                                      storage
+                                    ) => (
+                                      <option
+                                        key={
+                                          storage
+                                        }
+                                        value={
+                                          storage
+                                        }
+                                      >
+                                        {storage}
+                                      </option>
+                                    )
+                                  )}
+                                </select>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* SELECTED */}
+
+                        {(selected.color ||
+                          selected.ram ||
+                          selected.storage) && (
+                          <div className="mt-2 rounded-md bg-orange-50 px-2 py-1.5 text-[11px] text-orange-700">
+                            <b>
+                              Selected:
+                            </b>{" "}
+
+                            {selected.color &&
+                              `Color: ${selected.color}`}
+
+                            {selected.ram &&
+                              ` • RAM: ${selected.ram}`}
+
+                            {selected.storage &&
+                              ` • Storage: ${selected.storage}`}
+                          </div>
+                        )}
+
+                        {/* SKU */}
+
+                        {matchedVariant?.sku && (
+                          <p className="mt-1 text-[10px] text-gray-400">
+                            SKU:{" "}
+                            {
+                              matchedVariant.sku
+                            }
+                          </p>
+                        )}
+
+                        {/* STOCK */}
+
+                        {matchedVariant && (
+                          <p
+                            className={`mt-1 text-[10px] ${
+                              matchedVariant.stock >
+                              0
+                                ? "text-green-600"
+                                : "text-red-500"
+                            }`}
+                          >
+                            {matchedVariant.stock >
+                            0
+                              ? `${matchedVariant.stock} available`
+                              : "Out of stock"}
+                          </p>
+                        )}
+
+                        {/* QUANTITY */}
+
+                        <div className="mt-2 flex items-center justify-between">
+
+                          <div className="flex items-center rounded-full border">
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                decreasePopulation(
+                                  cartId
+                                )
+                              }
+                              className="flex h-7 w-7 items-center justify-center"
+                            >
+                              <Minus size={13} />
+                            </button>
+
+                            <span className="w-7 text-center text-xs font-semibold">
+                              {quantity}
+                            </span>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                increasePopulation(
+                                  cartId
+                                )
+                              }
+                              className="flex h-7 w-7 items-center justify-center"
+                            >
+                              <Plus size={13} />
+                            </button>
+
+                          </div>
+
+                          <span className="text-sm font-bold">
+                            ৳{" "}
+                            {formatPrice(
+                              itemTotal
+                            )}
+                          </span>
+
+                        </div>
                       </div>
-
                     </div>
-
-                  </div>
-                );
-              })}
-
+                  );
+                }
+              )}
             </div>
 
             {/* COUPON */}
 
             <div>
-
               <label className="mb-1.5 block text-xs font-semibold">
                 Apply Coupon
               </label>
@@ -943,43 +1650,46 @@ export default function CheckoutPage() {
                 <input
                   type="text"
                   name="couponCode"
+                  value={
+                    formData.couponCode
+                  }
+                  onChange={
+                    handleChange
+                  }
                   placeholder="Coupon Code"
-                  value={formData.couponCode}
-                  onChange={handleChange}
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-orange-500"
+                  className="w-full rounded-md border px-3 py-2 text-xs"
                 />
 
                 <button
                   type="button"
                   onClick={applyCoupon}
-                  className="rounded-md bg-black px-4 py-2 text-xs font-medium text-white hover:bg-gray-800"
+                  className="rounded-md bg-black px-4 py-2 text-xs font-medium text-white"
                 >
                   Apply
                 </button>
 
               </div>
-
             </div>
 
             {/* PRICE */}
 
-            <div className="space-y-3 border-y border-gray-100 py-4 text-sm">
+            <div className="space-y-3 border-y py-4 text-sm">
 
               <div className="flex justify-between">
-
-                <span className="text-gray-600">
+                <span>
                   Sub Total ({totalItems} items)
                 </span>
 
-                <span className="font-semibold">
-                  ৳ {formatPrice(subTotal)}
-                </span>
-
+                <b>
+                  ৳{" "}
+                  {formatPrice(
+                    subTotal
+                  )}
+                </b>
               </div>
 
               <div className="flex justify-between">
-
-                <span className="flex items-center gap-1 text-gray-600">
+                <span className="flex items-center gap-1">
                   Delivery
                   <Info
                     size={13}
@@ -987,45 +1697,37 @@ export default function CheckoutPage() {
                   />
                 </span>
 
-                <span className="font-semibold">
-                  {deliveryCharge > 0
-                    ? `৳ ${formatPrice(
-                        deliveryCharge
-                      )}`
-                    : "৳ 0"}
-                </span>
-
+                <b>
+                  ৳{" "}
+                  {formatPrice(
+                    deliveryCharge
+                  )}
+                </b>
               </div>
 
               <div className="flex justify-between">
+                <span>Discount</span>
 
-                <span className="text-gray-600">
-                  Discount
-                </span>
-
-                <span className="font-semibold text-green-600">
+                <b className="text-green-600">
                   - ৳{" "}
                   {formatPrice(
                     couponDiscount
                   )}
-                </span>
-
+                </b>
               </div>
-
             </div>
 
             {/* TOTAL */}
 
             <div className="flex justify-between text-lg font-bold">
+              <span>Total Amount</span>
 
               <span>
-                Total Amount
+                ৳{" "}
+                {formatPrice(
+                  totalAmount
+                )}
               </span>
-
-              <span>
-                ৳ {formatPrice(totalAmount)}
-              </span>
-
             </div>
 
             {/* TERMS */}
@@ -1039,15 +1741,18 @@ export default function CheckoutPage() {
                 checked={
                   formData.termsAgreed
                 }
-                onChange={handleChange}
+                onChange={
+                  handleChange
+                }
                 className="mt-0.5 accent-orange-500"
               />
 
               <label
                 htmlFor="terms"
-                className="text-xs leading-tight text-gray-600"
+                className="text-xs text-gray-600"
               >
-                I have read & agree to the website{" "}
+                I have read & agree to
+                the website{" "}
                 <a
                   href="#"
                   className="text-orange-500 underline"
@@ -1063,7 +1768,7 @@ export default function CheckoutPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-lg bg-[#f47421] px-4 py-3 text-sm font-bold text-white shadow-md transition hover:bg-[#e06912] disabled:cursor-not-allowed disabled:opacity-50"
+              className="w-full rounded-lg bg-[#f47421] px-4 py-3 text-sm font-bold text-white shadow-md disabled:opacity-50"
             >
               {loading
                 ? "Placing Order..."
@@ -1071,11 +1776,11 @@ export default function CheckoutPage() {
             </button>
 
           </div>
-
         </form>
-
       </div>
-
     </div>
   );
 }
+
+
+

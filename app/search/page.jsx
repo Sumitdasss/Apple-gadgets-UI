@@ -28,23 +28,6 @@ const PRODUCT_CACHE_TTL = 30 * 1000;
 const productCache = new Map();
 
 // ============================================
-// DESIGN TOKENS
-// ============================================
-
-const COLOR = {
-  paper: "#FFFFFF",
-  surface: "#FAFAF7",
-  mist: "#F6F5F2",
-  line: "#EDEAE2",
-  lineStrong: "#D8D4C9",
-  ink: "#211F1C",
-  inkSoft: "#4B4943",
-  inkMuted: "#8A8680",
-  accent: "#A9743B",
-  accentDark: "#8F5F2C",
-};
-
-// ============================================
 // KNOWN FILTER GROUPS
 // ============================================
 
@@ -133,13 +116,13 @@ const MAX_AUTO_FILTER_OPTIONS = 25;
 
 function FilterCheckbox({ label, checked, onChange }) {
   return (
-    <label className="flex cursor-pointer items-center gap-2.5 py-1 text-[12px] text-[#4B4943] transition-colors hover:text-[#211F1C] sm:text-[13px]">
+    <label className="flex cursor-pointer items-center gap-2.5 py-1 text-[12px] text-gray-600 transition-colors hover:text-gray-900 dark:text-gray-300 dark:hover:text-white sm:text-[13px]">
       <span
-        className="flex h-4 w-4 shrink-0 items-center justify-center rounded-[4px] border"
-        style={{
-          borderColor: checked ? COLOR.accent : COLOR.lineStrong,
-          backgroundColor: checked ? COLOR.accent : COLOR.paper,
-        }}
+        className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-[4px] border ${
+          checked
+            ? "border-[#f47421] bg-[#f47421]"
+            : "border-gray-300 bg-white dark:border-slate-600 dark:bg-slate-800"
+        }`}
       >
         {checked && <Check size={11} strokeWidth={3} className="text-white" />}
       </span>
@@ -162,53 +145,25 @@ function FilterCheckbox({ label, checked, onChange }) {
 
 function FilterSection({ label, count, isOpen, onToggle, children }) {
   return (
-    <div
-      className="px-4 py-3.5"
-      style={{
-        borderBottom: `1px solid ${COLOR.line}`,
-      }}
-    >
+    <div className="border-b border-gray-100 px-4 py-3.5 dark:border-slate-800">
       <button
         type="button"
         onClick={onToggle}
         className="flex w-full items-center justify-between gap-3"
       >
-        <span
-          className="min-w-0 text-left text-[13px] font-medium"
-          style={{
-            color: COLOR.ink,
-          }}
-        >
+        <span className="min-w-0 text-left text-[13px] font-medium text-gray-900 dark:text-white">
           {label}
-
           {count > 0 && (
-            <span
-              className="ml-1.5 text-[11px] font-normal"
-              style={{
-                color: COLOR.inkMuted,
-              }}
-            >
+            <span className="ml-1.5 text-[11px] font-normal text-gray-400 dark:text-gray-500">
               ({count})
             </span>
           )}
         </span>
 
         {isOpen ? (
-          <ChevronUp
-            size={15}
-            className="shrink-0"
-            style={{
-              color: COLOR.inkMuted,
-            }}
-          />
+          <ChevronUp size={15} className="shrink-0 text-gray-400 dark:text-gray-500" />
         ) : (
-          <ChevronDown
-            size={15}
-            className="shrink-0"
-            style={{
-              color: COLOR.inkMuted,
-            }}
-          />
+          <ChevronDown size={15} className="shrink-0 text-gray-400 dark:text-gray-500" />
         )}
       </button>
 
@@ -228,220 +183,63 @@ function FilterSection({ label, count, isOpen, onToggle, children }) {
 function FilterContent({
   searchText,
   setSearchText,
-
   priceMin,
   setPriceMin,
-
   priceMax,
   setPriceMax,
-
   excludeStock,
   setExcludeStock,
-
   filterSections,
   selectedFilters,
-
   getSelectedCount,
   toggleFilterValue,
-
   isSectionOpen,
   toggleSection,
-
   clearAllFilters,
 }) {
   return (
     <>
-      {/* SEARCH */}
-
-      <div
-        className="px-4 py-3.5"
-        style={{
-          borderBottom: `1px solid ${COLOR.line}`,
-        }}
-      >
-        <label
-          className="mb-2 block text-[12.5px] font-medium"
-          style={{
-            color: COLOR.ink,
-          }}
-        >
-          Search products
-        </label>
-
+      <div className="border-b border-gray-100 px-4 py-3.5 dark:border-slate-800">
+        <label className="mb-2 block text-[12.5px] font-medium text-gray-900 dark:text-white">Search products</label>
         <div className="relative">
-          <Search
-            size={14}
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2"
-            style={{
-              color: COLOR.inkMuted,
-            }}
-          />
-
-          <input
-            type="search"
-            value={searchText}
-            onChange={(e) => {
-              setSearchText(e.target.value);
-            }}
-            placeholder="Search product..."
-            autoComplete="off"
-            spellCheck={false}
-            className="h-10 w-full rounded-[10px] pl-9 pr-9 text-[12.5px] outline-none"
-            style={{
-              backgroundColor: COLOR.surface,
-              border: `1px solid ${COLOR.line}`,
-              color: COLOR.ink,
-            }}
-          />
-
+          <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+          <input type="search" value={searchText} onChange={(e) => setSearchText(e.target.value)} placeholder="Search product..." autoComplete="off" spellCheck={false} className="h-10 w-full rounded-[10px] border border-gray-200 bg-gray-50 pl-9 pr-9 text-[12.5px] text-gray-900 outline-none placeholder:text-gray-400 focus:border-[#f47421] dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:placeholder:text-gray-500 dark:focus:border-[#f47421]" />
           {searchText && (
-            <button
-              type="button"
-              aria-label="Clear search"
-              onMouseDown={(e) => {
-                e.preventDefault();
-              }}
-              onClick={() => {
-                setSearchText("");
-              }}
-              className="absolute right-2.5 top-1/2 flex -translate-y-1/2 items-center justify-center"
-              style={{
-                color: COLOR.inkMuted,
-              }}
-            >
+            <button type="button" aria-label="Clear search" onMouseDown={(e) => e.preventDefault()} onClick={() => setSearchText("")} className="absolute right-2.5 top-1/2 flex -translate-y-1/2 items-center justify-center text-gray-400 hover:text-[#f47421] dark:text-gray-500">
               <X size={14} />
             </button>
           )}
         </div>
       </div>
 
-      {/* PRICE */}
-
-      <div
-        className="px-4 py-3.5"
-        style={{
-          borderBottom: `1px solid ${COLOR.line}`,
-        }}
-      >
-        <button
-          type="button"
-          onClick={() => toggleSection("price")}
-          className="flex w-full items-center justify-between"
-        >
-          <span
-            className="text-[13px] font-medium"
-            style={{
-              color: COLOR.ink,
-            }}
-          >
-            Price range
-          </span>
-
-          {isSectionOpen("price") ? (
-            <ChevronUp
-              size={15}
-              style={{
-                color: COLOR.inkMuted,
-              }}
-            />
-          ) : (
-            <ChevronDown
-              size={15}
-              style={{
-                color: COLOR.inkMuted,
-              }}
-            />
-          )}
+      <div className="border-b border-gray-100 px-4 py-3.5 dark:border-slate-800">
+        <button type="button" onClick={() => toggleSection("price")} className="flex w-full items-center justify-between">
+          <span className="text-[13px] font-medium text-gray-900 dark:text-white">Price range</span>
+          {isSectionOpen("price") ? <ChevronUp size={15} className="text-gray-400 dark:text-gray-500" /> : <ChevronDown size={15} className="text-gray-400 dark:text-gray-500" />}
         </button>
-
         {isSectionOpen("price") && (
           <div className="mt-2.5 flex items-center gap-2">
-            <input
-              type="number"
-              value={priceMin}
-              onChange={(e) => setPriceMin(e.target.value)}
-              placeholder="Min"
-              className="h-9 min-w-0 w-full rounded-[9px] px-3 text-[12px] outline-none"
-              style={{
-                backgroundColor: COLOR.surface,
-                border: `1px solid ${COLOR.line}`,
-                color: COLOR.ink,
-              }}
-            />
-
-            <span
-              className="shrink-0 text-[12px]"
-              style={{
-                color: COLOR.inkMuted,
-              }}
-            >
-              –
-            </span>
-
-            <input
-              type="number"
-              value={priceMax}
-              onChange={(e) => setPriceMax(e.target.value)}
-              placeholder="Max"
-              className="h-9 min-w-0 w-full rounded-[9px] px-3 text-[12px] outline-none"
-              style={{
-                backgroundColor: COLOR.surface,
-                border: `1px solid ${COLOR.line}`,
-                color: COLOR.ink,
-              }}
-            />
+            <input type="number" value={priceMin} onChange={(e) => setPriceMin(e.target.value)} placeholder="Min" className="h-9 min-w-0 w-full rounded-[9px] border border-gray-200 bg-gray-50 px-3 text-[12px] text-gray-900 outline-none focus:border-[#f47421] dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:focus:border-[#f47421]" />
+            <span className="shrink-0 text-[12px] text-gray-400 dark:text-gray-500">–</span>
+            <input type="number" value={priceMax} onChange={(e) => setPriceMax(e.target.value)} placeholder="Max" className="h-9 min-w-0 w-full rounded-[9px] border border-gray-200 bg-gray-50 px-3 text-[12px] text-gray-900 outline-none focus:border-[#f47421] dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:focus:border-[#f47421]" />
           </div>
         )}
       </div>
 
-      {/* STOCK */}
-
-      <div
-        className="px-4 py-3.5"
-        style={{
-          borderBottom: `1px solid ${COLOR.line}`,
-        }}
-      >
-        <FilterCheckbox
-          label="Exclude out of stock"
-          checked={excludeStock}
-          onChange={(e) => setExcludeStock(e.target.checked)}
-        />
+      <div className="border-b border-gray-100 px-4 py-3.5 dark:border-slate-800">
+        <FilterCheckbox label="Exclude out of stock" checked={excludeStock} onChange={(e) => setExcludeStock(e.target.checked)} />
       </div>
 
-      {/* DYNAMIC FILTERS */}
-
       {filterSections.map((section) => (
-        <FilterSection
-          key={section.key}
-          label={section.label}
-          count={getSelectedCount(section.key)}
-          isOpen={isSectionOpen(section.key)}
-          onToggle={() => toggleSection(section.key)}
-        >
+        <FilterSection key={section.key} label={section.label} count={getSelectedCount(section.key)} isOpen={isSectionOpen(section.key)} onToggle={() => toggleSection(section.key)}>
           {section.options.map((item) => (
-            <FilterCheckbox
-              key={item}
-              label={item}
-              checked={(selectedFilters[section.key] || []).includes(item)}
-              onChange={() => toggleFilterValue(section.key, item)}
-            />
+            <FilterCheckbox key={item} label={item} checked={(selectedFilters[section.key] || []).includes(item)} onChange={() => toggleFilterValue(section.key, item)} />
           ))}
         </FilterSection>
       ))}
 
-      {/* CLEAR */}
-
       <div className="px-4 py-3.5">
-        <button
-          type="button"
-          onClick={clearAllFilters}
-          className="w-full rounded-[10px] py-2.5 text-[12px] font-medium transition-colors hover:bg-[#F6F5F2]"
-          style={{
-            border: `1px solid ${COLOR.line}`,
-            color: COLOR.ink,
-          }}
-        >
+        <button type="button" onClick={clearAllFilters} className="w-full rounded-[10px] border border-gray-200 py-2.5 text-[12px] font-medium text-gray-900 transition-colors hover:bg-gray-50 dark:border-slate-700 dark:text-white dark:hover:bg-slate-800">
           Clear all filters
         </button>
       </div>
@@ -449,6 +247,8 @@ function FilterContent({
   );
 }
 
+// ============================================
+// MAIN CONTENT
 // ============================================
 // MAIN CONTENT
 // ============================================
@@ -1464,48 +1264,18 @@ function CategoryPageContent() {
   // LOADING
   // ============================================
 
+
   if (loading) {
     return (
-      <main
-        className="min-h-screen"
-        style={{
-          backgroundColor: COLOR.paper,
-        }}
-      >
+      <main className="min-h-screen bg-white dark:bg-slate-900">
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-          <div
-            className="h-3.5 w-52 animate-pulse rounded"
-            style={{
-              backgroundColor: COLOR.mist,
-            }}
-          />
-
-          <div
-            className="mt-4 h-9 w-44 animate-pulse rounded"
-            style={{
-              backgroundColor: COLOR.mist,
-            }}
-          />
-
+          <div className="h-3.5 w-52 animate-pulse rounded bg-gray-100 dark:bg-slate-800" />
+          <div className="mt-4 h-9 w-44 animate-pulse rounded bg-gray-100 dark:bg-slate-800" />
           <div className="mt-8 grid gap-5 lg:grid-cols-[260px_1fr]">
-            <div
-              className="hidden h-[700px] animate-pulse rounded-[20px] lg:block"
-              style={{
-                backgroundColor: COLOR.mist,
-              }}
-            />
-
+            <div className="hidden h-[700px] animate-pulse rounded-[20px] bg-gray-100 dark:bg-slate-800 lg:block" />
             <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-3">
-              {Array.from({
-                length: 6,
-              }).map((_, index) => (
-                <div
-                  key={index}
-                  className="h-[360px] animate-pulse rounded-[22px]"
-                  style={{
-                    backgroundColor: COLOR.mist,
-                  }}
-                />
+              {Array.from({ length: 6 }).map((_, index) => (
+                <div key={index} className="h-[360px] animate-pulse rounded-[22px] bg-gray-100 dark:bg-slate-800" />
               ))}
             </div>
           </div>
@@ -1514,166 +1284,53 @@ function CategoryPageContent() {
     );
   }
 
-  // ============================================
-  // UI
-  // ============================================
-
   return (
-    <main
-      className="min-h-screen antialiased"
-      style={{
-        backgroundColor: COLOR.paper,
-        color: COLOR.ink,
-        fontFamily:
-          "'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif",
-      }}
-    >
+    <main className="min-h-screen bg-white text-gray-900 antialiased dark:bg-slate-900 dark:text-white">
       <style jsx global>{`
         @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap");
-
-        html {
-          scroll-behavior: smooth;
-        }
-
-        body {
-          overflow-x: hidden;
-        }
-
-        * {
-          box-sizing: border-box;
-        }
+        html { scroll-behavior: smooth; }
+        body { overflow-x: hidden; }
+        * { box-sizing: border-box; }
       `}</style>
 
       <div className="mx-auto max-w-7xl px-4 pb-14 pt-5 sm:px-6 lg:px-8">
-        {/* BREADCRUMB */}
-
-        <div
-          className="mb-3 flex flex-wrap items-center gap-1.5 text-[11.5px]"
-          style={{
-            color: COLOR.inkMuted,
-          }}
-        >
-          <Link prefetch={false} href="/" className="transition-colors hover:text-[#211F1C]">
-            Home
-          </Link>
-
+        <div className="mb-3 flex flex-wrap items-center gap-1.5 text-[11.5px] text-gray-400 dark:text-gray-500">
+          <Link prefetch={false} href="/" className="transition-colors hover:text-gray-900 dark:hover:text-white">Home</Link>
           {breadcrumbItems.map((segment, index) => {
             const href = "/" + breadcrumbItems.slice(0, index + 1).join("/");
-
             const isLast = index === breadcrumbItems.length - 1;
-
             return (
               <React.Fragment key={`${segment}-${index}`}>
                 <span>/</span>
-
                 {isLast ? (
-                  <span
-                    style={{
-                      color: COLOR.ink,
-                      fontWeight: 500,
-                    }}
-                  >
-                    {formatBreadcrumb(segment)}
-                  </span>
+                  <span className="font-medium text-gray-900 dark:text-white">{formatBreadcrumb(segment)}</span>
                 ) : (
-                  <Link prefetch={false}
-                    href={href}
-                    className="transition-colors hover:text-[#211F1C]"
-                  >
-                    {formatBreadcrumb(segment)}
-                  </Link>
+                  <Link prefetch={false} href={href} className="transition-colors hover:text-gray-900 dark:hover:text-white">{formatBreadcrumb(segment)}</Link>
                 )}
               </React.Fragment>
             );
           })}
         </div>
 
-        {/* TITLE */}
-
-        <h1
-          className="mb-6 text-[28px] tracking-tight sm:mb-7 sm:text-[34px] lg:text-[38px]"
-          style={{
-            fontFamily: "'Space Grotesk', 'Inter', sans-serif",
-            fontWeight: 600,
-            color: COLOR.ink,
-          }}
-        >
+        <h1 className="mb-6 text-[28px] font-semibold tracking-tight text-gray-900 dark:text-white sm:mb-7 sm:text-[34px] lg:text-[38px]" style={{ fontFamily: "'Space Grotesk', 'Inter', sans-serif" }}>
           {categoryName}
         </h1>
 
-        {/* SEARCH NOTICE */}
-
         {searchText.trim() !== "" && (
-          <div
-            className="mb-5 rounded-[12px] px-4 py-3"
-            style={{
-              backgroundColor: COLOR.surface,
-              border: `1px solid ${COLOR.line}`,
-            }}
-          >
-            <p
-              className="truncate text-[13px]"
-              style={{
-                color: COLOR.inkSoft,
-              }}
-            >
-              Searching all products for{" "}
-              <span
-                className="font-semibold"
-                style={{
-                  color: COLOR.ink,
-                }}
-              >
-                {searchText}
-              </span>
+          <div className="mb-5 rounded-[12px] border border-gray-200 bg-gray-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-800">
+            <p className="truncate text-[13px] text-gray-600 dark:text-gray-300">
+              Searching all products for <span className="font-semibold text-gray-900 dark:text-white">{searchText}</span>
             </p>
-
-            <p
-              className="mt-1 text-[11px]"
-              style={{
-                color: COLOR.inkMuted,
-              }}
-            >
-              Filters below are based only on the matching search results.
-            </p>
+            <p className="mt-1 text-[11px] text-gray-400 dark:text-gray-500">Filters below are based only on the matching search results.</p>
           </div>
         )}
 
-        {/* MAIN LAYOUT */}
-
         <div className="grid gap-5 lg:grid-cols-[260px_minmax(0,1fr)]">
-          {/* DESKTOP SIDEBAR */}
-
-          <aside
-            className="hidden h-fit overflow-hidden rounded-[20px] lg:block"
-            style={{
-              backgroundColor: COLOR.paper,
-              border: `1px solid ${COLOR.line}`,
-            }}
-          >
-            <div
-              className="flex items-center justify-between px-4 py-4"
-              style={{
-                borderBottom: `1px solid ${COLOR.line}`,
-              }}
-            >
-              <h2
-                className="text-[15px] font-semibold"
-                style={{
-                  color: COLOR.ink,
-                }}
-              >
-                Filters
-              </h2>
-
-              <SlidersHorizontal
-                size={16}
-                style={{
-                  color: COLOR.inkMuted,
-                }}
-              />
+          <aside className="hidden h-fit overflow-hidden rounded-[20px] border border-gray-200 bg-white dark:border-slate-700 dark:bg-slate-900 lg:block">
+            <div className="flex items-center justify-between border-b border-gray-100 px-4 py-4 dark:border-slate-800">
+              <h2 className="text-[15px] font-semibold text-gray-900 dark:text-white">Filters</h2>
+              <SlidersHorizontal size={16} className="text-gray-400 dark:text-gray-500" />
             </div>
-
             <FilterContent
               searchText={searchText}
               setSearchText={setSearchText}
@@ -1693,71 +1350,19 @@ function CategoryPageContent() {
             />
           </aside>
 
-          {/* MOBILE DRAWER */}
-
           {isFilterOpen && (
             <div className="fixed inset-0 z-[9999] lg:hidden">
-              {/* BACKDROP */}
-
-              <button
-                type="button"
-                aria-label="Close filters"
-                onClick={() => setIsFilterOpen(false)}
-                className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
-              />
-
-              {/* DRAWER */}
-
-              <aside
-                className="absolute right-0 top-0 flex h-[100dvh] w-[88%] max-w-[380px] flex-col overflow-hidden shadow-2xl"
-                style={{
-                  backgroundColor: COLOR.paper,
-                }}
-              >
-                {/* HEADER */}
-
-                <div
-                  className="flex shrink-0 items-center justify-between px-4 py-3.5"
-                  style={{
-                    borderBottom: `1px solid ${COLOR.line}`,
-                  }}
-                >
+              <button type="button" aria-label="Close filters" onClick={() => setIsFilterOpen(false)} className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" />
+              <aside className="absolute right-0 top-0 flex h-[100dvh] w-[88%] max-w-[380px] flex-col overflow-hidden bg-white shadow-2xl dark:bg-slate-900">
+                <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-4 py-3.5 dark:border-slate-800">
                   <div>
-                    <h2
-                      className="text-[16px] font-semibold"
-                      style={{
-                        color: COLOR.ink,
-                      }}
-                    >
-                      Filters
-                    </h2>
-
-                    <p
-                      className="mt-0.5 text-[10.5px]"
-                      style={{
-                        color: COLOR.inkMuted,
-                      }}
-                    >
-                      Refine your products
-                    </p>
+                    <h2 className="text-[16px] font-semibold text-gray-900 dark:text-white">Filters</h2>
+                    <p className="mt-0.5 text-[10.5px] text-gray-400 dark:text-gray-500">Refine your products</p>
                   </div>
-
-                  <button
-                    type="button"
-                    aria-label="Close filters"
-                    onClick={() => setIsFilterOpen(false)}
-                    className="flex h-9 w-9 items-center justify-center rounded-full"
-                    style={{
-                      backgroundColor: COLOR.surface,
-                      color: COLOR.inkSoft,
-                    }}
-                  >
+                  <button type="button" aria-label="Close filters" onClick={() => setIsFilterOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-50 text-gray-600 dark:bg-slate-800 dark:text-gray-300">
                     <X size={17} />
                   </button>
                 </div>
-
-                {/* CONTENT */}
-
                 <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
                   <FilterContent
                     searchText={searchText}
@@ -1777,348 +1382,94 @@ function CategoryPageContent() {
                     clearAllFilters={clearAllFilters}
                   />
                 </div>
-
-                {/* FOOTER */}
-
-                <div
-                  className="shrink-0 p-3.5"
-                  style={{
-                    borderTop: `1px solid ${COLOR.line}`,
-                    backgroundColor: COLOR.paper,
-                  }}
-                >
+                <div className="shrink-0 border-t border-gray-100 bg-white p-3.5 dark:border-slate-800 dark:bg-slate-900">
                   <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={clearAllFilters}
-                      className="h-11 flex-1 rounded-full text-[12px] font-medium"
-                      style={{
-                        border: `1px solid ${COLOR.line}`,
-                        color: COLOR.ink,
-                        backgroundColor: COLOR.paper,
-                      }}
-                    >
-                      Clear
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setIsFilterOpen(false)}
-                      className="h-11 flex-[1.5] rounded-full text-[12px] font-semibold text-white"
-                      style={{
-                        backgroundColor: COLOR.ink,
-                      }}
-                    >
-                      Show {filteredProducts.length} Products
-                    </button>
+                    <button type="button" onClick={clearAllFilters} className="h-11 flex-1 rounded-full border border-gray-200 bg-white text-[12px] font-medium text-gray-900 dark:border-slate-700 dark:bg-slate-900 dark:text-white">Clear</button>
+                    <button type="button" onClick={() => setIsFilterOpen(false)} className="h-11 flex-[1.5] rounded-full bg-gray-900 text-[12px] font-semibold text-white dark:bg-white dark:text-gray-900">Show {filteredProducts.length} Products</button>
                   </div>
                 </div>
               </aside>
             </div>
           )}
 
-          {/* PRODUCTS */}
-
           <section className="min-w-0">
-            {/* TOP BAR */}
-
             <div className="mb-4 flex min-w-0 items-center justify-between gap-2">
               <div className="flex min-w-0 flex-1 items-center gap-2">
-                {/* MOBILE FILTER */}
-
-                <button
-                  type="button"
-                  onClick={() => setIsFilterOpen(true)}
-                  className="flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-[11.5px] font-medium lg:hidden"
-                  style={{
-                    backgroundColor: COLOR.ink,
-                    color: "#fff",
-                  }}
-                >
+                <button type="button" onClick={() => setIsFilterOpen(true)} className="flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-gray-900 px-3.5 text-[11.5px] font-medium text-white dark:bg-white dark:text-gray-900 lg:hidden">
                   <SlidersHorizontal size={13} />
                   Filter
                   {activeFilterCount > 0 && (
-                    <span className="flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-white px-1 text-[9px] font-semibold text-[#211F1C]">
-                      {activeFilterCount}
-                    </span>
+                    <span className="flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-white px-1 text-[9px] font-semibold text-gray-900 dark:bg-gray-900 dark:text-white">{activeFilterCount}</span>
                   )}
                 </button>
-
-                <p
-                  className="min-w-0 truncate text-[11.5px] sm:text-[12.5px]"
-                  style={{
-                    color: COLOR.inkSoft,
-                  }}
-                >
-                  Showing{" "}
-                  <span
-                    className="font-semibold"
-                    style={{
-                      color: COLOR.ink,
-                    }}
-                  >
-                    {filteredProducts.length}
-                  </span>{" "}
-                  items
+                <p className="min-w-0 truncate text-[11.5px] text-gray-600 dark:text-gray-300 sm:text-[12.5px]">
+                  Showing <span className="font-semibold text-gray-900 dark:text-white">{filteredProducts.length}</span> items
                 </p>
               </div>
-
-              {/* SORT */}
-
               <div className="relative shrink-0">
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="h-9 appearance-none rounded-full py-1 pl-3 pr-8 text-[11.5px] outline-none sm:h-10 sm:pl-4 sm:pr-9 sm:text-[12.5px]"
-                  style={{
-                    backgroundColor: COLOR.paper,
-                    border: `1px solid ${COLOR.line}`,
-                    color: COLOR.ink,
-                  }}
-                >
+                <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="h-9 appearance-none rounded-full border border-gray-200 bg-white py-1 pl-3 pr-8 text-[11.5px] text-gray-900 outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-white sm:h-10 sm:pl-4 sm:pr-9 sm:text-[12.5px]">
                   <option value="default">Sort by</option>
-
                   <option value="newest">Newest</option>
-
                   <option value="low">Price: low to high</option>
-
                   <option value="high">Price: high to low</option>
                 </select>
-
-                <ArrowDownUp
-                  size={12}
-                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 sm:right-3.5"
-                  style={{
-                    color: COLOR.inkMuted,
-                  }}
-                />
+                <ArrowDownUp size={12} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 sm:right-3.5" />
               </div>
             </div>
 
-            {/* ACTIVE SEARCH */}
-
             {searchText.trim() !== "" && (
-              <div
-                className="mb-4 flex min-w-0 items-center justify-between gap-2 rounded-[10px] px-3 py-2.5 sm:px-3.5"
-                style={{
-                  backgroundColor: COLOR.surface,
-                  border: `1px solid ${COLOR.line}`,
-                }}
-              >
-                <p
-                  className="min-w-0 truncate text-[11.5px] sm:text-[12.5px]"
-                  style={{
-                    color: COLOR.inkSoft,
-                  }}
-                >
-                  Results for{" "}
-                  <span
-                    className="font-semibold"
-                    style={{
-                      color: COLOR.ink,
-                    }}
-                  >
-                    {searchText}
-                  </span>
+              <div className="mb-4 flex min-w-0 items-center justify-between gap-2 rounded-[10px] border border-gray-200 bg-gray-50 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-800 sm:px-3.5">
+                <p className="min-w-0 truncate text-[11.5px] text-gray-600 dark:text-gray-300 sm:text-[12.5px]">
+                  Results for <span className="font-semibold text-gray-900 dark:text-white">{searchText}</span>
                 </p>
-
-                <button
-                  type="button"
-                  onClick={() => setSearchText("")}
-                  className="shrink-0 rounded-full px-2 py-1 text-[10.5px] font-medium sm:text-[12px]"
-                  style={{
-                    color: COLOR.accent,
-                  }}
-                >
-                  Clear
-                </button>
+                <button type="button" onClick={() => setSearchText("")} className="shrink-0 rounded-full px-2 py-1 text-[10.5px] font-medium text-[#f47421] sm:text-[12px]">Clear</button>
               </div>
             )}
 
-            {/* NO PRODUCTS */}
-
             {filteredProducts.length === 0 ? (
-              <div
-                className="flex min-h-[420px] items-center justify-center rounded-[20px]"
-                style={{
-                  border: `1px dashed ${COLOR.lineStrong}`,
-                  backgroundColor: COLOR.surface,
-                }}
-              >
+              <div className="flex min-h-[420px] items-center justify-center rounded-[20px] border border-dashed border-gray-300 bg-gray-50 dark:border-slate-600 dark:bg-slate-800">
                 <div className="px-5 text-center">
-                  <h2
-                    className="text-[17px] font-semibold"
-                    style={{
-                      fontFamily: "'Space Grotesk', 'Inter', sans-serif",
-                      color: COLOR.ink,
-                    }}
-                  >
-                    No products found
-                  </h2>
-
-                  <p
-                    className="mt-1 text-[13px]"
-                    style={{
-                      color: COLOR.inkMuted,
-                    }}
-                  >
-                    Try changing your filters or search.
-                  </p>
-
-                  <button
-                    type="button"
-                    onClick={clearAllFilters}
-                    className="mt-4 rounded-full px-5 py-2 text-[12.5px] font-medium text-white"
-                    style={{
-                      backgroundColor: COLOR.ink,
-                    }}
-                  >
-                    Clear filters
-                  </button>
+                  <h2 className="text-[17px] font-semibold text-gray-900 dark:text-white" style={{ fontFamily: "'Space Grotesk', 'Inter', sans-serif" }}>No products found</h2>
+                  <p className="mt-1 text-[13px] text-gray-400 dark:text-gray-500">Try changing your filters or search.</p>
+                  <button type="button" onClick={clearAllFilters} className="mt-4 rounded-full bg-gray-900 px-5 py-2 text-[12.5px] font-medium text-white dark:bg-white dark:text-gray-900">Clear filters</button>
                 </div>
               </div>
             ) : (
               <>
-                {/* PRODUCT GRID */}
-
                 <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-3">
                   {paginatedProducts.map((product) => {
                     const price = getProductPrice(product);
-
                     const originalPrice = getOriginalPrice(product);
-
-                    const discount =
-                      originalPrice > price
-                        ? Math.round(
-                            ((originalPrice - price) / originalPrice) * 100,
-                          )
-                        : 0;
-
+                    const discount = originalPrice > price ? Math.round(((originalPrice - price) / originalPrice) * 100) : 0;
                     const image = getProductImage(product);
-
                     const outOfStock = Number(product.stock) <= 0;
-
                     return (
-                      <div
-                        key={product._id}
-                        className="group relative min-w-0 overflow-hidden rounded-[18px] transition-shadow duration-300 sm:rounded-[22px]"
-                        style={{
-                          backgroundColor: COLOR.paper,
-                          border: `1px solid ${COLOR.line}`,
-                        }}
-                        onMouseEnter={(e) =>
-                          (e.currentTarget.style.boxShadow =
-                            "0 12px 32px rgba(33,31,28,0.10)")
-                        }
-                        onMouseLeave={(e) =>
-                          (e.currentTarget.style.boxShadow = "none")
-                        }
-                      >
-                        {/* IMAGE */}
-
-                        <Link prefetch={false}
-                          href={`/product/${product.slug}`}
-                          className="relative block h-[165px] w-full overflow-hidden sm:h-[230px] lg:h-[240px]"
-                          style={{
-                            backgroundColor: COLOR.mist,
-                          }}
-                        >
+                      <div key={product._id} className="group relative min-w-0 overflow-hidden rounded-[18px] border border-gray-200 bg-white transition-shadow duration-300 hover:shadow-[0_12px_32px_rgba(33,31,28,0.10)] dark:border-slate-700 dark:bg-slate-900 dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.40)] sm:rounded-[22px]">
+                        <Link prefetch={false} href={`/product/${product.slug}`} className="relative block h-[165px] w-full overflow-hidden bg-gray-50 dark:bg-slate-800 sm:h-[230px] lg:h-[240px]">
                           <div className="relative h-full w-full p-2.5 sm:p-6">
-                            <img
-                              src={image}
-                              alt={product.name || "Product"}
-                              className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
-                            />
+                            <img src={image} alt={product.name || "Product"} className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105" />
                           </div>
-
                           {discount > 0 && (
                             <div className="absolute left-2 top-2 sm:left-3 sm:top-3">
-                              <span
-                                className="rounded-full px-2 py-1 text-[7.5px] font-medium text-white sm:px-2.5 sm:text-[10.5px]"
-                                style={{
-                                  backgroundColor: COLOR.ink,
-                                }}
-                              >
-                                Save ৳ {formatPrice(originalPrice - price)}
-                              </span>
+                              <span className="rounded-full bg-gray-900 px-2 py-1 text-[7.5px] font-medium text-white dark:bg-white dark:text-gray-900 sm:px-2.5 sm:text-[10.5px]">Save ৳ {formatPrice(originalPrice - price)}</span>
                             </div>
                           )}
                         </Link>
-
-                        {/* INFO */}
-
                         <div className="px-2.5 pb-2.5 pt-3 sm:px-4 sm:pb-4 sm:pt-3.5">
-                          <Link prefetch={false}
-                            href={`/product/${product.slug}`}
-                            className="block"
-                          >
-                            <h3
-                              className="line-clamp-2 min-h-[34px] text-[11.5px] font-medium sm:min-h-0 sm:text-[14.5px]"
-                              style={{
-                                color: COLOR.ink,
-                              }}
-                            >
-                              {product.name}
-                            </h3>
+                          <Link prefetch={false} href={`/product/${product.slug}`} className="block">
+                            <h3 className="line-clamp-2 min-h-[34px] text-[11.5px] font-medium text-gray-900 dark:text-white sm:min-h-0 sm:text-[14.5px]">{product.name}</h3>
                           </Link>
-
                           <div className="mt-1.5 flex min-w-0 flex-wrap items-baseline gap-1 sm:gap-2">
-                            <span
-                              className="text-[13px] font-semibold sm:text-[17px]"
-                              style={{
-                                color: COLOR.ink,
-                              }}
-                            >
-                              ৳ {formatPrice(price)}
-                            </span>
-
+                            <span className="text-[13px] font-semibold text-gray-900 dark:text-white sm:text-[17px]">৳ {formatPrice(price)}</span>
                             {originalPrice > price && (
-                              <span
-                                className="text-[9px] line-through sm:text-[12.5px]"
-                                style={{
-                                  color: COLOR.inkMuted,
-                                }}
-                              >
-                                ৳ {formatPrice(originalPrice)}
-                              </span>
+                              <span className="text-[9px] text-gray-400 line-through dark:text-gray-500 sm:text-[12.5px]">৳ {formatPrice(originalPrice)}</span>
                             )}
                           </div>
-
                           <div className="mt-2.5 flex items-center gap-1.5 sm:mt-3 sm:gap-2">
-                            <Link prefetch={false}
-                              href={`/product/${product.slug}`}
-                              className="flex h-8 min-w-0 flex-1 items-center justify-center rounded-full text-[9.5px] font-medium sm:h-10 sm:text-[13px]"
-                              style={
-                                outOfStock
-                                  ? {
-                                      border: `1px solid ${COLOR.line}`,
-                                      backgroundColor: COLOR.surface,
-                                      color: COLOR.inkMuted,
-                                    }
-                                  : {
-                                      border: `1px solid ${COLOR.ink}`,
-                                      backgroundColor: COLOR.ink,
-                                      color: "#fff",
-                                    }
-                              }
-                            >
-                              {outOfStock
-                                ? "Out of stock"
-                                : product.isPreOrder
-                                  ? "Pre order"
-                                  : "Shop now"}
+                            <Link prefetch={false} href={`/product/${product.slug}`} className={`flex h-8 min-w-0 flex-1 items-center justify-center rounded-full text-[9.5px] font-medium sm:h-10 sm:text-[13px] ${outOfStock ? "border border-gray-200 bg-gray-50 text-gray-400 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-500" : "border border-gray-900 bg-gray-900 text-white dark:border-white dark:bg-white dark:text-gray-900"}`}>
+                              {outOfStock ? "Out of stock" : product.isPreOrder ? "Pre order" : "Shop now"}
                             </Link>
-
-                            <button
-                              type="button"
-                              disabled={outOfStock}
-                              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full disabled:cursor-not-allowed disabled:opacity-40 sm:h-10 sm:w-10"
-                              style={{
-                                border: `1px solid ${COLOR.line}`,
-                                color: COLOR.inkSoft,
-                              }}
-                              title="Add to cart"
-                            >
+                            <button type="button" disabled={outOfStock} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200 text-gray-600 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-gray-300 sm:h-10 sm:w-10" title="Add to cart">
                               <ShoppingCart size={13} />
                             </button>
                           </div>
@@ -2128,145 +1479,28 @@ function CategoryPageContent() {
                   })}
                 </div>
 
-                {/* PAGINATION */}
-
                 {totalPages > 1 && (
                   <div className="mt-8 flex flex-col items-center gap-3">
-                    <p
-                      className="text-[11px] sm:text-[11.5px]"
-                      style={{
-                        color: COLOR.inkMuted,
-                      }}
-                    >
-                      Showing{" "}
-                      <span
-                        className="font-semibold"
-                        style={{
-                          color: COLOR.ink,
-                        }}
-                      >
-                        {(currentPage - 1) * PRODUCTS_PER_PAGE + 1}
-                      </span>{" "}
-                      –{" "}
-                      <span
-                        className="font-semibold"
-                        style={{
-                          color: COLOR.ink,
-                        }}
-                      >
-                        {Math.min(
-                          currentPage * PRODUCTS_PER_PAGE,
-                          filteredProducts.length,
-                        )}
-                      </span>{" "}
-                      of{" "}
-                      <span
-                        className="font-semibold"
-                        style={{
-                          color: COLOR.ink,
-                        }}
-                      >
-                        {filteredProducts.length}
-                      </span>
+                    <p className="text-[11px] text-gray-400 dark:text-gray-500 sm:text-[11.5px]">
+                      Showing <span className="font-semibold text-gray-900 dark:text-white">{(currentPage - 1) * PRODUCTS_PER_PAGE + 1}</span> – <span className="font-semibold text-gray-900 dark:text-white">{Math.min(currentPage * PRODUCTS_PER_PAGE, filteredProducts.length)}</span> of <span className="font-semibold text-gray-900 dark:text-white">{filteredProducts.length}</span>
                     </p>
-
                     <div className="flex max-w-full items-center gap-1 overflow-x-auto px-1 pb-1">
-                      {/* PREVIOUS */}
-
-                      <button
-                        type="button"
-                        disabled={currentPage === 1}
-                        onClick={() => {
-                          setCurrentPage((prev) => Math.max(1, prev - 1));
-
-                          window.scrollTo({
-                            top: 0,
-                            behavior: "smooth",
-                          });
-                        }}
-                        className="flex h-9 min-w-9 shrink-0 items-center justify-center rounded-full"
-                        style={{
-                          border: `1px solid ${COLOR.line}`,
-                          backgroundColor: COLOR.paper,
-                          color: COLOR.ink,
-                          opacity: currentPage === 1 ? 0.35 : 1,
-                        }}
-                      >
+                      <button type="button" disabled={currentPage === 1} onClick={() => { setCurrentPage((prev) => Math.max(1, prev - 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="flex h-9 min-w-9 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-900 disabled:opacity-35 dark:border-slate-700 dark:bg-slate-900 dark:text-white">
                         <ChevronLeft size={15} />
                       </button>
-
-                      {/* PAGE NUMBERS */}
-
                       {paginationItems.map((page, index) => {
                         const previous = paginationItems[index - 1];
-
                         const showDots = previous && page - previous > 1;
-
                         return (
                           <React.Fragment key={page}>
-                            {showDots && (
-                              <span
-                                className="flex h-9 w-6 shrink-0 items-center justify-center text-[11px]"
-                                style={{
-                                  color: COLOR.inkMuted,
-                                }}
-                              >
-                                ...
-                              </span>
-                            )}
-
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setCurrentPage(page);
-
-                                window.scrollTo({
-                                  top: 0,
-                                  behavior: "smooth",
-                                });
-                              }}
-                              className="flex h-9 min-w-9 shrink-0 items-center justify-center rounded-full px-2.5 text-[11px] font-medium"
-                              style={{
-                                backgroundColor:
-                                  currentPage === page
-                                    ? COLOR.ink
-                                    : COLOR.paper,
-                                color:
-                                  currentPage === page ? "#fff" : COLOR.ink,
-                                border: `1px solid ${
-                                  currentPage === page ? COLOR.ink : COLOR.line
-                                }`,
-                              }}
-                            >
+                            {showDots && <span className="flex h-9 w-6 shrink-0 items-center justify-center text-[11px] text-gray-400 dark:text-gray-500">...</span>}
+                            <button type="button" onClick={() => { setCurrentPage(page); window.scrollTo({ top: 0, behavior: "smooth" }); }} className={`flex h-9 min-w-9 shrink-0 items-center justify-center rounded-full px-2.5 text-[11px] font-medium ${currentPage === page ? "border border-gray-900 bg-gray-900 text-white dark:border-white dark:bg-white dark:text-gray-900" : "border border-gray-200 bg-white text-gray-900 dark:border-slate-700 dark:bg-slate-900 dark:text-white"}`}>
                               {page}
                             </button>
                           </React.Fragment>
                         );
                       })}
-
-                      {/* NEXT */}
-
-                      <button
-                        type="button"
-                        disabled={currentPage === totalPages}
-                        onClick={() => {
-                          setCurrentPage((prev) =>
-                            Math.min(totalPages, prev + 1),
-                          );
-
-                          window.scrollTo({
-                            top: 0,
-                            behavior: "smooth",
-                          });
-                        }}
-                        className="flex h-9 min-w-9 shrink-0 items-center justify-center rounded-full"
-                        style={{
-                          border: `1px solid ${COLOR.line}`,
-                          backgroundColor: COLOR.paper,
-                          color: COLOR.ink,
-                          opacity: currentPage === totalPages ? 0.35 : 1,
-                        }}
-                      >
+                      <button type="button" disabled={currentPage === totalPages} onClick={() => { setCurrentPage((prev) => Math.min(totalPages, prev + 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="flex h-9 min-w-9 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-900 disabled:opacity-35 dark:border-slate-700 dark:bg-slate-900 dark:text-white">
                         <ChevronRight size={15} />
                       </button>
                     </div>
@@ -2281,31 +1515,19 @@ function CategoryPageContent() {
   );
 }
 
-// ============================================
-// SUSPENSE WRAPPER
-// ============================================
-
 export default function CategoryPage() {
   return (
     <Suspense
       fallback={
-        <main className="min-h-screen bg-white">
+        <main className="min-h-screen bg-white dark:bg-slate-900">
           <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-            <div className="h-4 w-52 animate-pulse rounded bg-gray-100" />
-
-            <div className="mt-5 h-10 w-48 animate-pulse rounded bg-gray-100" />
-
+            <div className="h-4 w-52 animate-pulse rounded bg-gray-100 dark:bg-slate-800" />
+            <div className="mt-5 h-10 w-48 animate-pulse rounded bg-gray-100 dark:bg-slate-800" />
             <div className="mt-8 grid gap-5 lg:grid-cols-[260px_1fr]">
-              <div className="hidden h-[650px] animate-pulse rounded-[20px] bg-gray-100 lg:block" />
-
+              <div className="hidden h-[650px] animate-pulse rounded-[20px] bg-gray-100 dark:bg-slate-800 lg:block" />
               <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-3">
-                {Array.from({
-                  length: 6,
-                }).map((_, index) => (
-                  <div
-                    key={index}
-                    className="h-[360px] animate-pulse rounded-[22px] bg-gray-100"
-                  />
+                {Array.from({ length: 6 }).map((_, index) => (
+                  <div key={index} className="h-[360px] animate-pulse rounded-[22px] bg-gray-100 dark:bg-slate-800" />
                 ))}
               </div>
             </div>

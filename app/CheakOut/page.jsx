@@ -1,6 +1,5 @@
- /* eslint-disable react-hooks/set-state-in-effect */
-
-"use client";
+/* eslint-disable react-hooks/set-state-in-effect */
+ "use client";
 
 import React, {
   useEffect,
@@ -107,13 +106,13 @@ function AreaSelector({ value, onChange }) {
         onClick={() =>
           setOpen((prev) => !prev)
         }
-        className="flex w-full items-center justify-between rounded-md border border-gray-300 bg-white px-3 py-2 text-left text-sm"
+        className="flex w-full items-center justify-between rounded-md border border-gray-300 bg-white px-3 py-2 text-left text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-white"
       >
         <span
           className={
             value
-              ? "text-gray-900"
-              : "text-gray-400"
+              ? "text-gray-900 dark:text-white"
+              : "text-gray-400 dark:text-gray-500"
           }
         >
           {value ||
@@ -122,15 +121,15 @@ function AreaSelector({ value, onChange }) {
 
         <ChevronDown
           size={16}
-          className="text-gray-400"
+          className="text-gray-400 dark:text-gray-500"
         />
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-1 flex max-h-[320px] overflow-hidden rounded-lg border bg-white shadow-xl">
+        <div className="absolute left-0 top-full z-50 mt-1 flex max-h-[320px] overflow-hidden rounded-lg border border-gray-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-900">
           {/* DIVISION */}
 
-          <div className="w-40 overflow-y-auto border-r">
+          <div className="w-40 overflow-y-auto border-r border-gray-200 dark:border-slate-700">
             {divisions.map((item) => (
               <div
                 key={item}
@@ -140,8 +139,8 @@ function AreaSelector({ value, onChange }) {
                 }}
                 className={`flex cursor-pointer items-center justify-between px-3 py-2.5 text-sm ${
                   division === item
-                    ? "bg-orange-50 text-orange-600"
-                    : "hover:bg-gray-50"
+                    ? "bg-orange-50 text-orange-600 dark:bg-orange-900/20 dark:text-orange-400"
+                    : "text-gray-800 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-slate-800"
                 }`}
               >
                 {item}
@@ -154,7 +153,7 @@ function AreaSelector({ value, onChange }) {
           {/* DISTRICT */}
 
           {division && (
-            <div className="w-44 overflow-y-auto border-r">
+            <div className="w-44 overflow-y-auto border-r border-gray-200 dark:border-slate-700">
               {districts.map((item) => (
                 <div
                   key={item}
@@ -163,8 +162,8 @@ function AreaSelector({ value, onChange }) {
                   }
                   className={`flex cursor-pointer items-center justify-between px-3 py-2.5 text-sm ${
                     district === item
-                      ? "bg-orange-50 text-orange-600"
-                      : "hover:bg-gray-50"
+                      ? "bg-orange-50 text-orange-600 dark:bg-orange-900/20 dark:text-orange-400"
+                      : "text-gray-800 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-slate-800"
                   }`}
                 >
                   {item}
@@ -192,8 +191,8 @@ function AreaSelector({ value, onChange }) {
                     }
                     className={`flex cursor-pointer items-center justify-between px-3 py-2.5 text-sm ${
                       selected
-                        ? "bg-orange-50 text-orange-600"
-                        : "hover:bg-gray-50"
+                        ? "bg-orange-50 text-orange-600 dark:bg-orange-900/20 dark:text-orange-400"
+                        : "text-gray-800 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-slate-800"
                     }`}
                   >
                     {item}
@@ -1316,20 +1315,20 @@ const getVariants = (item) => {
 
   if (!cart.length) {
     return (
-      <main className="min-h-screen bg-gray-50 px-4 py-12">
+      <main className="min-h-screen bg-gray-50 px-4 py-12 dark:bg-slate-950">
         <div className="mx-auto max-w-[1440px]">
-          <div className="rounded-2xl bg-white px-6 py-16 text-center shadow-sm">
+          <div className="rounded-2xl border border-gray-100 bg-white px-6 py-16 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
 
             <ShoppingBag
               size={50}
               className="mx-auto mb-5 text-[#f47421]"
             />
 
-            <h1 className="text-2xl font-bold">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
               Your Cart is Empty
             </h1>
 
-            <p className="mt-2 text-sm text-gray-500">
+            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
               Please add some products
               before checkout.
             </p>
@@ -1353,7 +1352,7 @@ const getVariants = (item) => {
 ========================================================= */
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa] px-4 py-8 text-gray-800">
+    <div className="min-h-screen bg-[#f8f9fa] px-4 py-8 text-gray-800 dark:bg-slate-950 dark:text-gray-100">
       <div className="mx-auto max-w-[1440px] space-y-6">
 
         {/* HEADER */}
@@ -1363,18 +1362,18 @@ const getVariants = (item) => {
           <Link
             href="/cart"
             prefetch={false}
-            className="flex items-center gap-1 rounded-md border bg-white px-3 py-2 text-sm shadow-sm"
+            className="flex items-center gap-1 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-white"
           >
             <ArrowLeft size={16} />
             Back
           </Link>
 
           <div>
-            <h1 className="text-2xl font-bold">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
               Checkout & Confirm Order
             </h1>
 
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               {totalItems}{" "}
               {totalItems === 1
                 ? "Item"
@@ -1386,7 +1385,7 @@ const getVariants = (item) => {
 
         {/* NOTICE */}
 
-        <div className="rounded-lg border border-[#fde2c4] bg-[#fef4e8] p-3 text-sm text-[#8c5211]">
+        <div className="rounded-lg border border-[#fde2c4] bg-[#fef4e8] p-3 text-sm text-[#8c5211] dark:border-orange-800/50 dark:bg-orange-900/20 dark:text-orange-300">
 
           {formData.paymentMethod !==
           "cash_on_delivery" ? (
@@ -1427,13 +1426,13 @@ const getVariants = (item) => {
               LEFT
           ================================================= */}
 
-          <div className="space-y-6 rounded-xl border bg-white p-6 shadow-sm lg:col-span-7">
+          <div className="space-y-6 rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 lg:col-span-7">
 
             {/* DELIVERY */}
 
             <div>
 
-              <h2 className="mb-4 text-lg font-semibold">
+              <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
                 Delivery Information
               </h2>
 
@@ -1442,7 +1441,7 @@ const getVariants = (item) => {
                 {/* NAME */}
 
                 <div>
-                  <label className="mb-1 block text-sm font-medium">
+                  <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Full Name *
                   </label>
 
@@ -1457,14 +1456,14 @@ const getVariants = (item) => {
                       handleChange
                     }
                     placeholder="Enter full name"
-                    className="w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-500"
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:ring-1 focus:ring-orange-500 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
                   />
                 </div>
 
                 {/* EMAIL */}
 
                 <div>
-                  <label className="mb-1 block text-sm font-medium">
+                  <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Email
                   </label>
 
@@ -1478,20 +1477,20 @@ const getVariants = (item) => {
                       handleChange
                     }
                     placeholder="Enter Email"
-                    className="w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-500"
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:ring-1 focus:ring-orange-500 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
                   />
                 </div>
 
                 {/* PHONE */}
 
                 <div>
-                  <label className="mb-1 block text-sm font-medium">
+                  <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Phone Number *
                   </label>
 
                   <div className="flex">
 
-                    <span className="flex items-center rounded-l-md border border-r-0 bg-gray-50 px-3 text-sm text-gray-500">
+                    <span className="flex items-center rounded-l-md border border-r-0 border-gray-300 bg-gray-50 px-3 text-sm text-gray-500 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-400">
                       +88
                     </span>
 
@@ -1506,7 +1505,7 @@ const getVariants = (item) => {
                         handleChange
                       }
                       placeholder="01XXXXXXXXX"
-                      className="w-full rounded-r-md border px-3 py-2 text-sm"
+                      className="w-full rounded-r-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
                     />
 
                   </div>
@@ -1516,7 +1515,7 @@ const getVariants = (item) => {
 
                 <div>
 
-                  <label className="mb-1 block text-sm font-medium">
+                  <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Select Area *
                   </label>
 
@@ -1543,7 +1542,7 @@ const getVariants = (item) => {
 
                 <div className="sm:col-span-2">
 
-                  <label className="mb-1 block text-sm font-medium">
+                  <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Address *
                   </label>
 
@@ -1558,7 +1557,7 @@ const getVariants = (item) => {
                       handleChange
                     }
                     placeholder="House# 123, Road# 24"
-                    className="w-full rounded-md border px-3 py-2 text-sm"
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
                   />
 
                 </div>
@@ -1567,7 +1566,7 @@ const getVariants = (item) => {
 
                 <div className="sm:col-span-2">
 
-                  <label className="mb-1 block text-sm font-medium">
+                  <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Note
                   </label>
 
@@ -1581,7 +1580,7 @@ const getVariants = (item) => {
                       handleChange
                     }
                     placeholder="Any special delivery instructions..."
-                    className="w-full rounded-md border px-3 py-2 text-sm"
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
                   />
 
                 </div>
@@ -1593,7 +1592,7 @@ const getVariants = (item) => {
 
             <div>
 
-              <h2 className="mb-3 text-lg font-semibold">
+              <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-white">
                 Payment Method
               </h2>
 
@@ -1631,8 +1630,8 @@ const getVariants = (item) => {
                       key={item.id}
                       className={`flex cursor-pointer items-center gap-2 rounded-lg border p-3 ${
                         selected
-                          ? "border-orange-500 bg-orange-50"
-                          : "border-gray-200"
+                          ? "border-orange-500 bg-orange-50 dark:border-orange-500 dark:bg-orange-900/20"
+                          : "border-gray-200 dark:border-slate-700 dark:bg-slate-800/50"
                       }`}
                     >
 
@@ -1641,11 +1640,11 @@ const getVariants = (item) => {
                         className={
                           selected
                             ? "text-orange-500"
-                            : "text-gray-500"
+                            : "text-gray-500 dark:text-gray-400"
                         }
                       />
 
-                      <span className="text-xs font-medium">
+                      <span className="text-xs font-medium text-gray-800 dark:text-gray-200">
                         {item.label}
                       </span>
 
@@ -1675,7 +1674,7 @@ const getVariants = (item) => {
 
             <div>
 
-              <h2 className="mb-3 text-lg font-semibold">
+              <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-white">
                 Delivery Method
               </h2>
 
@@ -1707,8 +1706,8 @@ const getVariants = (item) => {
                       key={item.id}
                       className={`flex cursor-pointer items-center gap-2 rounded-lg border p-3 ${
                         selected
-                          ? "border-orange-500 bg-orange-50"
-                          : "border-gray-200"
+                          ? "border-orange-500 bg-orange-50 dark:border-orange-500 dark:bg-orange-900/20"
+                          : "border-gray-200 dark:border-slate-700 dark:bg-slate-800/50"
                       }`}
                     >
 
@@ -1717,11 +1716,11 @@ const getVariants = (item) => {
                         className={
                           selected
                             ? "text-orange-500"
-                            : "text-gray-500"
+                            : "text-gray-500 dark:text-gray-400"
                         }
                       />
 
-                      <span className="text-xs font-medium">
+                      <span className="text-xs font-medium text-gray-800 dark:text-gray-200">
                         {item.label}
                       </span>
 
@@ -1753,9 +1752,9 @@ const getVariants = (item) => {
               RIGHT
           ================================================= */}
 
-          <div className="h-fit space-y-5 rounded-xl border bg-white p-6 shadow-sm lg:col-span-5">
+          <div className="h-fit space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 lg:col-span-5">
 
-            <h2 className="text-lg font-semibold">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
               Order Summary
             </h2>
 
@@ -1835,12 +1834,12 @@ const getVariants = (item) => {
                   return (
                     <div
                       key={`${productId}-${index}`}
-                      className="flex gap-3 border-b pb-4"
+                      className="flex gap-3 border-b border-gray-100 pb-4 dark:border-slate-800"
                     >
 
                       {/* IMAGE */}
 
-                      <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-gray-50">
+                      <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-gray-200 bg-gray-50 dark:border-slate-700 dark:bg-slate-800">
 
                         {(
                           matchedVariant?.image ||
@@ -1862,7 +1861,7 @@ const getVariants = (item) => {
                         ) : (
                           <ShoppingBag
                             size={25}
-                            className="text-gray-300"
+                            className="text-gray-300 dark:text-gray-600"
                           />
                         )}
 
@@ -1874,7 +1873,7 @@ const getVariants = (item) => {
 
                         <div className="flex justify-between gap-2">
 
-                          <p className="line-clamp-2 text-sm font-semibold">
+                          <p className="line-clamp-2 text-sm font-semibold text-gray-900 dark:text-white">
                             {item?.name}
                           </p>
 
@@ -1885,7 +1884,7 @@ const getVariants = (item) => {
                                 cartId
                               )
                             }
-                            className="text-gray-400 hover:text-red-500"
+                            className="text-gray-400 transition hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400"
                           >
                             <X
                               size={16}
@@ -1896,7 +1895,7 @@ const getVariants = (item) => {
 
                         {/* PRICE */}
 
-                        <p className="mt-1 text-xs text-gray-500">
+                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                           ৳{" "}
                           {formatPrice(
                             price
@@ -1917,7 +1916,7 @@ const getVariants = (item) => {
                               0 && (
                               <div>
 
-                                <label className="mb-1 block text-xs font-medium">
+                                <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">
                                   Select Color
                                 </label>
 
@@ -1935,7 +1934,7 @@ const getVariants = (item) => {
                                         .value
                                     )
                                   }
-                                  className="w-full rounded-md border px-2 py-1.5 text-xs"
+                                  className="w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
                                 >
 
                                   <option value="">
@@ -1973,7 +1972,7 @@ const getVariants = (item) => {
                               0 && (
                               <div>
 
-                                <label className="mb-1 block text-xs font-medium">
+                                <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">
                                   Select RAM
                                 </label>
 
@@ -1998,7 +1997,7 @@ const getVariants = (item) => {
                                         .value
                                     )
                                   }
-                                  className="w-full rounded-md border px-2 py-1.5 text-xs disabled:bg-gray-100"
+                                  className="w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-900 disabled:bg-gray-100 dark:border-slate-600 dark:bg-slate-800 dark:text-white dark:disabled:bg-slate-700"
                                 >
 
                                   <option value="">
@@ -2040,7 +2039,7 @@ const getVariants = (item) => {
                               0 && (
                               <div>
 
-                                <label className="mb-1 block text-xs font-medium">
+                                <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">
                                   Select Storage
                                 </label>
 
@@ -2074,7 +2073,7 @@ const getVariants = (item) => {
                                         .value
                                     )
                                   }
-                                  className="w-full rounded-md border px-2 py-1.5 text-xs disabled:bg-gray-100"
+                                  className="w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-900 disabled:bg-gray-100 dark:border-slate-600 dark:bg-slate-800 dark:text-white dark:disabled:bg-slate-700"
                                 >
 
                                   <option value="">
@@ -2115,7 +2114,7 @@ const getVariants = (item) => {
                         {(selected.color ||
                           selected.ram ||
                           selected.storage) && (
-                          <div className="mt-2 rounded-md bg-orange-50 px-2 py-1.5 text-[11px] text-orange-700">
+                          <div className="mt-2 rounded-md bg-orange-50 px-2 py-1.5 text-[11px] text-orange-700 dark:bg-orange-900/20 dark:text-orange-300">
 
                             <b>
                               Selected:
@@ -2136,7 +2135,7 @@ const getVariants = (item) => {
                         {/* SKU */}
 
                         {matchedVariant?.sku && (
-                          <p className="mt-1 text-[10px] text-gray-400">
+                          <p className="mt-1 text-[10px] text-gray-400 dark:text-gray-500">
                             SKU:{" "}
                             {
                               matchedVariant.sku
@@ -2154,7 +2153,7 @@ const getVariants = (item) => {
                             {/* NOT COMPLETE */}
 
                             {!variantStatus.complete && (
-                              <p className="rounded-md bg-gray-50 px-2 py-1.5 text-[11px] text-gray-500">
+                              <p className="rounded-md bg-gray-50 px-2 py-1.5 text-[11px] text-gray-500 dark:bg-slate-800 dark:text-gray-400">
                                 <b>
                                   {
                                     variantStatus.message
@@ -2168,7 +2167,7 @@ const getVariants = (item) => {
                             {variantStatus.complete &&
                               variantStatus.variant &&
                               variantStatus.available && (
-                                <p className="rounded-md bg-green-50 px-2 py-1.5 text-[11px] text-green-700">
+                                <p className="rounded-md bg-green-50 px-2 py-1.5 text-[11px] text-green-700 dark:bg-green-900/20 dark:text-green-400">
 
                                   <b>
                                     ✓ Variant Available
@@ -2188,7 +2187,7 @@ const getVariants = (item) => {
 
                             {variantStatus.complete &&
                               !variantStatus.variant && (
-                                <p className="rounded-md bg-red-50 px-2 py-1.5 text-[11px] text-red-600">
+                                <p className="rounded-md bg-red-50 px-2 py-1.5 text-[11px] text-red-600 dark:bg-red-900/20 dark:text-red-400">
 
                                   <b>
                                     ✕ এই combination-এর variant available নেই।
@@ -2202,7 +2201,7 @@ const getVariants = (item) => {
                             {variantStatus.complete &&
                               variantStatus.variant &&
                               !variantStatus.available && (
-                                <p className="rounded-md bg-red-50 px-2 py-1.5 text-[11px] text-red-600">
+                                <p className="rounded-md bg-red-50 px-2 py-1.5 text-[11px] text-red-600 dark:bg-red-900/20 dark:text-red-400">
 
                                   <b>
                                     ✕ এই selected variant-এর stock শেষ।
@@ -2220,7 +2219,7 @@ const getVariants = (item) => {
 
                         <div className="mt-2 flex items-center justify-between">
 
-                          <div className="flex items-center rounded-full border">
+                          <div className="flex items-center rounded-full border border-gray-200 dark:border-slate-700">
 
                             {/* MINUS */}
 
@@ -2231,7 +2230,7 @@ const getVariants = (item) => {
                                   cartId
                                 )
                               }
-                              className="flex h-7 w-7 items-center justify-center"
+                              className="flex h-7 w-7 items-center justify-center text-gray-700 dark:text-gray-300"
                             >
                               <Minus
                                 size={13}
@@ -2240,7 +2239,7 @@ const getVariants = (item) => {
 
                             {/* QUANTITY */}
 
-                            <span className="w-7 text-center text-xs font-semibold">
+                            <span className="w-7 text-center text-xs font-semibold text-gray-900 dark:text-white">
                               {quantity}
                             </span>
 
@@ -2262,7 +2261,7 @@ const getVariants = (item) => {
                                     quantity
                                 )
                               }
-                              className="flex h-7 w-7 items-center justify-center disabled:cursor-not-allowed disabled:opacity-40"
+                              className="flex h-7 w-7 items-center justify-center text-gray-700 disabled:cursor-not-allowed disabled:opacity-40 dark:text-gray-300"
                             >
                               <Plus
                                 size={13}
@@ -2271,7 +2270,7 @@ const getVariants = (item) => {
 
                           </div>
 
-                          <span className="text-sm font-bold">
+                          <span className="text-sm font-bold text-gray-900 dark:text-white">
                             ৳{" "}
                             {formatPrice(
                               itemTotal
@@ -2294,7 +2293,7 @@ const getVariants = (item) => {
 
             <div>
 
-              <label className="mb-1.5 block text-xs font-semibold">
+              <label className="mb-1.5 block text-xs font-semibold text-gray-700 dark:text-gray-300">
                 Apply Coupon
               </label>
 
@@ -2310,7 +2309,7 @@ const getVariants = (item) => {
                     handleChange
                   }
                   placeholder="Coupon Code"
-                  className="w-full rounded-md border px-3 py-2 text-xs"
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-xs text-gray-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
                 />
 
                 <button
@@ -2318,7 +2317,7 @@ const getVariants = (item) => {
                   onClick={
                     applyCoupon
                   }
-                  className="rounded-md bg-black px-4 py-2 text-xs font-medium text-white"
+                  className="rounded-md bg-black px-4 py-2 text-xs font-medium text-white dark:bg-white dark:text-black"
                 >
                   Apply
                 </button>
@@ -2330,7 +2329,7 @@ const getVariants = (item) => {
                 PRICE
             ================================================= */}
 
-            <div className="space-y-3 border-y py-4 text-sm">
+            <div className="space-y-3 border-y border-gray-200 py-4 text-sm text-gray-700 dark:border-slate-700 dark:text-gray-300">
 
               <div className="flex justify-between">
 
@@ -2376,7 +2375,7 @@ const getVariants = (item) => {
                   Discount
                 </span>
 
-                <b className="text-green-600">
+                <b className="text-green-600 dark:text-green-400">
                   - ৳{" "}
                   {formatPrice(
                     couponDiscount
@@ -2389,7 +2388,7 @@ const getVariants = (item) => {
 
             {/* TOTAL */}
 
-            <div className="flex justify-between text-lg font-bold">
+            <div className="flex justify-between text-lg font-bold text-gray-900 dark:text-white">
 
               <span>
                 Total Amount
@@ -2423,7 +2422,7 @@ const getVariants = (item) => {
 
               <label
                 htmlFor="terms"
-                className="text-xs text-gray-600"
+                className="text-xs text-gray-600 dark:text-gray-400"
               >
                 I have read & agree to
                 the website{" "}

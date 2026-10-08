@@ -2,7 +2,7 @@
 
 import Slider from "./Componant/Banner";
 import FeaturedCategories from "./Componant/HomeCatagoris";
-import AddProductPage from "./Product"
+
 
 export default function Home() {
   return (
@@ -10,7 +10,7 @@ export default function Home() {
 
   <Slider/>
 <FeaturedCategories/>
-  <AddProductPage/>
+
     </>
   );
 }

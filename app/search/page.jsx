@@ -3,7 +3,7 @@
 
 
 import React, { Suspense, useEffect, useMemo, useState } from "react";
-
+import useStore from "../Store/store.js";
 import { useParams, usePathname, useSearchParams } from "next/navigation";
 
 import Link from "next/link";
@@ -254,12 +254,13 @@ function FilterContent({
 // ============================================
 
 function CategoryPageContent() {
+
   const params = useParams();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
   const slug = params?.slug;
-
+  const { addTocart } = useStore();
   // ============================================
   // SEARCH PAGE
   // ============================================
@@ -1469,7 +1470,7 @@ function CategoryPageContent() {
                             <Link prefetch={false} href={`/product/${product.slug}`} className={`flex h-8 min-w-0 flex-1 items-center justify-center rounded-full text-[9.5px] font-medium sm:h-10 sm:text-[13px] ${outOfStock ? "border border-gray-200 bg-gray-50 text-gray-400 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-500" : "border border-gray-900 bg-gray-900 text-white dark:border-white dark:bg-white dark:text-gray-900"}`}>
                               {outOfStock ? "Out of stock" : product.isPreOrder ? "Pre order" : "Shop now"}
                             </Link>
-                            <button type="button" disabled={outOfStock} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200 text-gray-600 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-gray-300 sm:h-10 sm:w-10" title="Add to cart">
+                            <button   onClick={() => addTocart(product)} type="button" disabled={outOfStock} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200 text-gray-600 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-gray-300 sm:h-10 sm:w-10" title="Add to cart">
                               <ShoppingCart size={13} />
                             </button>
                           </div>

@@ -1,3 +1,4 @@
+
 /* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
@@ -19,21 +20,14 @@ import {
 import useStore from "../../Store/store";
 
 const API_BASE = "https://apple-gadgets-ui-backend.vercel.app";
-
-// Fast client-side product cache.
 const PRODUCT_CACHE_TTL = 30 * 1000;
 const productCache = new Map();
-
-// ============================================
-// KNOWN FILTER GROUPS
-// ============================================
+const PRODUCTS_PER_PAGE = 12;
+const MAX_FILTER_VALUE_LENGTH = 40;
+const MAX_AUTO_FILTER_OPTIONS = 25;
 
 const KNOWN_FILTER_GROUPS = [
-  {
-    key: "brand",
-    label: "Brand",
-    synonyms: ["brand", "brand name"],
-  },
+  { key: "brand", label: "Brand", synonyms: ["brand", "brand name"] },
   {
     key: "series",
     label: "Series / Model",
@@ -42,14 +36,7 @@ const KNOWN_FILTER_GROUPS = [
   {
     key: "display",
     label: "Display size",
-    synonyms: [
-      "display",
-      "display size",
-      "screen",
-      "screen size",
-      "displaysize",
-      "screensize",
-    ],
+    synonyms: ["display", "display size", "screen", "screen size", "displaysize", "screensize"],
   },
   {
     key: "processor",
@@ -59,23 +46,12 @@ const KNOWN_FILTER_GROUPS = [
   {
     key: "battery",
     label: "Battery capacity",
-    synonyms: [
-      "battery",
-      "battery capacity",
-      "battery size",
-      "batterycapacity",
-    ],
+    synonyms: ["battery", "battery capacity", "battery size", "batterycapacity"],
   },
   {
     key: "storage",
     label: "Storage",
-    synonyms: [
-      "storage",
-      "storage capacity",
-      "internal storage",
-      "rom",
-      "capacity",
-    ],
+    synonyms: ["storage", "storage capacity", "internal storage", "rom", "capacity"],
   },
   {
     key: "ram",
@@ -100,11 +76,354 @@ const IGNORED_SPEC_KEYS = new Set([
   "what's in the box",
 ]);
 
-const MAX_FILTER_VALUE_LENGTH = 40;
-const MAX_AUTO_FILTER_OPTIONS = 25;
+// ============================================
+// HELPERS
+// ============================================
+
+function normalizeCategorySlug(value = "") {
+  try {
+    return decodeURIComponent(String(value))
+      .trim()
+      .toLowerCase()
+      .replace(/\.html$/, "")
+      .replace(/\/+$/, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+  } catch {
+    return String(value)
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+  }
+}
+
+function getBannerUrl(category) {
+  const banner =
+    category?.bannerImage ||
+    category?.banner ||
+    category?.bannerUrl ||
+    category?.bannerURL ||
+    "";
+
+  if (typeof banner === "string") return banner;
+
+  return banner?.url || banner?.secure_url || banner?.src || "";
+}
+
+function getCategoryCollections(category) {
+  if (!category || typeof category !== "object") return [];
+
+  return [
+    category.subCategories,
+    category.childCategories,
+    category.subChildCategories,
+    category.children,
+    category.subChildren,
+    category.categories,
+  ].filter(Array.isArray);
+}
+
+function getProductImage(product) {
+  const images = product?.images;
+
+  if (Array.isArray(images) && images.length) {
+    const first = images[0];
+
+    if (typeof first === "string") return first;
+
+    return (
+      first?.url ||
+      first?.secure_url ||
+      first?.src ||
+      "/placeholder.png"
+    );
+  }
+
+  if (typeof images === "string") return images;
+
+  return "/placeholder.png";
+}
+
+function getProductPrice(product) {
+  return Number(product?.discountPrice || product?.price || 0);
+}
+
+function getOriginalPrice(product) {
+  return Number(product?.price || 0);
+}
+
+function formatPrice(price) {
+  return new Intl.NumberFormat("en-BD").format(Number(price) || 0);
+}
+
+function getSpecEntries(product) {
+  return Array.isArray(product?.specifications)
+    ? product.specifications.filter(
+        (item) => item && typeof item === "object",
+      )
+    : [];
+}
+
+function getSpecKeyLabel(item) {
+  return String(
+    item?.key ||
+      item?.name ||
+      item?.title ||
+      item?.label ||
+      item?.specification ||
+      item?.attribute ||
+      "",
+  ).trim();
+}
+
+function getSpecItemValues(item) {
+  const value =
+    item?.value ??
+    item?.data ??
+    item?.specificationValue ??
+    item?.content ??
+    "";
+
+  const values = Array.isArray(value) ? value : [value];
+
+  return values
+    .filter(
+      (value) =>
+        value !== undefined &&
+        value !== null &&
+        String(value).trim() !== "",
+    )
+    .map((value) => String(value).trim());
+}
+
+function getSpecificationValues(product, keys = []) {
+  const normalizedKeys = keys.map((key) =>
+    String(key).trim().toLowerCase(),
+  );
+
+  return [
+    ...new Set(
+      getSpecEntries(product).flatMap((item) => {
+        const key = getSpecKeyLabel(item).toLowerCase();
+
+        return normalizedKeys.includes(key) ? getSpecItemValues(item) : [];
+      }),
+    ),
+  ];
+}
+
+function getBrandValues(product) {
+  const brand = product?.brand;
+
+  if (brand !== undefined && brand !== null && String(brand).trim()) {
+    if (typeof brand === "object") {
+      const value = brand.name || brand.title || brand.value || "";
+      return value ? [String(value).trim()] : [];
+    }
+
+    return [String(brand).trim()];
+  }
+
+  return getSpecificationValues(product, ["brand", "brand name"]);
+}
+
+function getRawRamValues(product) {
+  return Array.isArray(product?.ram)
+    ? product.ram
+        .filter(
+          (item) =>
+            item !== undefined &&
+            item !== null &&
+            String(item).trim() !== "",
+        )
+        .map((item) => String(item).trim())
+    : [];
+}
+
+function getStorageValues(product) {
+  const values = [];
+
+  getRawRamValues(product).forEach((value) => {
+    const text = value.trim();
+    const ramMatch = text.match(/\b\d+(?:\.\d+)?\s*GB\s*RAM\b/i);
+
+    if (ramMatch) {
+      const beforeRam = text.slice(0, ramMatch.index);
+      const match = beforeRam.match(/\b\d+(?:\.\d+)?\s*(?:TB|GB)\b/i);
+
+      if (match) {
+        values.push(match[0].replace(/\s+/g, "").toUpperCase());
+      }
+
+      return;
+    }
+
+    const match = text.match(/^\d+(?:\.\d+)?\s*(?:TB|GB)$/i);
+
+    if (match) {
+      values.push(match[0].replace(/\s+/g, "").toUpperCase());
+    }
+  });
+
+  return [
+    ...new Set([
+      ...values,
+      ...getSpecificationValues(product, [
+        "storage",
+        "storage capacity",
+        "internal storage",
+        "rom",
+        "capacity",
+      ]),
+    ]),
+  ];
+}
+
+function getRamValues(product) {
+  const parsed = getRawRamValues(product)
+    .map((value) => {
+      const withRam = value.match(/\b\d+(?:\.\d+)?\s*GB\s*RAM\b/i);
+
+      if (withRam) {
+        return withRam[0]
+          .replace(/\s*RAM\b/i, "")
+          .replace(/\s+/g, "")
+          .toUpperCase();
+      }
+
+      const plain = value.match(/^\d+(?:\.\d+)?\s*GB$/i);
+
+      return plain
+        ? plain[0].replace(/\s+/g, "").toUpperCase()
+        : value;
+    })
+    .filter(Boolean);
+
+  return [
+    ...new Set([
+      ...parsed,
+      ...getSpecificationValues(product, [
+        "ram",
+        "ram size",
+        "memory",
+        "memory size",
+      ]),
+    ]),
+  ];
+}
+
+function getDisplayValues(product) {
+  return [
+    ...new Set(
+      getSpecificationValues(product, [
+        "display",
+        "display size",
+        "screen",
+        "screen size",
+        "displaysize",
+        "screensize",
+      ])
+        .map((value) => {
+          const match = String(value)
+            .trim()
+            .match(/\b(\d+(?:\.\d+)?)\s*(?:inches?|inch|")/i);
+
+          if (match) return `${match[1]} inches`;
+
+          return value.length <= MAX_FILTER_VALUE_LENGTH ? value : "";
+        })
+        .filter(Boolean),
+    ),
+  ];
+}
+
+function getValuesForFilter(product, config) {
+  if (config.key === "brand") return getBrandValues(product);
+  if (config.key === "storage") return getStorageValues(product);
+  if (config.key === "ram") return getRamValues(product);
+  if (config.key === "display") return getDisplayValues(product);
+
+  return getSpecificationValues(product, config.synonyms || []);
+}
+
+function sortFilterOptions(values) {
+  const getNumber = (value) => {
+    const text = String(value).toUpperCase();
+    const match = text.match(/\d+(?:\.\d+)?/);
+
+    if (!match) return null;
+
+    const number = Number(match[0]);
+
+    return text.includes("TB") ? number * 1024 : number;
+  };
+
+  if (values.every((value) => getNumber(value) !== null)) {
+    return [...values].sort((a, b) => getNumber(a) - getNumber(b));
+  }
+
+  return [...values].sort((a, b) => a.localeCompare(b));
+}
+
+function getSearchText(value) {
+  if (value === undefined || value === null) return "";
+
+  if (Array.isArray(value)) {
+    return value.map(getSearchText).join(" ");
+  }
+
+  if (typeof value === "object") {
+    return [
+      value.name,
+      value.title,
+      value.label,
+      value.value,
+      value.slug,
+      value._id,
+    ]
+      .filter(Boolean)
+      .map(getSearchText)
+      .join(" ");
+  }
+
+  return String(value);
+}
+
+function searchProduct(product, searchValue) {
+  if (!searchValue.trim()) return true;
+
+  const search = searchValue.trim().toLowerCase();
+
+  const values = [
+    product?.name,
+    product?.slug,
+    product?.brand,
+    product?.sku,
+    product?.category,
+    product?.subCategory,
+    product?.childCategory,
+    product?.subChildCategory,
+    product?.price,
+    product?.discountPrice,
+    product?.shortDescription,
+    product?.description,
+    product?.ram,
+    product?.colors,
+    product?.sizes,
+  ];
+
+  getSpecEntries(product).forEach((item) => {
+    values.push(getSpecKeyLabel(item), ...getSpecItemValues(item));
+  });
+
+  return values.some((value) =>
+    getSearchText(value).toLowerCase().includes(search),
+  );
+}
 
 // ============================================
-// STABLE FILTER CHECKBOX
+// FILTER COMPONENTS
 // ============================================
 
 function FilterCheckbox({ label, checked, onChange }) {
@@ -117,7 +436,9 @@ function FilterCheckbox({ label, checked, onChange }) {
             : "border-gray-300 bg-white dark:border-slate-600 dark:bg-slate-800"
         }`}
       >
-        {checked && <Check size={11} strokeWidth={3} className="text-white" />}
+        {checked && (
+          <Check size={11} strokeWidth={3} className="text-white" />
+        )}
       </span>
 
       <input
@@ -131,10 +452,6 @@ function FilterCheckbox({ label, checked, onChange }) {
     </label>
   );
 }
-
-// ============================================
-// STABLE FILTER SECTION
-// ============================================
 
 function FilterSection({ label, count, isOpen, onToggle, children }) {
   return (
@@ -154,15 +471,9 @@ function FilterSection({ label, count, isOpen, onToggle, children }) {
         </span>
 
         {isOpen ? (
-          <ChevronUp
-            size={15}
-            className="shrink-0 text-gray-400 dark:text-gray-500"
-          />
+          <ChevronUp size={15} className="shrink-0 text-gray-400" />
         ) : (
-          <ChevronDown
-            size={15}
-            className="shrink-0 text-gray-400 dark:text-gray-500"
-          />
+          <ChevronDown size={15} className="shrink-0 text-gray-400" />
         )}
       </button>
 
@@ -174,10 +485,6 @@ function FilterSection({ label, count, isOpen, onToggle, children }) {
     </div>
   );
 }
-
-// ============================================
-// STABLE FILTER CONTENT
-// ============================================
 
 function FilterContent({
   searchText,
@@ -207,26 +514,25 @@ function FilterContent({
         <div className="relative">
           <Search
             size={14}
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
           />
 
           <input
             type="search"
             value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
+            onChange={(event) => setSearchText(event.target.value)}
             placeholder="Search product..."
             autoComplete="off"
             spellCheck={false}
-            className="h-10 w-full rounded-[10px] border border-gray-200 bg-gray-50 pl-9 pr-9 text-[12.5px] text-gray-900 outline-none placeholder:text-gray-400 focus:border-[#f47421] dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:placeholder:text-gray-500 dark:focus:border-[#f47421]"
+            className="h-10 w-full rounded-[10px] border border-gray-200 bg-gray-50 pl-9 pr-9 text-[12.5px] text-gray-900 outline-none focus:border-[#f47421] dark:border-slate-700 dark:bg-slate-800 dark:text-white"
           />
 
           {searchText && (
             <button
               type="button"
               aria-label="Clear search"
-              onMouseDown={(e) => e.preventDefault()}
               onClick={() => setSearchText("")}
-              className="absolute right-2.5 top-1/2 flex -translate-y-1/2 items-center justify-center text-gray-400 hover:text-[#f47421] dark:text-gray-500"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#f47421]"
             >
               <X size={14} />
             </button>
@@ -246,12 +552,9 @@ function FilterContent({
           </span>
 
           {isSectionOpen("price") ? (
-            <ChevronUp size={15} className="text-gray-400 dark:text-gray-500" />
+            <ChevronUp size={15} className="text-gray-400" />
           ) : (
-            <ChevronDown
-              size={15}
-              className="text-gray-400 dark:text-gray-500"
-            />
+            <ChevronDown size={15} className="text-gray-400" />
           )}
         </button>
 
@@ -259,22 +562,22 @@ function FilterContent({
           <div className="mt-2.5 flex items-center gap-2">
             <input
               type="number"
+              min="0"
               value={priceMin}
-              onChange={(e) => setPriceMin(e.target.value)}
+              onChange={(event) => setPriceMin(event.target.value)}
               placeholder="Min"
-              className="h-9 min-w-0 w-full rounded-[9px] border border-gray-200 bg-gray-50 px-3 text-[12px] text-gray-900 outline-none focus:border-[#f47421] dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:focus:border-[#f47421]"
+              className="h-9 min-w-0 w-full rounded-[9px] border border-gray-200 bg-gray-50 px-3 text-[12px] outline-none focus:border-[#f47421] dark:border-slate-700 dark:bg-slate-800"
             />
 
-            <span className="shrink-0 text-[12px] text-gray-400 dark:text-gray-500">
-              –
-            </span>
+            <span className="text-gray-400">–</span>
 
             <input
               type="number"
+              min="0"
               value={priceMax}
-              onChange={(e) => setPriceMax(e.target.value)}
+              onChange={(event) => setPriceMax(event.target.value)}
               placeholder="Max"
-              className="h-9 min-w-0 w-full rounded-[9px] border border-gray-200 bg-gray-50 px-3 text-[12px] text-gray-900 outline-none focus:border-[#f47421] dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:focus:border-[#f47421]"
+              className="h-9 min-w-0 w-full rounded-[9px] border border-gray-200 bg-gray-50 px-3 text-[12px] outline-none focus:border-[#f47421] dark:border-slate-700 dark:bg-slate-800"
             />
           </div>
         )}
@@ -285,7 +588,7 @@ function FilterContent({
         <FilterCheckbox
           label="Exclude out of stock"
           checked={excludeStock}
-          onChange={(e) => setExcludeStock(e.target.checked)}
+          onChange={(event) => setExcludeStock(event.target.checked)}
         />
       </div>
 
@@ -309,12 +612,11 @@ function FilterContent({
         </FilterSection>
       ))}
 
-      {/* CLEAR */}
       <div className="px-4 py-3.5">
         <button
           type="button"
           onClick={clearAllFilters}
-          className="w-full rounded-[10px] border border-gray-200 py-2.5 text-[12px] font-medium text-gray-900 transition-colors hover:bg-gray-50 dark:border-slate-700 dark:text-white dark:hover:bg-slate-800"
+          className="w-full rounded-[10px] border border-gray-200 py-2.5 text-[12px] font-medium text-gray-900 hover:bg-gray-50 dark:border-slate-700 dark:text-white dark:hover:bg-slate-800"
         >
           Clear all filters
         </button>
@@ -324,7 +626,7 @@ function FilterContent({
 }
 
 // ============================================
-// MAIN CONTENT
+// MAIN CATEGORY PAGE
 // ============================================
 
 function CategoryPageContent() {
@@ -333,23 +635,30 @@ function CategoryPageContent() {
   const searchParams = useSearchParams();
 
   const slug = params?.slug;
-
   const isSearchPage = pathname === "/search";
   const urlSearch = searchParams.get("q") || searchParams.get("search") || "";
 
-  const breadcrumbItems = useMemo(() => {
-    const segments = pathname?.split("/").filter(Boolean);
-    return segments || [];
-  }, [pathname]);
+  const breadcrumbItems = useMemo(
+    () => pathname?.split("/").filter(Boolean) || [],
+    [pathname],
+  );
 
   const formatBreadcrumb = (segment) => {
-    return decodeURIComponent(segment)
-      .replace(/-/g, " ")
-      .replace(/\b\w/g, (char) => char.toUpperCase());
+    try {
+      return decodeURIComponent(segment)
+        .replace(/-/g, " ")
+        .replace(/\b\w/g, (char) => char.toUpperCase());
+    } catch {
+      return segment.replace(/-/g, " ");
+    }
   };
 
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Category banner state
+  const [categoryBanner, setCategoryBanner] = useState("");
+
   const [searchText, setSearchText] = useState(urlSearch);
   const [priceMin, setPriceMin] = useState("");
   const [priceMax, setPriceMax] = useState("");
@@ -358,17 +667,16 @@ function CategoryPageContent() {
   const [sortBy, setSortBy] = useState("default");
   const [closedSections, setClosedSections] = useState({});
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const { addTocart } = useStore();
-
-  const PRODUCTS_PER_PAGE = 12;
   const [currentPage, setCurrentPage] = useState(1);
+
+  const { addTocart } = useStore();
 
   const isSectionOpen = (key) => !closedSections[key];
 
   const toggleSection = (key) => {
-    setClosedSections((prev) => ({
-      ...prev,
-      [key]: !prev[key],
+    setClosedSections((previous) => ({
+      ...previous,
+      [key]: !previous[key],
     }));
   };
 
@@ -380,35 +688,140 @@ function CategoryPageContent() {
     if (!isFilterOpen) return;
 
     const handleEscape = (event) => {
-      if (event.key === "Escape") {
-        setIsFilterOpen(false);
-      }
+      if (event.key === "Escape") setIsFilterOpen(false);
     };
 
     document.addEventListener("keydown", handleEscape);
+
     return () => document.removeEventListener("keydown", handleEscape);
   }, [isFilterOpen]);
 
   useEffect(() => {
-    if (isFilterOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
+    document.body.style.overflow = isFilterOpen ? "hidden" : "";
+
     return () => {
       document.body.style.overflow = "";
     };
   }, [isFilterOpen]);
 
+  // ============================================
+  // LOAD CATEGORY BANNER
+  // Supports nested Main/Sub/Child/SubChild data
+  // ============================================
+
+  useEffect(() => {
+    if (isSearchPage || !slug) {
+      setCategoryBanner("");
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const loadCategoryBanner = async () => {
+      try {
+        const response = await fetch(`${API_BASE}/category/tree`, {
+          cache: "no-store",
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error(`Category API returned ${response.status}`);
+        }
+
+        const data = await response.json();
+        const allCategories = [];
+        const visited = new WeakSet();
+
+        const walk = (value) => {
+          if (!value || typeof value !== "object") return;
+          if (visited.has(value)) return;
+
+          visited.add(value);
+
+          if (Array.isArray(value)) {
+            value.forEach(walk);
+            return;
+          }
+
+          if (
+            value._id ||
+            value.slug ||
+            value.name ||
+            value.bannerImage
+          ) {
+            allCategories.push(value);
+          }
+
+          getCategoryCollections(value).forEach(walk);
+
+          // Also support common API response wrappers.
+          ["data", "tree", "categories", "mainCategories"].forEach((key) => {
+            if (value[key] && !Array.isArray(value[key])) {
+              walk(value[key]);
+            } else if (Array.isArray(value[key])) {
+              walk(value[key]);
+            }
+          });
+        };
+
+        walk(data);
+
+        const currentSlug = normalizeCategorySlug(
+          Array.isArray(slug) ? slug[slug.length - 1] : slug,
+        );
+
+        const matchedCategory = allCategories.find((category) => {
+          const candidates = [
+            category.slug,
+            category.name,
+            category.categorySlug,
+          ].filter(Boolean);
+
+          return candidates.some(
+            (candidate) => normalizeCategorySlug(candidate) === currentSlug,
+          );
+        });
+
+        if (!controller.signal.aborted) {
+          setCategoryBanner(
+            matchedCategory ? getBannerUrl(matchedCategory) : "",
+          );
+        }
+      } catch (error) {
+        if (error.name !== "AbortError") {
+          console.error("Category banner error:", error);
+
+          if (!controller.signal.aborted) {
+            setCategoryBanner("");
+          }
+        }
+      }
+    };
+
+    loadCategoryBanner();
+
+    return () => controller.abort();
+  }, [slug, isSearchPage]);
+
   const categoryName = useMemo(() => {
     if (isSearchPage) {
-      return urlSearch.trim() ? `Search: ${urlSearch}` : "Search Products";
+      return urlSearch.trim()
+        ? `Search: ${urlSearch}`
+        : "Search Products";
     }
+
     if (!slug) return "";
-    return slug
-      .replace(/-/g, " ")
-      .replace(/\b\w/g, (char) => char.toUpperCase());
+
+    const currentSlug = Array.isArray(slug)
+      ? slug[slug.length - 1]
+      : slug;
+
+    return formatBreadcrumb(String(currentSlug));
   }, [slug, isSearchPage, urlSearch]);
+
+  // ============================================
+  // LOAD PRODUCTS
+  // ============================================
 
   useEffect(() => {
     if (!slug && !isSearchPage) return;
@@ -421,7 +834,9 @@ function CategoryPageContent() {
       const endpoint =
         isSearchPage || hasSearch
           ? `${API_BASE}/products/getALLproducts`
-          : `${API_BASE}/products/getALLproducts?category=${encodeURIComponent(slug)}`;
+          : `${API_BASE}/products/getALLproducts?category=${encodeURIComponent(
+              Array.isArray(slug) ? slug[slug.length - 1] : slug,
+            )}`;
 
       const cached = productCache.get(endpoint);
 
@@ -459,7 +874,9 @@ function CategoryPageContent() {
         }
       } catch (error) {
         if (error?.name === "AbortError") return;
+
         console.error("Category products error:", error);
+
         if (!controller.signal.aborted) {
           setProducts([]);
         }
@@ -472,286 +889,22 @@ function CategoryPageContent() {
 
     fetchProducts();
 
-    return () => {
-      controller.abort();
-    };
+    return () => controller.abort();
   }, [slug, urlSearch, isSearchPage]);
 
-  const getProductImage = (product) => {
-    if (!product?.images) {
-      return "/placeholder.png";
-    }
-
-    if (Array.isArray(product.images) && product.images.length > 0) {
-      const firstImage = product.images[0];
-
-      if (typeof firstImage === "string") {
-        return firstImage;
-      }
-
-      return (
-        firstImage?.url ||
-        firstImage?.secure_url ||
-        firstImage?.src ||
-        "/placeholder.png"
-      );
-    }
-
-    if (typeof product.images === "string") {
-      return product.images;
-    }
-
-    return "/placeholder.png";
-  };
-
-  const getProductPrice = (product) => {
-    return Number(product?.discountPrice || product?.price || 0);
-  };
-
-  const getOriginalPrice = (product) => {
-    return Number(product?.price || 0);
-  };
-
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat("en-BD").format(price);
-  };
-
-  const getSpecEntries = (product) => {
-    const specifications = product?.specifications;
-    if (!Array.isArray(specifications)) {
-      return [];
-    }
-    return specifications.filter((item) => item && typeof item === "object");
-  };
-
-  const getSpecKeyLabel = (item) => {
-    return String(
-      item.key ||
-        item.name ||
-        item.title ||
-        item.label ||
-        item.specification ||
-        item.attribute ||
-        "",
-    ).trim();
-  };
-
-  const getSpecItemValues = (item) => {
-    const value =
-      item.value ?? item.data ?? item.specificationValue ?? item.content ?? "";
-
-    const values = [];
-
-    if (Array.isArray(value)) {
-      value.forEach((itemValue) => {
-        if (
-          itemValue !== undefined &&
-          itemValue !== null &&
-          String(itemValue).trim() !== ""
-        ) {
-          values.push(String(itemValue).trim());
-        }
-      });
-    } else if (
-      value !== undefined &&
-      value !== null &&
-      String(value).trim() !== ""
-    ) {
-      values.push(String(value).trim());
-    }
-
-    return values;
-  };
-
-  const getSpecificationValues = (product, keys = []) => {
-    const normalizedKeys = keys.map((key) => String(key).trim().toLowerCase());
-    const result = [];
-
-    getSpecEntries(product).forEach((item) => {
-      const itemKey = getSpecKeyLabel(item).toLowerCase();
-      if (!normalizedKeys.includes(itemKey)) {
-        return;
-      }
-      result.push(...getSpecItemValues(item));
-    });
-
-    return [...new Set(result)];
-  };
-
-  const getBrandValues = (product) => {
-    if (
-      product?.brand !== undefined &&
-      product?.brand !== null &&
-      String(product.brand).trim() !== ""
-    ) {
-      if (typeof product.brand === "object") {
-        const value =
-          product.brand.name ||
-          product.brand.title ||
-          product.brand.value ||
-          "";
-        return value ? [String(value).trim()] : [];
-      }
-      return [String(product.brand).trim()];
-    }
-    return getSpecificationValues(product, ["brand", "brand name"]);
-  };
-
-  const getRawRamValues = (product) => {
-    const ram = product?.ram;
-    if (!Array.isArray(ram)) {
-      return [];
-    }
-    return ram
-      .filter(
-        (item) =>
-          item !== undefined && item !== null && String(item).trim() !== "",
-      )
-      .map((item) => String(item).trim());
-  };
-
-  const getStorageValues = (product) => {
-    const ramValues = getRawRamValues(product);
-    const storageValues = [];
-
-    ramValues.forEach((value) => {
-      const text = String(value).trim();
-      if (!text) return;
-
-      const ramMatch = text.match(/\b\d+(?:\.\d+)?\s*GB\s*RAM\b/i);
-      if (ramMatch) {
-        const beforeRam = text.slice(0, ramMatch.index).trim();
-        const storageMatch = beforeRam.match(/\b\d+(?:\.\d+)?\s*(?:TB|GB)\b/i);
-        if (storageMatch) {
-          storageValues.push(storageMatch[0].replace(/\s+/g, "").toUpperCase());
-        }
-        return;
-      }
-
-      const onlyStorageMatch = text.match(/^\d+(?:\.\d+)?\s*(?:TB|GB)$/i);
-      if (onlyStorageMatch) {
-        storageValues.push(
-          onlyStorageMatch[0].replace(/\s+/g, "").toUpperCase(),
-        );
-      }
-    });
-
-    const storageGroup = KNOWN_FILTER_GROUPS.find(
-      (group) => group.key === "storage",
-    );
-    const specStorage = getSpecificationValues(
-      product,
-      storageGroup?.synonyms || [],
-    );
-
-    return [...new Set([...storageValues, ...specStorage])];
-  };
-
-  const getRamValues = (product) => {
-    const ramValues = getRawRamValues(product);
-
-    const parsed = ramValues
-      .map((value) => {
-        const text = String(value).trim();
-        if (!text) return "";
-
-        const withRam = text.match(/\b\d+(?:\.\d+)?\s*GB\s*RAM\b/i);
-        if (withRam) {
-          return withRam[0]
-            .replace(/\s*RAM\b/i, "")
-            .replace(/\s+/g, "")
-            .toUpperCase();
-        }
-
-        const plainGb = text.match(/^\d+(?:\.\d+)?\s*GB$/i);
-        if (plainGb) {
-          return plainGb[0].replace(/\s+/g, "").toUpperCase();
-        }
-
-        return text;
-      })
-      .filter(Boolean);
-
-    const ramGroup = KNOWN_FILTER_GROUPS.find((group) => group.key === "ram");
-    const specRam = getSpecificationValues(product, ramGroup?.synonyms || []);
-
-    return [...new Set([...parsed, ...specRam])];
-  };
-
-  const getDisplayValues = (product) => {
-    const displayGroup = KNOWN_FILTER_GROUPS.find(
-      (group) => group.key === "display",
-    );
-    const rawValues = getSpecificationValues(
-      product,
-      displayGroup?.synonyms || [],
-    );
-
-    const cleaned = rawValues
-      .map((value) => {
-        const text = String(value).trim();
-        if (!text) return "";
-
-        const primaryMatch = text.match(
-          /\b(\d+(?:\.\d+)?)\s*(?:inches?|inch|")\b/i,
-        );
-        if (primaryMatch) {
-          return `${primaryMatch[1]} inches`;
-        }
-
-        if (text.length > MAX_FILTER_VALUE_LENGTH) {
-          return "";
-        }
-
-        return text;
-      })
-      .filter(Boolean);
-
-    return [...new Set(cleaned)];
-  };
-
-  const getValuesForFilter = (product, config) => {
-    if (config.key === "brand") {
-      return getBrandValues(product);
-    }
-    if (config.key === "storage") {
-      return getStorageValues(product);
-    }
-    if (config.key === "ram") {
-      return getRamValues(product);
-    }
-    if (config.key === "display") {
-      return getDisplayValues(product);
-    }
-    return getSpecificationValues(product, config.synonyms);
-  };
-
-  const sortFilterOptions = (values) => {
-    const getNumber = (value) => {
-      const text = String(value).toUpperCase();
-      const match = text.match(/\d+(?:\.\d+)?/);
-      if (!match) return null;
-      const number = Number(match[0]);
-      if (text.includes("TB")) {
-        return number * 1024;
-      }
-      return number;
-    };
-
-    const allNumeric = values.every((value) => getNumber(value) !== null);
-    if (allNumeric) {
-      return [...values].sort((a, b) => getNumber(a) - getNumber(b));
-    }
-    return [...values].sort();
-  };
+  // ============================================
+  // DYNAMIC FILTER CONFIGURATION
+  // ============================================
 
   const knownSynonymSet = useMemo(() => {
     const set = new Set();
+
     KNOWN_FILTER_GROUPS.forEach((group) => {
       group.synonyms.forEach((synonym) => {
         set.add(synonym.toLowerCase());
       });
     });
+
     return set;
   }, []);
 
@@ -771,7 +924,7 @@ function CategoryPageContent() {
           (value) => value.length <= MAX_FILTER_VALUE_LENGTH,
         );
 
-        if (values.length === 0) return;
+        if (!values.length) return;
 
         if (!collected.has(normalized)) {
           collected.set(normalized, {
@@ -780,28 +933,27 @@ function CategoryPageContent() {
           });
         }
 
-        const entry = collected.get(normalized);
-        values.forEach((value) => entry.values.add(value));
+        values.forEach((value) => collected.get(normalized).values.add(value));
       });
     });
 
     const configs = [];
 
     collected.forEach((entry, normalizedKey) => {
-      const uniqueValues = [...entry.values];
-      if (uniqueValues.length < 2) return;
-      if (uniqueValues.length > MAX_AUTO_FILTER_OPTIONS) return;
+      const values = [...entry.values];
+
+      if (values.length < 2) return;
+      if (values.length > MAX_AUTO_FILTER_OPTIONS) return;
 
       configs.push({
         key: `spec:${normalizedKey}`,
         label: entry.label,
-        values: uniqueValues,
         synonyms: [normalizedKey],
+        values,
       });
     });
 
-    configs.sort((a, b) => a.label.localeCompare(b.label));
-    return configs;
+    return configs.sort((a, b) => a.label.localeCompare(b.label));
   }, [products, knownSynonymSet]);
 
   const filterSections = useMemo(() => {
@@ -813,10 +965,15 @@ function CategoryPageContent() {
           getValuesForFilter(product, config),
         );
 
-        const uniqueValues = [...new Set(values)].filter(
-          (value) =>
-            Boolean(value) && String(value).length <= MAX_FILTER_VALUE_LENGTH,
-        );
+        const uniqueValues = [
+          ...new Set(
+            values.filter(
+              (value) =>
+                Boolean(value) &&
+                String(value).length <= MAX_FILTER_VALUE_LENGTH,
+            ),
+          ),
+        ];
 
         return {
           ...config,
@@ -826,97 +983,24 @@ function CategoryPageContent() {
       .filter((section) => section.options.length > 0);
   }, [products, dynamicFilterConfigs]);
 
-  const getSearchText = (value) => {
-    if (value === undefined || value === null) {
-      return "";
-    }
-    if (Array.isArray(value)) {
-      return value.map((item) => getSearchText(item)).join(" ");
-    }
-    if (typeof value === "object") {
-      return [
-        value.name,
-        value.title,
-        value.label,
-        value.value,
-        value.slug,
-        value._id,
-      ]
-        .filter(Boolean)
-        .map((item) => getSearchText(item))
-        .join(" ");
-    }
-    return String(value);
-  };
-
-  const searchProduct = (product, searchValue) => {
-    if (!searchValue.trim()) {
-      return true;
-    }
-
-    const search = searchValue.trim().toLowerCase();
-
-    const searchableValues = [
-      product?.name,
-      product?.slug,
-      product?.brand,
-      product?.sku,
-      product?.category,
-      product?.subCategory,
-      product?.childCategory,
-      product?.subChildCategory,
-      product?.price,
-      product?.discountPrice,
-      product?.shortDescription,
-      product?.description,
-    ];
-
-    if (Array.isArray(product?.ram)) {
-      searchableValues.push(...product.ram);
-    }
-    if (Array.isArray(product?.colors)) {
-      searchableValues.push(...product.colors);
-    }
-    if (Array.isArray(product?.sizes)) {
-      searchableValues.push(...product.sizes);
-    }
-
-    getSpecEntries(product).forEach((item) => {
-      searchableValues.push(getSpecKeyLabel(item));
-      searchableValues.push(...getSpecItemValues(item));
-    });
-
-    return searchableValues.some((value) =>
-      getSearchText(value).toLowerCase().includes(search),
-    );
-  };
+  // ============================================
+  // FILTER ACTIONS
+  // ============================================
 
   const toggleFilterValue = (filterKey, value) => {
-    setSelectedFilters((prev) => {
-      const current = prev[filterKey] || [];
+    setSelectedFilters((previous) => {
+      const current = previous[filterKey] || [];
+
       const next = current.includes(value)
         ? current.filter((item) => item !== value)
         : [...current, value];
-      return {
-        ...prev,
-        [filterKey]: next,
-      };
+
+      return { ...previous, [filterKey]: next };
     });
   };
 
   const getSelectedCount = (filterKey) =>
     (selectedFilters[filterKey] || []).length;
-
-  const activeFilterCount = useMemo(() => {
-    const optionCount = Object.values(selectedFilters).reduce(
-      (total, values) => total + values.length,
-      0,
-    );
-    const priceCount = priceMin !== "" ? 1 : 0;
-    const maxPriceCount = priceMax !== "" ? 1 : 0;
-    const searchCount = searchText.trim() !== "" ? 1 : 0;
-    return optionCount + priceCount + maxPriceCount + searchCount;
-  }, [selectedFilters, priceMin, priceMax, searchText]);
 
   const clearAllFilters = () => {
     setSearchText("");
@@ -928,11 +1012,27 @@ function CategoryPageContent() {
     setCurrentPage(1);
   };
 
+  const activeFilterCount = useMemo(() => {
+    const optionCount = Object.values(selectedFilters).reduce(
+      (total, values) => total + values.length,
+      0,
+    );
+
+    return (
+      optionCount +
+      (priceMin !== "" ? 1 : 0) +
+      (priceMax !== "" ? 1 : 0) +
+      (searchText.trim() !== "" ? 1 : 0)
+    );
+  }, [selectedFilters, priceMin, priceMax, searchText]);
+
   const filteredProducts = useMemo(() => {
     let result = [...products];
 
-    if (searchText.trim() !== "") {
-      result = result.filter((product) => searchProduct(product, searchText));
+    if (searchText.trim()) {
+      result = result.filter((product) =>
+        searchProduct(product, searchText),
+      );
     }
 
     if (priceMin !== "") {
@@ -958,24 +1058,24 @@ function CategoryPageContent() {
 
     filterSections.forEach((config) => {
       const selectedValues = selectedFilters[config.key];
-      if (!selectedValues || selectedValues.length === 0) {
-        return;
-      }
+
+      if (!selectedValues?.length) return;
+
       result = result.filter((product) => {
         const values = getValuesForFilter(product, config);
+
         return values.some((value) => selectedValues.includes(value));
       });
     });
 
     if (sortBy === "low") {
       result.sort((a, b) => getProductPrice(a) - getProductPrice(b));
-    }
-    if (sortBy === "high") {
+    } else if (sortBy === "high") {
       result.sort((a, b) => getProductPrice(b) - getProductPrice(a));
-    }
-    if (sortBy === "newest") {
+    } else if (sortBy === "newest") {
       result.sort(
-        (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0),
+        (a, b) =>
+          new Date(b.createdAt || 0) - new Date(a.createdAt || 0),
       );
     }
 
@@ -1001,13 +1101,12 @@ function CategoryPageContent() {
   }, [searchText, priceMin, priceMax, excludeStock, selectedFilters, sortBy]);
 
   useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(totalPages);
-    }
+    if (currentPage > totalPages) setCurrentPage(totalPages);
   }, [currentPage, totalPages]);
 
   const paginatedProducts = useMemo(() => {
     const start = (currentPage - 1) * PRODUCTS_PER_PAGE;
+
     return filteredProducts.slice(start, start + PRODUCTS_PER_PAGE);
   }, [filteredProducts, currentPage]);
 
@@ -1016,21 +1115,21 @@ function CategoryPageContent() {
       return Array.from({ length: totalPages }, (_, index) => index + 1);
     }
 
-    const pages = new Set([
-      1,
-      totalPages,
-      currentPage,
-      currentPage - 1,
-      currentPage + 1,
-    ]);
-
-    return [...pages]
+    return [
+      ...new Set([
+        1,
+        totalPages,
+        currentPage,
+        currentPage - 1,
+        currentPage + 1,
+      ]),
+    ]
       .filter((page) => page >= 1 && page <= totalPages)
       .sort((a, b) => a - b);
   }, [totalPages, currentPage]);
 
   // ============================================
-  // LOADING (dark mode aware)
+  // LOADING
   // ============================================
 
   if (loading) {
@@ -1058,7 +1157,7 @@ function CategoryPageContent() {
   }
 
   // ============================================
-  // UI
+  // PAGE UI
   // ============================================
 
   return (
@@ -1080,6 +1179,26 @@ function CategoryPageContent() {
       `}</style>
 
       <div className="mx-auto max-w-7xl px-4 pb-14 pt-5 sm:px-6 lg:px-8">
+
+        {/* ======================================
+            DYNAMIC CATEGORY BANNER
+            Displays before breadcrumb and title
+        ====================================== */}
+
+        {!isSearchPage && categoryBanner && (
+          <section className="mb-5 w-full overflow-hidden rounded-2xl border border-gray-100 bg-gray-50 dark:border-slate-800 dark:bg-slate-800 sm:mb-7">
+            <img
+              src={categoryBanner}
+              alt={`${categoryName} banner`}
+              fetchPriority="high"
+              className="block h-auto max-h-[420px] min-h-[120px] w-full object-cover sm:min-h-[200px]"
+              onError={(event) => {
+                event.currentTarget.style.display = "none";
+              }}
+            />
+          </section>
+        )}
+
         {/* BREADCRUMB */}
         <div className="mb-3 flex flex-wrap items-center gap-1.5 text-[11.5px] text-gray-400 dark:text-gray-500">
           <Link
@@ -1091,12 +1210,14 @@ function CategoryPageContent() {
           </Link>
 
           {breadcrumbItems.map((segment, index) => {
-            const href = "/" + breadcrumbItems.slice(0, index + 1).join("/");
+            const href =
+              "/" + breadcrumbItems.slice(0, index + 1).join("/");
             const isLast = index === breadcrumbItems.length - 1;
 
             return (
               <React.Fragment key={`${segment}-${index}`}>
                 <span>/</span>
+
                 {isLast ? (
                   <span className="font-medium text-gray-900 dark:text-white">
                     {formatBreadcrumb(segment)}
@@ -1123,7 +1244,7 @@ function CategoryPageContent() {
           {categoryName}
         </h1>
 
-        {/* SEARCH RESULT NOTICE */}
+        {/* SEARCH NOTICE */}
         {searchText.trim() !== "" && (
           <div className="mb-5 rounded-[12px] border border-gray-200 bg-gray-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-800">
             <p className="truncate text-[13px] text-gray-600 dark:text-gray-300">
@@ -1132,6 +1253,7 @@ function CategoryPageContent() {
                 {searchText}
               </span>
             </p>
+
             <p className="mt-1 text-[11px] text-gray-400 dark:text-gray-500">
               Product category does not limit this search.
             </p>
@@ -1140,12 +1262,14 @@ function CategoryPageContent() {
 
         {/* MAIN LAYOUT */}
         <div className="grid gap-5 lg:grid-cols-[260px_minmax(0,1fr)]">
+
           {/* DESKTOP SIDEBAR */}
           <aside className="hidden h-fit overflow-hidden rounded-[20px] border border-gray-200 bg-white dark:border-slate-700 dark:bg-slate-900 lg:block">
             <div className="flex items-center justify-between border-b border-gray-100 px-4 py-4 dark:border-slate-800">
               <h2 className="text-[15px] font-semibold text-gray-900 dark:text-white">
                 Filters
               </h2>
+
               <SlidersHorizontal
                 size={16}
                 className="text-gray-400 dark:text-gray-500"
@@ -1171,7 +1295,7 @@ function CategoryPageContent() {
             />
           </aside>
 
-          {/* MOBILE DRAWER */}
+          {/* MOBILE FILTER DRAWER */}
           {isFilterOpen && (
             <div className="fixed inset-0 z-[9999] lg:hidden">
               <button
@@ -1187,6 +1311,7 @@ function CategoryPageContent() {
                     <h2 className="text-[16px] font-semibold text-gray-900 dark:text-white">
                       Filters
                     </h2>
+
                     <p className="mt-0.5 text-[10.5px] text-gray-400 dark:text-gray-500">
                       Refine your products
                     </p>
@@ -1227,7 +1352,7 @@ function CategoryPageContent() {
                     <button
                       type="button"
                       onClick={clearAllFilters}
-                      className="h-11 flex-1 rounded-full border border-gray-200 bg-white text-[12px] font-medium text-gray-900 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                      className="h-11 flex-1 rounded-full border border-gray-200 text-[12px] font-medium text-gray-900 dark:border-slate-700 dark:text-white"
                     >
                       Clear
                     </button>
@@ -1247,6 +1372,7 @@ function CategoryPageContent() {
 
           {/* PRODUCTS */}
           <section className="min-w-0">
+
             {/* TOP BAR */}
             <div className="mb-4 flex min-w-0 items-center justify-between gap-2">
               <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -1257,8 +1383,9 @@ function CategoryPageContent() {
                 >
                   <SlidersHorizontal size={13} />
                   Filter
+
                   {activeFilterCount > 0 && (
-                    <span className="flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-white px-1 text-[9px] font-semibold text-gray-900 dark:bg-gray-900 dark:text-white">
+                    <span className="flex min-w-4 items-center justify-center rounded-full bg-white px-1 text-[9px] font-semibold text-gray-900 dark:bg-gray-900 dark:text-white">
                       {activeFilterCount}
                     </span>
                   )}
@@ -1277,7 +1404,7 @@ function CategoryPageContent() {
               <div className="relative shrink-0">
                 <select
                   value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
+                  onChange={(event) => setSortBy(event.target.value)}
                   className="h-9 appearance-none rounded-full border border-gray-200 bg-white py-1 pl-3 pr-8 text-[11.5px] text-gray-900 outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-white sm:h-10 sm:pl-4 sm:pr-9 sm:text-[12.5px]"
                 >
                   <option value="default">Sort by</option>
@@ -1288,7 +1415,7 @@ function CategoryPageContent() {
 
                 <ArrowDownUp
                   size={12}
-                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 sm:right-3.5"
+                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 sm:right-3.5"
                 />
               </div>
             </div>
@@ -1313,7 +1440,7 @@ function CategoryPageContent() {
               </div>
             )}
 
-            {/* NO PRODUCTS */}
+            {/* EMPTY STATE */}
             {filteredProducts.length === 0 ? (
               <div className="flex min-h-[420px] items-center justify-center rounded-[20px] border border-dashed border-gray-300 bg-gray-50 dark:border-slate-600 dark:bg-slate-800">
                 <div className="px-5 text-center">
@@ -1325,9 +1452,11 @@ function CategoryPageContent() {
                   >
                     No products found
                   </h2>
+
                   <p className="mt-1 text-[13px] text-gray-400 dark:text-gray-500">
                     Try changing your filters or search.
                   </p>
+
                   <button
                     type="button"
                     onClick={clearAllFilters}
@@ -1344,12 +1473,14 @@ function CategoryPageContent() {
                   {paginatedProducts.map((product) => {
                     const price = getProductPrice(product);
                     const originalPrice = getOriginalPrice(product);
+
                     const discount =
                       originalPrice > price
                         ? Math.round(
                             ((originalPrice - price) / originalPrice) * 100,
                           )
                         : 0;
+
                     const image = getProductImage(product);
                     const outOfStock = Number(product.stock) <= 0;
 
@@ -1368,7 +1499,16 @@ function CategoryPageContent() {
                             <img
                               src={image}
                               alt={product.name || "Product"}
+                              loading="lazy"
                               className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
+                              onError={(event) => {
+                                if (
+                                  event.currentTarget.src !==
+                                  `${window.location.origin}/placeholder.png`
+                                ) {
+                                  event.currentTarget.src = "/placeholder.png";
+                                }
+                              }}
                             />
                           </div>
 
@@ -1381,7 +1521,7 @@ function CategoryPageContent() {
                           )}
                         </Link>
 
-                        {/* INFO */}
+                        {/* PRODUCT INFO */}
                         <div className="px-2.5 pb-2.5 pt-3 sm:px-4 sm:pb-4 sm:pt-3.5">
                           <Link
                             prefetch={false}
@@ -1408,7 +1548,7 @@ function CategoryPageContent() {
                           <div className="mt-2.5 flex items-center gap-1.5 sm:mt-3 sm:gap-2">
                             <Link
                               prefetch={false}
-                              href={`/product/${product.slug}`}
+                              href={`/Product/${product.slug}`}
                               className={`flex h-8 min-w-0 flex-1 items-center justify-center rounded-full text-[9.5px] font-medium sm:h-10 sm:text-[13px] ${
                                 outOfStock
                                   ? "border border-gray-200 bg-gray-50 text-gray-400 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-500"
@@ -1428,6 +1568,7 @@ function CategoryPageContent() {
                               onClick={() => addTocart(product)}
                               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200 text-gray-600 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-gray-300 sm:h-10 sm:w-10"
                               title="Add to cart"
+                              aria-label={`Add ${product.name} to cart`}
                             >
                               <ShoppingCart size={13} />
                             </button>
@@ -1464,10 +1605,13 @@ function CategoryPageContent() {
                         type="button"
                         disabled={currentPage === 1}
                         onClick={() => {
-                          setCurrentPage((prev) => Math.max(1, prev - 1));
+                          setCurrentPage((previous) =>
+                            Math.max(1, previous - 1),
+                          );
                           window.scrollTo({ top: 0, behavior: "smooth" });
                         }}
                         className="flex h-9 min-w-9 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-900 disabled:opacity-35 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                        aria-label="Previous page"
                       >
                         <ChevronLeft size={15} />
                       </button>
@@ -1488,7 +1632,10 @@ function CategoryPageContent() {
                               type="button"
                               onClick={() => {
                                 setCurrentPage(page);
-                                window.scrollTo({ top: 0, behavior: "smooth" });
+                                window.scrollTo({
+                                  top: 0,
+                                  behavior: "smooth",
+                                });
                               }}
                               className={`flex h-9 min-w-9 shrink-0 items-center justify-center rounded-full px-2.5 text-[11px] font-medium ${
                                 currentPage === page
@@ -1506,12 +1653,13 @@ function CategoryPageContent() {
                         type="button"
                         disabled={currentPage === totalPages}
                         onClick={() => {
-                          setCurrentPage((prev) =>
-                            Math.min(totalPages, prev + 1),
+                          setCurrentPage((previous) =>
+                            Math.min(totalPages, previous + 1),
                           );
                           window.scrollTo({ top: 0, behavior: "smooth" });
                         }}
                         className="flex h-9 min-w-9 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-900 disabled:opacity-35 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                        aria-label="Next page"
                       >
                         <ChevronRight size={15} />
                       </button>

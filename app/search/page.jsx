@@ -1627,7 +1627,7 @@ function CategoryPageContent() {
                       >
                         <Link
                           prefetch={false}
-                          href={`/product/${product.slug}`}
+                          href={`/Product/${product.slug}`}
                           className="relative block h-[165px] w-full overflow-hidden bg-gray-50 dark:bg-slate-800 sm:h-[230px] lg:h-[240px]"
                         >
                           <div className="relative h-full w-full p-2.5 sm:p-6">
@@ -1648,7 +1648,7 @@ function CategoryPageContent() {
                         <div className="px-2.5 pb-2.5 pt-3 sm:px-4 sm:pb-4 sm:pt-3.5">
                           <Link
                             prefetch={false}
-                            href={`/product/${product.slug}`}
+                            href={`/Product/${product.slug}`}
                             className="block"
                           >
                             <h3 className="line-clamp-2 min-h-[34px] text-[11.5px] font-medium text-gray-900 dark:text-white sm:min-h-0 sm:text-[14.5px]">
@@ -1668,7 +1668,7 @@ function CategoryPageContent() {
                           <div className="mt-2.5 flex items-center gap-1.5 sm:mt-3 sm:gap-2">
                             <Link
                               prefetch={false}
-                              href={`/product/${product.slug}`}
+                              href={`/Product/${product.slug}`}
                               className={`flex h-8 min-w-0 flex-1 items-center justify-center rounded-full text-[9.5px] font-medium sm:h-10 sm:text-[13px] ${outOfStock ? "border border-gray-200 bg-gray-50 text-gray-400 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-500" : "border border-gray-900 bg-gray-900 text-white dark:border-white dark:bg-white dark:text-gray-900"}`}
                             >
                               {outOfStock

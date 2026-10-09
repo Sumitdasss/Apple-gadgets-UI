@@ -1,4 +1,5 @@
 /* eslint-disable react-hooks/set-state-in-effect */
+
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
@@ -16,6 +17,7 @@ import {
   Truck,
 } from "lucide-react";
 import RecentlyViewed from "../../Componant/RecentlyViewed";
+import useStore from "../../Store/store.js";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -28,145 +30,134 @@ export default function ProductDetailsPage() {
   const params = useParams();
   const slug = params?.slug;
 
+  // IMPORTANT: Store action name is addTocart
+  const { addTocart } = useStore();
+
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
-
   const [selectedImage, setSelectedImage] = useState(0);
-
   const [selectedColor, setSelectedColor] = useState("");
   const [selectedColorImage, setSelectedColorImage] = useState("");
-
   const [selectedRam, setSelectedRam] = useState("");
   const [selectedStorage, setSelectedStorage] = useState("");
-
   const [selectedVariant, setSelectedVariant] = useState(null);
-
   const [quantity, setQuantity] = useState(1);
 
   // =====================================================
-  // GET PRODUCT
+  // FETCH PRODUCT
   // =====================================================
   useEffect(() => {
     if (!slug) return;
 
-    const fetchProduct = async () => {
+    let cancelled = false;
+
+    async function fetchProduct() {
       try {
         setLoading(true);
 
-        const res = await fetch(
-          `${API_BASE}/products/getALLproducts?slug=${encodeURIComponent(slug)}`,
+        const response = await fetch(
+          `${API_BASE}/products/getALLproducts?slug=${encodeURIComponent(
+            Array.isArray(slug) ? slug[0] : slug
+          )}`
         );
 
-        if (!res.ok) {
+        if (!response.ok) {
           throw new Error("Failed to fetch product");
         }
 
-        const data = await res.json();
+        const data = await response.json();
+        const currentSlug = Array.isArray(slug) ? slug[0] : slug;
 
         let foundProduct = null;
 
         if (Array.isArray(data)) {
-          foundProduct = data.find(
-            (item) => item?.slug === slug || item?._id === slug,
-          );
+          foundProduct =
+            data.find(
+              (item) =>
+                item?.slug === currentSlug ||
+                item?._id === currentSlug
+            ) || null;
         } else if (Array.isArray(data?.products)) {
-          foundProduct = data.products.find(
-            (item) => item?.slug === slug || item?._id === slug,
-          );
+          foundProduct =
+            data.products.find(
+              (item) =>
+                item?.slug === currentSlug ||
+                item?._id === currentSlug
+            ) || null;
         } else if (data?.product) {
           foundProduct = data.product;
-        } else {
+        } else if (data?._id || data?.slug) {
           foundProduct = data;
         }
 
-        setProduct(foundProduct || null);
+        if (cancelled) return;
 
-        // =================================================
-        // FIRST COLOR
-        // =================================================
-        if (
-          foundProduct &&
-          Array.isArray(foundProduct.colors) &&
-          foundProduct.colors.length > 0
-        ) {
+        setProduct(foundProduct);
+
+        setSelectedImage(0);
+        setSelectedColorImage("");
+        setSelectedColor("");
+        setSelectedRam("");
+        setSelectedStorage("");
+        setSelectedVariant(null);
+        setQuantity(1);
+
+        if (foundProduct?.colors?.length) {
           const firstColor = foundProduct.colors[0];
 
           if (typeof firstColor === "object" && firstColor !== null) {
-            const firstColorName = firstColor.name || firstColor.value || "";
+            const colorName =
+              firstColor.name || firstColor.value || "";
 
-            const firstColorImage = firstColor.image || "";
+            const colorImage = firstColor.image || "";
 
-            setSelectedColor(firstColorName);
+            setSelectedColor(colorName);
+            setSelectedColorImage(colorImage);
 
-            // Color image থাকলে সেটি ব্যবহার করবে
-            setSelectedColorImage(firstColorImage);
+            if (colorImage && Array.isArray(foundProduct.images)) {
+              const index = foundProduct.images.indexOf(colorImage);
 
-            // Color image normal images-এর মধ্যে থাকলে
-            // সেই image-এর index select করবে
-            if (firstColorImage) {
-              const imageIndex = Array.isArray(foundProduct.images)
-                ? foundProduct.images.indexOf(firstColorImage)
-                : -1;
-
-              if (imageIndex !== -1) {
-                setSelectedImage(imageIndex);
+              if (index >= 0) {
+                setSelectedImage(index);
               }
             }
           } else {
             setSelectedColor(firstColor);
-            setSelectedColorImage("");
           }
-        } else {
-          setSelectedColor("");
-          setSelectedColorImage("");
         }
 
-        // =================================================
-        // FIRST VARIANT
-        // =================================================
-        if (
-          foundProduct &&
-          Array.isArray(foundProduct.variants) &&
-          foundProduct.variants.length > 0
-        ) {
+        if (foundProduct?.variants?.length) {
           const firstVariant = foundProduct.variants[0];
 
           setSelectedRam(firstVariant?.ram || "");
-
           setSelectedStorage(firstVariant?.storage || "");
-        } else {
-          // Old sizes support
-          if (
-            foundProduct &&
-            Array.isArray(foundProduct.sizes) &&
-            foundProduct.sizes.length > 0
-          ) {
-            const firstSize = foundProduct.sizes[0];
+        } else if (foundProduct?.sizes?.length) {
+          const firstSize = foundProduct.sizes[0];
 
-            setSelectedStorage(
-              typeof firstSize === "object"
-                ? firstSize?.name ||
-                    firstSize?.value ||
-                    firstSize?.storage ||
-                    ""
-                : firstSize,
-            );
-          } else {
-            setSelectedStorage("");
-          }
-
-          setSelectedRam("");
+          setSelectedStorage(
+            typeof firstSize === "object"
+              ? firstSize?.name ||
+                  firstSize?.value ||
+                  firstSize?.storage ||
+                  ""
+              : firstSize
+          );
         }
       } catch (error) {
-        console.error("Product details error:", error);
-
-        setProduct(null);
+        if (!cancelled) {
+          console.error("Product details error:", error);
+          setProduct(null);
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
-    };
+    }
 
     fetchProduct();
+
+    return () => {
+      cancelled = true;
+    };
   }, [slug]);
 
   // =====================================================
@@ -175,24 +166,18 @@ export default function ProductDetailsPage() {
   const images = useMemo(() => {
     if (!product) return [];
 
-    if (Array.isArray(product.images) && product.images.length > 0) {
+    if (Array.isArray(product.images) && product.images.length) {
       return product.images.filter(Boolean);
     }
 
-    if (product.image) {
-      return [product.image];
-    }
-
-    return [];
+    return product.image ? [product.image] : [];
   }, [product]);
 
   // =====================================================
   // COLORS
   // =====================================================
   const colors = useMemo(() => {
-    if (!Array.isArray(product?.colors)) {
-      return [];
-    }
+    if (!Array.isArray(product?.colors)) return [];
 
     return product.colors
       .map((color) => {
@@ -206,9 +191,7 @@ export default function ProductDetailsPage() {
 
         return {
           name: color?.name || color?.value || "",
-
           code: color?.code || color?.color || "#d1d5db",
-
           image: color?.image || "",
         };
       })
@@ -218,48 +201,30 @@ export default function ProductDetailsPage() {
   // =====================================================
   // VARIANTS
   // =====================================================
-  const variants = useMemo(() => {
-    if (!Array.isArray(product?.variants)) {
-      return [];
-    }
+  const variants = useMemo(
+    () => (Array.isArray(product?.variants) ? product.variants : []),
+    [product]
+  );
 
-    return product.variants;
-  }, [product]);
+  const ramOptions = useMemo(
+    () => [...new Set(variants.map((v) => v?.ram).filter(Boolean))],
+    [variants]
+  );
 
-  // =====================================================
-  // RAM OPTIONS
-  // =====================================================
-  const ramOptions = useMemo(() => {
-    return [
-      ...new Set(variants.map((variant) => variant?.ram).filter(Boolean)),
-    ];
-  }, [variants]);
+  const variantStorageOptions = useMemo(
+    () => [...new Set(variants.map((v) => v?.storage).filter(Boolean))],
+    [variants]
+  );
 
-  // =====================================================
-  // VARIANT STORAGE OPTIONS
-  // =====================================================
-  const variantStorageOptions = useMemo(() => {
-    return [
-      ...new Set(variants.map((variant) => variant?.storage).filter(Boolean)),
-    ];
-  }, [variants]);
-
-  // =====================================================
-  // OLD STORAGE / SIZE
-  // =====================================================
   const oldStorageOptions = useMemo(() => {
-    if (!Array.isArray(product?.sizes)) {
-      return [];
-    }
+    if (!Array.isArray(product?.sizes)) return [];
 
     return product.sizes
-      .map((size) => {
-        if (typeof size === "string") {
-          return size;
-        }
-
-        return size?.name || size?.value || size?.storage || "";
-      })
+      .map((size) =>
+        typeof size === "string"
+          ? size
+          : size?.name || size?.value || size?.storage || ""
+      )
       .filter(Boolean);
   }, [product]);
 
@@ -267,214 +232,186 @@ export default function ProductDetailsPage() {
     variants.length > 0 ? variantStorageOptions : oldStorageOptions;
 
   // =====================================================
-  // FIND EXACT VARIANT
+  // VARIANT MATCHING
   // =====================================================
   const findVariant = (color, ram, storage) => {
-    if (!variants.length) {
-      return null;
-    }
-
     return (
       variants.find((variant) => {
         const variantColor =
-          variant?.color?.name || variant?.color?.value || "";
-
-        const variantRam = variant?.ram || "";
-
-        const variantStorage = variant?.storage || "";
+          typeof variant?.color === "string"
+            ? variant.color
+            : variant?.color?.name || variant?.color?.value || "";
 
         return (
           variantColor === color &&
-          variantRam === ram &&
-          variantStorage === storage
+          (variant?.ram || "") === ram &&
+          (variant?.storage || "") === storage
         );
       }) || null
     );
   };
 
-  // =====================================================
-  // UPDATE SELECTED VARIANT
-  // =====================================================
   useEffect(() => {
     if (!variants.length) {
       setSelectedVariant(null);
       return;
     }
 
-    const exactVariant = findVariant(
-      selectedColor,
-      selectedRam,
-      selectedStorage,
+    setSelectedVariant(
+      findVariant(selectedColor, selectedRam, selectedStorage)
     );
-
-    setSelectedVariant(exactVariant);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [variants, selectedColor, selectedRam, selectedStorage]);
 
-  // =====================================================
-  // RESET QUANTITY WHEN VARIANT CHANGES
-  // =====================================================
   useEffect(() => {
     setQuantity(1);
   }, [selectedVariant]);
 
   // =====================================================
-  // STOCK
+  // STOCK AND PRICE
   // =====================================================
   const currentStock = selectedVariant
     ? Number(selectedVariant.stock ?? 0)
     : Number(product?.stock ?? 0);
 
-  // =====================================================
-  // DISPLAY PRICE
-  // =====================================================
   const displayPrice =
-    selectedVariant &&
-    selectedVariant.price !== undefined &&
-    selectedVariant.price !== null
+    selectedVariant?.price !== undefined &&
+    selectedVariant?.price !== null
       ? Number(selectedVariant.price)
       : Number(product?.discountPrice ?? product?.price ?? 0);
 
-  // =====================================================
-  // ORIGINAL PRICE
-  // =====================================================
-  const originalPrice = selectedVariant
-    ? null
-    : product?.discountPrice &&
-        product?.price &&
-        Number(product.price) > Number(product.discountPrice)
+  const originalPrice =
+    !selectedVariant &&
+    product?.discountPrice != null &&
+    product?.price != null &&
+    Number(product.price) > Number(product.discountPrice)
       ? Number(product.price)
       : null;
 
   const hasVariants = variants.length > 0;
-
   const variantFound = !hasVariants || Boolean(selectedVariant);
-
   const isOutOfStock = currentStock <= 0;
 
   // =====================================================
-  // COLOR SELECT
+  // VARIANT AVAILABILITY
+  // =====================================================
+  const isRamAvailable = (ram) =>
+    !variants.length ||
+    variants.some((variant) => {
+      const color =
+        typeof variant?.color === "string"
+          ? variant.color
+          : variant?.color?.name || variant?.color?.value || "";
+
+      return (
+        (!selectedColor || color === selectedColor) &&
+        (!selectedStorage || variant?.storage === selectedStorage) &&
+        variant?.ram === ram
+      );
+    });
+
+  const isStorageAvailable = (storage) =>
+    !variants.length ||
+    variants.some((variant) => {
+      const color =
+        typeof variant?.color === "string"
+          ? variant.color
+          : variant?.color?.name || variant?.color?.value || "";
+
+      return (
+        (!selectedColor || color === selectedColor) &&
+        (!selectedRam || variant?.ram === selectedRam) &&
+        variant?.storage === storage
+      );
+    });
+
+  const isColorAvailable = (colorName) =>
+    !variants.length ||
+    variants.some((variant) => {
+      const color =
+        typeof variant?.color === "string"
+          ? variant.color
+          : variant?.color?.name || variant?.color?.value || "";
+
+      return (
+        color === colorName &&
+        (!selectedRam || variant?.ram === selectedRam) &&
+        (!selectedStorage || variant?.storage === selectedStorage)
+      );
+    });
+
+  // =====================================================
+  // SELECT OPTIONS
   // =====================================================
   const handleColorSelect = (color) => {
     setSelectedColor(color.name);
 
-    /*
-      IMPORTANT:
-
-      যদি color.image থাকে
-      তাহলে color.image দেখাবে।
-
-      যদি color.image না থাকে
-      তাহলে selectedColorImage empty হবে,
-      ফলে normal product.images দেখাবে।
-    */
     if (color.image) {
       setSelectedColorImage(color.image);
 
-      // যদি color image product.images-এর মধ্যেও থাকে
-      // তাহলে thumbnail active করা হবে
-      const imageIndex = images.indexOf(color.image);
-
-      if (imageIndex !== -1) {
-        setSelectedImage(imageIndex);
-      }
+      const index = images.indexOf(color.image);
+      if (index >= 0) setSelectedImage(index);
     } else {
       setSelectedColorImage("");
     }
   };
 
-  // =====================================================
-  // RAM SELECT
-  // =====================================================
-  const handleRamSelect = (ram) => {
-    setSelectedRam(ram);
-  };
-
-  // =====================================================
-  // STORAGE SELECT
-  // =====================================================
-  const handleStorageSelect = (storage) => {
-    setSelectedStorage(storage);
-  };
-
-  // =====================================================
-  // RAM AVAILABLE
-  // =====================================================
-  const isRamAvailable = (ram) => {
-    if (!variants.length) {
-      return true;
-    }
-
-    return variants.some((variant) => {
-      const variantColor = variant?.color?.name || variant?.color?.value || "";
-
-      const colorMatch = !selectedColor || variantColor === selectedColor;
-
-      const storageMatch =
-        !selectedStorage || variant?.storage === selectedStorage;
-
-      return colorMatch && variant?.ram === ram && storageMatch;
-    });
-  };
-
-  // =====================================================
-  // STORAGE AVAILABLE
-  // =====================================================
-  const isStorageAvailable = (storage) => {
-    if (!variants.length) {
-      return true;
-    }
-
-    return variants.some((variant) => {
-      const variantColor = variant?.color?.name || variant?.color?.value || "";
-
-      const colorMatch = !selectedColor || variantColor === selectedColor;
-
-      const ramMatch = !selectedRam || variant?.ram === selectedRam;
-
-      return colorMatch && ramMatch && variant?.storage === storage;
-    });
-  };
-
-  // =====================================================
-  // COLOR AVAILABLE
-  // =====================================================
-  const isColorAvailable = (colorName) => {
-    if (!variants.length) {
-      return true;
-    }
-
-    return variants.some((variant) => {
-      const variantColor = variant?.color?.name || variant?.color?.value || "";
-
-      const ramMatch = !selectedRam || variant?.ram === selectedRam;
-
-      const storageMatch =
-        !selectedStorage || variant?.storage === selectedStorage;
-
-      return variantColor === colorName && ramMatch && storageMatch;
-    });
-  };
-
-  // =====================================================
-  // INCREASE QUANTITY
-  // =====================================================
   const increaseQuantity = () => {
-    if (currentStock > 0 && quantity < currentStock) {
+    if (currentStock > quantity) {
       setQuantity((prev) => prev + 1);
     }
   };
 
-  // =====================================================
-  // DECREASE QUANTITY
-  // =====================================================
   const decreaseQuantity = () => {
-    if (quantity > 1) {
-      setQuantity((prev) => prev - 1);
-    }
+    if (quantity > 1) setQuantity((prev) => prev - 1);
   };
 
   // =====================================================
-  // ORDER
+  // CART
+  // =====================================================
+  const handleAddToCart = () => {
+    if (typeof addTocart !== "function") {
+      console.error(
+        "addTocart is missing. Check your Store/store.js action name."
+      );
+      alert(
+        "Cart function পাওয়া যাচ্ছে না। Store/store.js ফাইলটি পরীক্ষা করুন।"
+      );
+      return;
+    }
+
+    if (hasVariants && !selectedVariant) {
+      alert("Please select a valid Color, RAM and Storage combination.");
+      return;
+    }
+
+    if (currentStock <= 0) {
+      alert("This product is out of stock.");
+      return;
+    }
+
+    if (quantity > currentStock) {
+      alert("Selected quantity exceeds available stock.");
+      return;
+    }
+
+    const cartProduct = {
+      ...product,
+      quantity,
+      selectedColor,
+      selectedRam,
+      selectedStorage,
+      selectedVariant: selectedVariant || null,
+      price: displayPrice,
+      discountPrice: displayPrice,
+      sku: selectedVariant?.sku || product?.sku || "",
+    };
+
+    addTocart(cartProduct);
+  };
+
+  // =====================================================
+  // BUY / PRE-ORDER
   // =====================================================
   const handlePreOrder = () => {
     if (hasVariants && !selectedVariant) {
@@ -487,7 +424,7 @@ export default function ProductDetailsPage() {
       return;
     }
 
-    console.log({
+    console.log("Selected product order:", {
       product: product.name,
       productId: product._id,
       color: selectedColor,
@@ -499,121 +436,80 @@ export default function ProductDetailsPage() {
       sku: selectedVariant?.sku || product.sku || "",
       variant: selectedVariant,
     });
+
+    alert("Product selected. Checkout integration is not connected here yet.");
   };
 
   // =====================================================
   // WHATSAPP
   // =====================================================
   const whatsappMessage = encodeURIComponent(
-    `Hello, I want to know about ${product?.name || "this product"}`,
+    `Hello, I want to know about ${product?.name || "this product"}`
   );
 
   const whatsappUrl = `https://wa.me/?text=${whatsappMessage}`;
 
   // =====================================================
-  // =====================================================
-  // SAVE RECENTLY VIEWED PRODUCT
-  // =====================================================
-  // =====================================================
-  // SAVE RECENTLY VIEWED PRODUCT
-  // =====================================================
-  // =====================================================
-  // SAVE RECENTLY VIEWED
-  // Maximum 10 products
-  // Remove products older than 30 days
+  // RECENTLY VIEWED
   // =====================================================
   useEffect(() => {
-    if (!product?._id) return;
+    if (!product?._id || typeof window === "undefined") return;
 
     try {
       const now = Date.now();
+      const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
 
-      const THIRTY_DAYS = 7 * 24 * 60 * 60 * 1000;
-
-      const saved = JSON.parse(localStorage.getItem("recentlyViewed") || "[]");
+      const saved = JSON.parse(
+        localStorage.getItem("recentlyViewed") || "[]"
+      );
 
       const savedProducts = Array.isArray(saved) ? saved : [];
 
-      // =================================================
-      // REMOVE PRODUCTS OLDER THAN 30 DAYS
-      // =================================================
       const validProducts = savedProducts
-        .map((item) => {
-          // Old data যদি viewedAt না থাকে
-          // তাহলে এখন থেকে 30 দিন ধরে রাখবে
-          if (!item?.viewedAt) {
-            return {
-              ...item,
-              viewedAt: now,
-            };
-          }
-
-          return item;
-        })
+        .map((item) =>
+          item?.viewedAt
+            ? item
+            : { ...item, viewedAt: now }
+        )
         .filter((item) => {
           const viewedAt = Number(item?.viewedAt || 0);
-
           return viewedAt > 0 && now - viewedAt < THIRTY_DAYS;
         });
 
-      // =================================================
-      // CURRENT PRODUCT
-      // =================================================
       const newProduct = {
         _id: product._id,
-
         name: product.name,
-
         slug: product.slug || product._id,
-
         brand: product.brand || "",
-
         price: Number(product.price || 0),
-
         discountPrice:
-          product.discountPrice !== null && product.discountPrice !== undefined
+          product.discountPrice != null
             ? Number(product.discountPrice)
             : null,
-
         images:
-          Array.isArray(product.images) && product.images.length > 0
+          Array.isArray(product.images) && product.images.length
             ? product.images
             : product.image
               ? [product.image]
               : [],
-
-        // IMPORTANT
         viewedAt: now,
       };
 
-      // =================================================
-      // REMOVE SAME PRODUCT
-      // =================================================
       const filtered = validProducts.filter(
-        (item) => item?._id !== product._id,
+        (item) => item?._id !== product._id
       );
 
-      // =================================================
-      // CURRENT PRODUCT FIRST
-      // MAXIMUM 10 PRODUCTS
-      // =================================================
       const updated = [newProduct, ...filtered].slice(0, 10);
 
-      // =================================================
-      // SAVE
-      // =================================================
       localStorage.setItem("recentlyViewed", JSON.stringify(updated));
-
-      // =================================================
-      // UPDATE SAME TAB
-      // =================================================
       window.dispatchEvent(new Event("recentlyViewedUpdated"));
-
-      console.log("Recently Viewed Updated:", updated);
     } catch (error) {
       console.error("Recently viewed save error:", error);
     }
   }, [product]);
+
+  // =====================================================
+  // LOADING
   // =====================================================
   if (loading) {
     return (
@@ -622,7 +518,6 @@ export default function ProductDetailsPage() {
       >
         <div className="flex flex-col items-center gap-4">
           <div className="w-11 h-11 border-[3px] border-orange-500 border-t-transparent rounded-full animate-spin" />
-
           <p className="text-gray-500 text-sm tracking-wide">
             Loading product...
           </p>
@@ -660,14 +555,6 @@ export default function ProductDetailsPage() {
   // =====================================================
   // MAIN IMAGE
   // =====================================================
-  /*
-    IMAGE PRIORITY:
-
-    1. Selected color.image
-    2. Normal product.images[selectedImage]
-    3. First product image
-    4. Empty
-  */
   const mainImage =
     selectedColorImage || images[selectedImage] || images[0] || "";
 
@@ -678,7 +565,6 @@ export default function ProductDetailsPage() {
     <main
       className={`${inter.className} bg-[#fafafa] text-gray-900 min-h-screen`}
     >
-      {/* BREADCRUMB */}
       <div className="max-w-[1320px] mx-auto px-4 sm:px-6 pt-6">
         <nav className="flex items-center gap-1.5 text-[13px] text-gray-500">
           <Link href="/" className="hover:text-orange-600 transition-colors">
@@ -686,9 +572,7 @@ export default function ProductDetailsPage() {
           </Link>
 
           <ChevronRight size={13} className="text-gray-400" />
-
           <span>Mobile Phone</span>
-
           <ChevronRight size={13} className="text-gray-400" />
 
           <span className="text-gray-800 font-medium truncate max-w-[180px]">
@@ -697,14 +581,10 @@ export default function ProductDetailsPage() {
         </nav>
       </div>
 
-      {/* MAIN PRODUCT AREA */}
       <section className="max-w-[1320px] mx-auto px-4 sm:px-6 pt-7 pb-20">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] xl:grid-cols-[500px_1fr] gap-10 lg:gap-14">
-          {/* =================================================
-              LEFT IMAGE GALLERY
-          ================================================= */}
+          {/* IMAGE GALLERY */}
           <div className="space-y-5">
-            {/* MAIN IMAGE */}
             <div className="relative aspect-square w-full rounded-3xl bg-white border border-gray-100 shadow-[0_2px_20px_-4px_rgba(0,0,0,0.06)] flex items-center justify-center overflow-hidden">
               {mainImage ? (
                 <img
@@ -717,46 +597,35 @@ export default function ProductDetailsPage() {
                   className="w-full h-full object-contain p-8 md:p-10 transition-all duration-500"
                 />
               ) : (
-                <div className="text-gray-400 text-sm">No Image Available</div>
+                <div className="text-gray-400 text-sm">
+                  No Image Available
+                </div>
               )}
 
-              {/* OUT OF STOCK */}
               {isOutOfStock && (
                 <div className="absolute inset-0 flex items-center justify-center bg-white/30 backdrop-blur-[2px]">
-                  <span className="inline-flex items-center px-5 py-2 rounded-full bg-rose-50 text-rose-600 text-sm font-medium border border-rose-200/80 shadow-sm tracking-wide">
+                  <span className="inline-flex items-center px-5 py-2 rounded-full bg-rose-50 text-rose-600 text-sm font-medium border border-rose-200/80 shadow-sm">
                     Out of Stock
                   </span>
                 </div>
               )}
             </div>
 
-            {/* =================================================
-                NORMAL PRODUCT IMAGE THUMBNAILS
-            ================================================= */}
             {images.length > 1 && (
-              <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
+              <div className="flex gap-3 overflow-x-auto pb-1">
                 {images.map((image, index) => (
                   <button
                     key={`${image}-${index}`}
+                    type="button"
                     onClick={() => {
-                      /*
-                          Normal image click করলে
-                          color image override বন্ধ হবে।
-                        */
                       setSelectedImage(index);
                       setSelectedColorImage("");
                     }}
-                    className={`
-                        relative flex-shrink-0
-                        w-[76px] h-[76px] sm:w-20 sm:h-20
-                        rounded-2xl border-2 overflow-hidden bg-white
-                        transition-all duration-300
-                        ${
-                          !selectedColorImage && selectedImage === index
-                            ? "border-orange-500 shadow-md shadow-orange-500/10"
-                            : "border-gray-200/80 hover:border-gray-300"
-                        }
-                      `}
+                    className={`relative flex-shrink-0 w-[76px] h-[76px] sm:w-20 sm:h-20 rounded-2xl border-2 overflow-hidden bg-white transition-all duration-300 ${
+                      !selectedColorImage && selectedImage === index
+                        ? "border-orange-500 shadow-md shadow-orange-500/10"
+                        : "border-gray-200/80 hover:border-gray-300"
+                    }`}
                   >
                     <img
                       src={image}
@@ -769,40 +638,40 @@ export default function ProductDetailsPage() {
             )}
           </div>
 
-          {/* =================================================
-              RIGHT PRODUCT INFORMATION
-          ================================================= */}
+          {/* PRODUCT INFORMATION */}
           <div className="flex flex-col pt-1">
-            {/* BRAND + COMPARE */}
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[15px] font-semibold text-blue-600 tracking-wide lowercase">
+              <span className="text-[15px] font-semibold text-blue-600 tracking-wide">
                 {product.brand?.toLowerCase() || "brand"}
               </span>
 
-              <button className="flex items-center gap-1.5 text-orange-500 font-medium text-[13px] hover:text-orange-600 transition-colors">
+              <button
+                type="button"
+                onClick={() => alert("Compare feature is not connected yet.")}
+                className="flex items-center gap-1.5 text-orange-500 font-medium text-[13px] hover:text-orange-600 transition-colors"
+              >
                 <ArrowLeftRight size={15} />
                 Add to Compare
               </button>
             </div>
 
-            {/* TITLE */}
             <h1 className="text-[26px] sm:text-[32px] font-semibold text-gray-900 leading-[1.25] tracking-tight">
               {product.name}
             </h1>
 
-            {/* PRICE + AVAILABILITY + CODE */}
             <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[14px]">
               <span className="font-semibold text-gray-900">
                 {displayPrice > 0
-                  ? `৳${Number(displayPrice).toLocaleString()}`
+                  ? `৳${displayPrice.toLocaleString()}`
                   : "TBA"}{" "}
-                <span className="font-normal text-gray-500">(Cash Price)</span>
+                <span className="font-normal text-gray-500">
+                  (Cash Price)
+                </span>
               </span>
 
               {originalPrice && (
                 <>
                   <span className="text-gray-300">|</span>
-
                   <span className="text-gray-400 line-through">
                     ৳{originalPrice.toLocaleString()}
                   </span>
@@ -838,11 +707,8 @@ export default function ProductDetailsPage() {
               </span>
             </div>
 
-            {/* =================================================
-                COLOR + STORAGE
-            ================================================= */}
+            {/* COLOR AND STORAGE */}
             <div className="mt-7 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* COLOR */}
               {colors.length > 0 && (
                 <div className="rounded-2xl border border-gray-200/80 bg-white p-4 shadow-sm">
                   <h3 className="text-[13px] font-medium text-gray-600 mb-3 tracking-wide">
@@ -856,31 +722,23 @@ export default function ProductDetailsPage() {
                       return (
                         <button
                           key={`${color.name}-${index}`}
+                          type="button"
                           disabled={!available}
                           onClick={() => handleColorSelect(color)}
-                          className={`
-                              flex items-center gap-2
-                              px-3.5 py-1.5
-                              rounded-full border text-[13px] font-medium transition-all duration-200
-                              ${
-                                selectedColor === color.name
-                                  ? "border-orange-500 bg-orange-50 text-orange-700 shadow-sm"
-                                  : "border-gray-200 text-gray-700 hover:border-gray-300"
-                              }
-                              ${
-                                !available
-                                  ? "opacity-40 cursor-not-allowed line-through"
-                                  : ""
-                              }
-                            `}
+                          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full border text-[13px] font-medium transition-all ${
+                            selectedColor === color.name
+                              ? "border-orange-500 bg-orange-50 text-orange-700 shadow-sm"
+                              : "border-gray-200 text-gray-700 hover:border-gray-300"
+                          } ${
+                            !available
+                              ? "opacity-40 cursor-not-allowed line-through"
+                              : ""
+                          }`}
                         >
                           <span
                             className="w-3.5 h-3.5 rounded-full border border-gray-300/80 shadow-inner"
-                            style={{
-                              backgroundColor: color.code,
-                            }}
+                            style={{ backgroundColor: color.code }}
                           />
-
                           {color.name}
                         </button>
                       );
@@ -889,7 +747,6 @@ export default function ProductDetailsPage() {
                 </div>
               )}
 
-              {/* STORAGE */}
               {storageOptions.length > 0 && (
                 <div className="rounded-2xl border border-gray-200/80 bg-white p-4 shadow-sm">
                   <h3 className="text-[13px] font-medium text-gray-600 mb-3 tracking-wide">
@@ -903,22 +760,18 @@ export default function ProductDetailsPage() {
                       return (
                         <button
                           key={`${storage}-${index}`}
+                          type="button"
                           disabled={!available}
-                          onClick={() => handleStorageSelect(storage)}
-                          className={`
-                              px-3.5 py-1.5
-                              rounded-full border text-[13px] font-medium transition-all duration-200
-                              ${
-                                selectedStorage === storage
-                                  ? "border-orange-500 bg-orange-50 text-orange-700 shadow-sm"
-                                  : "border-gray-200 text-gray-700 hover:border-gray-300"
-                              }
-                              ${
-                                !available
-                                  ? "opacity-40 cursor-not-allowed line-through"
-                                  : ""
-                              }
-                            `}
+                          onClick={() => setSelectedStorage(storage)}
+                          className={`px-3.5 py-1.5 rounded-full border text-[13px] font-medium transition-all ${
+                            selectedStorage === storage
+                              ? "border-orange-500 bg-orange-50 text-orange-700 shadow-sm"
+                              : "border-gray-200 text-gray-700 hover:border-gray-300"
+                          } ${
+                            !available
+                              ? "opacity-40 cursor-not-allowed line-through"
+                              : ""
+                          }`}
                         >
                           {storage}
                         </button>
@@ -929,9 +782,7 @@ export default function ProductDetailsPage() {
               )}
             </div>
 
-            {/* =================================================
-                RAM
-            ================================================= */}
+            {/* RAM */}
             {ramOptions.length > 0 && (
               <div className="mt-4 rounded-2xl border border-gray-200/80 bg-white p-4 shadow-sm">
                 <h3 className="text-[13px] font-medium text-gray-600 mb-3 tracking-wide">
@@ -945,22 +796,18 @@ export default function ProductDetailsPage() {
                     return (
                       <button
                         key={`${ram}-${index}`}
+                        type="button"
                         disabled={!available}
-                        onClick={() => handleRamSelect(ram)}
-                        className={`
-                            px-3.5 py-1.5
-                            rounded-full border text-[13px] font-medium transition-all duration-200
-                            ${
-                              selectedRam === ram
-                                ? "border-orange-500 bg-orange-50 text-orange-700 shadow-sm"
-                                : "border-gray-200 text-gray-700 hover:border-gray-300"
-                            }
-                            ${
-                              !available
-                                ? "opacity-40 cursor-not-allowed line-through"
-                                : ""
-                            }
-                          `}
+                        onClick={() => setSelectedRam(ram)}
+                        className={`px-3.5 py-1.5 rounded-full border text-[13px] font-medium transition-all ${
+                          selectedRam === ram
+                            ? "border-orange-500 bg-orange-50 text-orange-700 shadow-sm"
+                            : "border-gray-200 text-gray-700 hover:border-gray-300"
+                        } ${
+                          !available
+                            ? "opacity-40 cursor-not-allowed line-through"
+                            : ""
+                        }`}
                       >
                         {ram}
                       </button>
@@ -970,18 +817,13 @@ export default function ProductDetailsPage() {
               </div>
             )}
 
-            {/* =================================================
-                VARIANT ERROR
-            ================================================= */}
             {hasVariants && !selectedVariant && (
               <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50/80 px-4 py-3 text-[13px] text-rose-600">
                 This Color, RAM and Storage combination is not available.
               </div>
             )}
 
-            {/* =================================================
-                QUANTITY
-            ================================================= */}
+            {/* QUANTITY */}
             <div className="mt-7">
               <h3 className="text-[13px] font-medium text-gray-600 mb-3 tracking-wide">
                 Select Quantity
@@ -989,6 +831,7 @@ export default function ProductDetailsPage() {
 
               <div className="inline-flex items-center gap-1 bg-gray-100/80 rounded-full p-1 border border-gray-200/60">
                 <button
+                  type="button"
                   onClick={decreaseQuantity}
                   disabled={currentStock <= 0 || quantity <= 1}
                   className="w-9 h-9 rounded-full bg-white flex items-center justify-center text-gray-700 hover:bg-gray-50 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
@@ -1001,6 +844,7 @@ export default function ProductDetailsPage() {
                 </span>
 
                 <button
+                  type="button"
                   onClick={increaseQuantity}
                   disabled={currentStock <= 0 || quantity >= currentStock}
                   className="w-9 h-9 rounded-full bg-white flex items-center justify-center text-gray-700 hover:bg-gray-50 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
@@ -1010,13 +854,13 @@ export default function ProductDetailsPage() {
               </div>
             </div>
 
-            {/* =================================================
-                EMI + WHATSAPP
-            ================================================= */}
+            {/* EMI AND WHATSAPP */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-7">
-              <button className="h-[48px] rounded-2xl bg-[#fff8f0] border border-orange-100/80 flex items-center justify-center gap-2.5 text-gray-800 hover:bg-orange-50/80 transition-all text-[13.5px]">
+              <button
+                type="button"
+                className="h-[48px] rounded-2xl bg-[#fff8f0] border border-orange-100/80 flex items-center justify-center gap-2.5 text-gray-800 hover:bg-orange-50/80 transition-all text-[13.5px]"
+              >
                 <Percent size={16} className="text-orange-500" />
-
                 <span>EMI Available for orders above ৳ 5000</span>
               </button>
 
@@ -1027,72 +871,53 @@ export default function ProductDetailsPage() {
                 className="h-[48px] rounded-2xl bg-emerald-50 border border-emerald-200/70 flex items-center justify-center gap-2.5 text-gray-800 hover:bg-emerald-100/60 transition-all text-[13.5px] font-medium"
               >
                 <MessageCircle size={17} className="text-emerald-600" />
-
                 <span>WhatsApp</span>
               </a>
             </div>
 
-            {/* =================================================
-                DELIVERY
-            ================================================= */}
+            {/* DELIVERY */}
             <div className="mt-4 flex items-center gap-3 rounded-2xl border border-gray-200/80 bg-white px-4 py-3.5 text-[13.5px] text-gray-700 shadow-sm">
               <Truck size={17} className="text-gray-500 flex-shrink-0" />
-
               <span>
                 Delivery Timescale:{" "}
                 <span className="font-medium text-gray-900">3-5 Days</span>
               </span>
             </div>
 
-            {/* =================================================
-                ORDER BUTTON
-            ================================================= */}
-            <div className="flex justify-between gap-3">
+            {/* CART AND BUY BUTTONS */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <button
-                onClick={handlePreOrder}
-                disabled={
-                  currentStock <= 0 || (hasVariants && !selectedVariant)
-                }
-                className={`
-                mt-7 w-full h-[50px] rounded-2xl
-                font-semibold text-[15px]
-                transition-all duration-200 flex items-center justify-center gap-2.5
-                ${
+                type="button"
+                onClick={handleAddToCart}
+                disabled={currentStock <= 0 || (hasVariants && !selectedVariant)}
+                className={`mt-7 w-full h-[50px] rounded-2xl font-semibold text-[15px] transition-all duration-200 flex items-center justify-center gap-2.5 ${
                   currentStock <= 0 || (hasVariants && !selectedVariant)
                     ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                     : "bg-orange-500 hover:bg-orange-600 active:scale-[0.985] text-white shadow-lg shadow-orange-500/25"
-                }
-              `}
+                }`}
               >
                 <ShoppingBag size={18} />
-
                 {currentStock <= 0
                   ? "Out of Stock"
-                  : !selectedVariant && hasVariants
+                  : hasVariants && !selectedVariant
                     ? "Select Variant"
                     : "Add to Cart"}
               </button>
+
               <button
+                type="button"
                 onClick={handlePreOrder}
-                disabled={
-                  currentStock <= 0 || (hasVariants && !selectedVariant)
-                }
-                className={`
-                mt-7 w-full h-[50px] rounded-2xl
-                font-semibold text-[15px]
-                transition-all duration-200 flex items-center justify-center gap-2.5
-                ${
+                disabled={currentStock <= 0 || (hasVariants && !selectedVariant)}
+                className={`mt-7 w-full h-[50px] rounded-2xl font-semibold text-[15px] transition-all duration-200 flex items-center justify-center gap-2.5 ${
                   currentStock <= 0 || (hasVariants && !selectedVariant)
                     ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                     : "bg-orange-500 hover:bg-orange-600 active:scale-[0.985] text-white shadow-lg shadow-orange-500/25"
-                }
-              `}
+                }`}
               >
                 <ShoppingBag size={18} />
-
                 {currentStock <= 0
                   ? "Out of Stock"
-                  : !selectedVariant && hasVariants
+                  : hasVariants && !selectedVariant
                     ? "Select Variant"
                     : "Buy"}
               </button>
@@ -1100,58 +925,36 @@ export default function ProductDetailsPage() {
           </div>
         </div>
 
-        {/* =================================================
-            SPECIFICATION
-        ================================================= */}
-        {/* =================================================
-    SPECIFICATION + RECENTLY VIEWED
-================================================= */}
-        {/* =================================================
-    SPECIFICATION + RECENTLY VIEWED
-================================================= */}
+        {/* SPECIFICATIONS AND RECENTLY VIEWED */}
         <section className="mt-16 sm:mt-20">
           <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-8 lg:gap-10 items-start">
-            {/* =================================================
-        LEFT - SPECIFICATION
-    ================================================= */}
             <div className="min-w-0">
-              {/* HEADER */}
               <div className="mb-5">
                 <h2 className="text-[24px] sm:text-[26px] font-semibold text-gray-900 tracking-tight">
                   Specification
                 </h2>
-
                 <p className="mt-1 text-[14px] text-gray-500">
                   Product details and specifications
                 </p>
               </div>
 
-              {/* SPECIFICATION TABLE */}
               <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-[0_2px_15px_-5px_rgba(0,0,0,0.08)]">
-                {/* BRAND */}
                 <SpecificationRow
                   label="Brand"
                   value={product.brand || "Apple"}
                 />
 
-                {/* MODEL */}
                 <SpecificationRow label="Model" value={product.name} />
 
-                {/* SPECIFICATIONS */}
                 {Array.isArray(product.specifications) &&
                   product.specifications.map((spec, index) => {
                     const key = String(spec?.key || "").trim();
-
                     const value = String(spec?.value || "").trim();
 
-                    if (!key || !value) {
-                      return null;
-                    }
+                    if (!key || !value) return null;
 
-                    // Brand / Model already shown above
                     if (
-                      key.toLowerCase() === "brand" ||
-                      key.toLowerCase() === "model"
+                      ["brand", "model"].includes(key.toLowerCase())
                     ) {
                       return null;
                     }
@@ -1167,21 +970,16 @@ export default function ProductDetailsPage() {
               </div>
             </div>
 
-            {/* =================================================
-        RIGHT - RECENTLY VIEWED
-    ================================================= */}
             <aside className="min-w-0 lg:sticky lg:top-24">
               <div className="mb-5">
                 <h2 className="text-[24px] sm:text-[26px] font-semibold text-gray-900 tracking-tight">
                   Recently Viewed
                 </h2>
-
                 <p className="mt-1 text-[14px] text-gray-500">
                   Products you viewed recently
                 </p>
               </div>
 
-              {/* RecentlyViewed component */}
               <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-[0_2px_15px_-5px_rgba(0,0,0,0.08)]">
                 <RecentlyViewed />
               </div>
@@ -1193,17 +991,16 @@ export default function ProductDetailsPage() {
   );
 }
 
-// =========================================================
+// =====================================================
 // SPECIFICATION ROW
-// =========================================================
+// =====================================================
 function SpecificationRow({ label, value }) {
   return (
     <div className="grid grid-cols-[140px_1fr] sm:grid-cols-[180px_1fr] border-b border-gray-100 last:border-b-0">
       <div className="px-5 py-3.5 bg-gray-50/80 text-[13.5px] text-gray-600 font-medium">
         {label}
       </div>
-
-      <div className="px-5 py-3.5 text-[13.5px] font-medium text-gray-900 border-l border-gray-100">
+      <div className="px-5 py-3.5 text-[13.5px] font-medium text-gray-900 border-l border-gray-100 break-words">
         {value}
       </div>
     </div>

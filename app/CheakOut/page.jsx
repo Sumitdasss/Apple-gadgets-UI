@@ -1,12 +1,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
- "use client";
+"use client";
 
-import React, {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 
 import {
@@ -55,39 +50,24 @@ function AreaSelector({ value, onChange }) {
 
   useEffect(() => {
     const handleOutside = (e) => {
-      if (
-        ref.current &&
-        !ref.current.contains(e.target)
-      ) {
+      if (ref.current && !ref.current.contains(e.target)) {
         setOpen(false);
       }
     };
 
-    document.addEventListener(
-      "mousedown",
-      handleOutside
-    );
+    document.addEventListener("mousedown", handleOutside);
 
     return () => {
-      document.removeEventListener(
-        "mousedown",
-        handleOutside
-      );
+      document.removeEventListener("mousedown", handleOutside);
     };
   }, []);
 
   const divisions = Object.keys(BANGLADESH_GEO);
 
-  const districts = division
-    ? Object.keys(
-        BANGLADESH_GEO[division] || {}
-      )
-    : [];
+  const districts = division ? Object.keys(BANGLADESH_GEO[division] || {}) : [];
 
   const upazilas =
-    division && district
-      ? BANGLADESH_GEO[division]?.[district] || []
-      : [];
+    division && district ? BANGLADESH_GEO[division]?.[district] || [] : [];
 
   const selectUpazila = (upazila) => {
     const fullValue = `${division} > ${district} > ${upazila}`;
@@ -97,15 +77,10 @@ function AreaSelector({ value, onChange }) {
   };
 
   return (
-    <div
-      ref={ref}
-      className="relative"
-    >
+    <div ref={ref} className="relative">
       <button
         type="button"
-        onClick={() =>
-          setOpen((prev) => !prev)
-        }
+        onClick={() => setOpen((prev) => !prev)}
         className="flex w-full items-center justify-between rounded-md border border-gray-300 bg-white px-3 py-2 text-left text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-white"
       >
         <span
@@ -115,14 +90,10 @@ function AreaSelector({ value, onChange }) {
               : "text-gray-400 dark:text-gray-500"
           }
         >
-          {value ||
-            "Select delivery area"}
+          {value || "Select delivery area"}
         </span>
 
-        <ChevronDown
-          size={16}
-          className="text-gray-400 dark:text-gray-500"
-        />
+        <ChevronDown size={16} className="text-gray-400 dark:text-gray-500" />
       </button>
 
       {open && (
@@ -157,9 +128,7 @@ function AreaSelector({ value, onChange }) {
               {districts.map((item) => (
                 <div
                   key={item}
-                  onMouseEnter={() =>
-                    setDistrict(item)
-                  }
+                  onMouseEnter={() => setDistrict(item)}
                   className={`flex cursor-pointer items-center justify-between px-3 py-2.5 text-sm ${
                     district === item
                       ? "bg-orange-50 text-orange-600 dark:bg-orange-900/20 dark:text-orange-400"
@@ -180,15 +149,12 @@ function AreaSelector({ value, onChange }) {
             <div className="w-48 overflow-y-auto">
               {upazilas.map((item) => {
                 const selected =
-                  value ===
-                  `${division} > ${district} > ${item}`;
+                  value === `${division} > ${district} > ${item}`;
 
                 return (
                   <div
                     key={item}
-                    onClick={() =>
-                      selectUpazila(item)
-                    }
+                    onClick={() => selectUpazila(item)}
                     className={`flex cursor-pointer items-center justify-between px-3 py-2.5 text-sm ${
                       selected
                         ? "bg-orange-50 text-orange-600 dark:bg-orange-900/20 dark:text-orange-400"
@@ -197,9 +163,7 @@ function AreaSelector({ value, onChange }) {
                   >
                     {item}
 
-                    {selected && (
-                      <Check size={14} />
-                    )}
+                    {selected && <Check size={14} />}
                   </div>
                 );
               })}
@@ -221,52 +185,38 @@ export default function CheckoutPage() {
     increasePopulation,
     decreasePopulation,
     removeFromCart,
-    clearCart
+    clearCart,
   } = useStore();
 
-  const [formData, setFormData] =
-    useState({
-      fullName: "",
-      email: "",
-      phone: "",
-      selectArea: "",
-      address: "",
-      note: "",
-      paymentMethod:
-        "cash_on_delivery",
-      deliveryMethod:
-        "courier_service",
-      couponCode: "",
-      termsAgreed: true,
-    });
+  const [formData, setFormData] = useState({
+    fullName: "",
+    email: "",
+    phone: "",
+    selectArea: "",
+    address: "",
+    note: "",
+    paymentMethod: "cash_on_delivery",
+    deliveryMethod: "courier_service",
+    couponCode: "",
+    termsAgreed: true,
+  });
 
-  const [
-    selectedVariants,
-    setSelectedVariants,
-  ] = useState({});
+  const [selectedVariants, setSelectedVariants] = useState({});
 
-  const [couponDiscount, setCouponDiscount] =
-    useState(0);
+  const [couponDiscount, setCouponDiscount] = useState(0);
 
-  const [loading, setLoading] =
-    useState(false);
+  const [loading, setLoading] = useState(false);
 
   /* =========================================================
      HELPERS
   ========================================================= */
 
   const normalize = (value) => {
-    if (
-      value === null ||
-      value === undefined
-    ) {
+    if (value === null || value === undefined) {
       return "";
     }
 
-    if (
-      typeof value === "string" ||
-      typeof value === "number"
-    ) {
+    if (typeof value === "string" || typeof value === "number") {
       return String(value).trim();
     }
 
@@ -277,7 +227,7 @@ export default function CheckoutPage() {
           value.label ??
           value.title ??
           value._id ??
-          ""
+          "",
       ).trim();
     }
 
@@ -295,7 +245,7 @@ export default function CheckoutPage() {
         item?.product ||
         item?._id ||
         item?.id ||
-        ""
+        "",
     );
 
   /* =========================================================
@@ -303,20 +253,14 @@ export default function CheckoutPage() {
   ========================================================= */
 
   const getCartId = (item) =>
-    item?.id ||
-    item?._id ||
-    item?.productId ||
-    item?.product?._id;
+    item?.id || item?._id || item?.productId || item?.product?._id;
 
   /* =========================================================
      IMAGE
   ========================================================= */
 
   const getImage = (item) => {
-    if (
-      Array.isArray(item?.images) &&
-      item.images.length
-    ) {
+    if (Array.isArray(item?.images) && item.images.length) {
       return item.images[0];
     }
 
@@ -327,51 +271,42 @@ export default function CheckoutPage() {
      PRODUCT PRICE
   ========================================================= */
 
-  const getPrice = (item) =>
-    Number(
-      item?.discountPrice ??
-        item?.price ??
-        0
-    );
+  const getPrice = (item) => Number(item?.discountPrice ?? item?.price ?? 0);
 
   /* =========================================================
      GET VARIANTS
 ========================================================= */
 
- 
-const getVariants = (item) => {
-  if (!Array.isArray(item?.variants)) {
-    return [];
-  }
+  const getVariants = (item) => {
+    if (!Array.isArray(item?.variants)) {
+      return [];
+    }
 
-  return item.variants.map((variant, index) => ({
-    ...variant,
+    return item.variants.map((variant, index) => ({
+      ...variant,
 
-    // Variant array index
-    _variantIndex: index,
+      // Variant array index
+      _variantIndex: index,
 
-    // Variant values normalize
-    color: normalize(variant?.color),
-    ram: normalize(variant?.ram),
-    storage: normalize(variant?.storage),
+      // Variant values normalize
+      color: normalize(variant?.color),
+      ram: normalize(variant?.ram),
+      storage: normalize(variant?.storage),
 
-    // Numbers
-    price: Number(variant?.price ?? 0),
-    stock: Number(variant?.stock ?? 0),
+      // Numbers
+      price: Number(variant?.price ?? 0),
+      stock: Number(variant?.stock ?? 0),
 
-    // SKU
-    sku: normalize(variant?.sku),
+      // SKU
+      sku: normalize(variant?.sku),
 
-    // MongoDB Variant _id
-    variantId: variant?._id
-      ? String(variant._id)
-      : "",
+      // MongoDB Variant _id
+      variantId: variant?._id ? String(variant._id) : "",
 
-    // Variant image
-    image: variant?.image || "",
-  }));
-};
-
+      // Variant image
+      image: variant?.image || "",
+    }));
+  };
 
   /* =========================================================
      GET SELECTED VARIANT
@@ -394,11 +329,9 @@ const getVariants = (item) => {
   ========================================================= */
 
   const getOptions = (item) => {
-    const variants =
-      getVariants(item);
+    const variants = getVariants(item);
 
-    const selected =
-      getSelected(item);
+    const selected = getSelected(item);
 
     if (!variants.length) {
       return {
@@ -411,14 +344,7 @@ const getVariants = (item) => {
     /* COLORS */
 
     const colors = [
-      ...new Set(
-        variants
-          .map(
-            (variant) =>
-              variant.color
-          )
-          .filter(Boolean)
-      ),
+      ...new Set(variants.map((variant) => variant.color).filter(Boolean)),
     ];
 
     /* FILTER COLOR */
@@ -426,49 +352,25 @@ const getVariants = (item) => {
     let filtered = variants;
 
     if (selected.color) {
-      filtered =
-        filtered.filter(
-          (variant) =>
-            variant.color ===
-            selected.color
-        );
+      filtered = filtered.filter((variant) => variant.color === selected.color);
     }
 
     /* RAM */
 
     const rams = [
-      ...new Set(
-        filtered
-          .map(
-            (variant) =>
-              variant.ram
-          )
-          .filter(Boolean)
-      ),
+      ...new Set(filtered.map((variant) => variant.ram).filter(Boolean)),
     ];
 
     /* FILTER RAM */
 
     if (selected.ram) {
-      filtered =
-        filtered.filter(
-          (variant) =>
-            variant.ram ===
-            selected.ram
-        );
+      filtered = filtered.filter((variant) => variant.ram === selected.ram);
     }
 
     /* STORAGE */
 
     const storages = [
-      ...new Set(
-        filtered
-          .map(
-            (variant) =>
-              variant.storage
-          )
-          .filter(Boolean)
-      ),
+      ...new Set(filtered.map((variant) => variant.storage).filter(Boolean)),
     ];
 
     return {
@@ -483,11 +385,9 @@ const getVariants = (item) => {
 ========================================================= */
 
   const getVariantStatus = (item) => {
-    const variants =
-      getVariants(item);
+    const variants = getVariants(item);
 
-    const selected =
-      getSelected(item);
+    const selected = getSelected(item);
 
     /* NORMAL PRODUCT */
 
@@ -505,54 +405,29 @@ const getVariants = (item) => {
 
     /* CHECK REQUIRED FIELDS */
 
-    const hasColor =
-      variants.some(
-        (variant) =>
-          Boolean(variant.color)
-      );
+    const hasColor = variants.some((variant) => Boolean(variant.color));
 
-    const hasRam =
-      variants.some(
-        (variant) =>
-          Boolean(variant.ram)
-      );
+    const hasRam = variants.some((variant) => Boolean(variant.ram));
 
-    const hasStorage =
-      variants.some(
-        (variant) =>
-          Boolean(variant.storage)
-      );
+    const hasStorage = variants.some((variant) => Boolean(variant.storage));
 
     const missingFields = [];
 
-    if (
-      hasColor &&
-      !selected.color
-    ) {
+    if (hasColor && !selected.color) {
       missingFields.push("Color");
     }
 
-    if (
-      hasRam &&
-      !selected.ram
-    ) {
+    if (hasRam && !selected.ram) {
       missingFields.push("RAM");
     }
 
-    if (
-      hasStorage &&
-      !selected.storage
-    ) {
-      missingFields.push(
-        "Storage"
-      );
+    if (hasStorage && !selected.storage) {
+      missingFields.push("Storage");
     }
 
     /* NOT COMPLETE */
 
-    if (
-      missingFields.length > 0
-    ) {
+    if (missingFields.length > 0) {
       return {
         hasVariant: true,
         complete: false,
@@ -560,9 +435,7 @@ const getVariants = (item) => {
         stock: 0,
         variant: null,
         missingFields,
-        message: `Please select ${missingFields.join(
-          ", "
-        )}`,
+        message: `Please select ${missingFields.join(", ")}`,
       };
     }
 
@@ -570,34 +443,17 @@ const getVariants = (item) => {
        EXACT COMBINATION
     ======================================================= */
 
-    const matchedVariant =
-      variants.find(
-        (variant) => {
-          const colorMatch =
-            hasColor
-              ? variant.color ===
-                selected.color
-              : true;
+    const matchedVariant = variants.find((variant) => {
+      const colorMatch = hasColor ? variant.color === selected.color : true;
 
-          const ramMatch =
-            hasRam
-              ? variant.ram ===
-                selected.ram
-              : true;
+      const ramMatch = hasRam ? variant.ram === selected.ram : true;
 
-          const storageMatch =
-            hasStorage
-              ? variant.storage ===
-                selected.storage
-              : true;
+      const storageMatch = hasStorage
+        ? variant.storage === selected.storage
+        : true;
 
-          return (
-            colorMatch &&
-            ramMatch &&
-            storageMatch
-          );
-        }
-      );
+      return colorMatch && ramMatch && storageMatch;
+    });
 
     /* COMBINATION NOT FOUND */
 
@@ -609,16 +465,13 @@ const getVariants = (item) => {
         stock: 0,
         variant: null,
         missingFields: [],
-        message:
-          "এই combination-এর variant available নেই।",
+        message: "এই combination-এর variant available নেই।",
       };
     }
 
     /* STOCK */
 
-    const stock = Number(
-      matchedVariant.stock || 0
-    );
+    const stock = Number(matchedVariant.stock || 0);
 
     /* OUT OF STOCK */
 
@@ -630,8 +483,7 @@ const getVariants = (item) => {
         stock: 0,
         variant: matchedVariant,
         missingFields: [],
-        message:
-          "এই selected variant-এর stock শেষ।",
+        message: "এই selected variant-এর stock শেষ।",
       };
     }
 
@@ -644,8 +496,7 @@ const getVariants = (item) => {
       stock,
       variant: matchedVariant,
       missingFields: [],
-      message:
-        "Variant available",
+      message: "Variant available",
     };
   };
 
@@ -653,11 +504,8 @@ const getVariants = (item) => {
      GET MATCHED VARIANT
 ========================================================= */
 
-  const getMatchedVariant = (
-    item
-  ) => {
-    const status =
-      getVariantStatus(item);
+  const getMatchedVariant = (item) => {
+    const status = getVariantStatus(item);
 
     return status.variant || null;
   };
@@ -666,250 +514,152 @@ const getVariants = (item) => {
      CHANGE VARIANT
 ========================================================= */
 
-  const changeVariant = (
-    productId,
-    field,
-    value
-  ) => {
-    setSelectedVariants(
-      (prev) => ({
-        ...prev,
+  const changeVariant = (productId, field, value) => {
+    setSelectedVariants((prev) => ({
+      ...prev,
 
-        [productId]: {
-          ...(prev[productId] || {}),
+      [productId]: {
+        ...(prev[productId] || {}),
 
-          [field]: value,
+        [field]: value,
 
-          /* COLOR CHANGE */
+        /* COLOR CHANGE */
 
-          ...(field === "color" && {
-            ram: "",
-            storage: "",
-          }),
+        ...(field === "color" && {
+          ram: "",
+          storage: "",
+        }),
 
-          /* RAM CHANGE */
+        /* RAM CHANGE */
 
-          ...(field === "ram" && {
-            storage: "",
-          }),
-        },
-      })
-    );
+        ...(field === "ram" && {
+          storage: "",
+        }),
+      },
+    }));
   };
 
   /* =========================================================
      INCREASE QUANTITY
 ========================================================= */
 
-  const handleIncreaseQuantity = (
-    item,
-    cartId
-  ) => {
-    const variants =
-      getVariants(item);
+  const handleIncreaseQuantity = (item, cartId) => {
+    const variants = getVariants(item);
 
     /* NORMAL PRODUCT */
 
     if (!variants.length) {
-      increasePopulation(
-        cartId
-      );
+      increasePopulation(cartId);
       return;
     }
 
     /* VARIANT STATUS */
 
-    const variantStatus =
-      getVariantStatus(item);
+    const variantStatus = getVariantStatus(item);
 
     /* FIELD NOT COMPLETE */
 
-    if (
-      !variantStatus.complete
-    ) {
-      alert(
-        variantStatus.message
-      );
+    if (!variantStatus.complete) {
+      alert(variantStatus.message);
       return;
     }
 
     /* VARIANT NOT FOUND */
 
-    if (
-      !variantStatus.variant
-    ) {
-      alert(
-        "এই selected combination-এর variant available নেই।"
-      );
+    if (!variantStatus.variant) {
+      alert("এই selected combination-এর variant available নেই।");
       return;
     }
 
-    const stock = Number(
-      variantStatus.stock || 0
-    );
+    const stock = Number(variantStatus.stock || 0);
 
-    const currentQuantity =
-      Number(
-        item?.quantity || 1
-      );
+    const currentQuantity = Number(item?.quantity || 1);
 
     /* STOCK 0 */
 
     if (stock <= 0) {
-      alert(
-        "এই selected variant-এর stock শেষ।"
-      );
+      alert("এই selected variant-এর stock শেষ।");
       return;
     }
 
     /* MAX STOCK */
 
-    if (
-      currentQuantity >= stock
-    ) {
-      alert(
-        `এই variant-এর সর্বোচ্চ ${stock}টি available আছে।`
-      );
+    if (currentQuantity >= stock) {
+      alert(`এই variant-এর সর্বোচ্চ ${stock}টি available আছে।`);
       return;
     }
 
     /* INCREASE */
 
-    increasePopulation(
-      cartId
-    );
+    increasePopulation(cartId);
   };
 
   /* =========================================================
      TOTAL ITEMS
 ========================================================= */
 
-  const totalItems =
-    useMemo(() => {
-      return cart.reduce(
-        (total, item) =>
-          total +
-          Number(
-            item?.quantity || 1
-          ),
-        0
-      );
-    }, [cart]);
+  const totalItems = useMemo(() => {
+    return cart.reduce((total, item) => total + Number(item?.quantity || 1), 0);
+  }, [cart]);
 
   /* =========================================================
      SUB TOTAL
 ========================================================= */
 
-  const subTotal =
-    useMemo(() => {
-      return cart.reduce(
-        (total, item) => {
-          const variant =
-            getMatchedVariant(
-              item
-            );
+  const subTotal = useMemo(() => {
+    return cart.reduce((total, item) => {
+      const variant = getMatchedVariant(item);
 
-          const price = variant
-            ? Number(
-                variant.price || 0
-              ) ||
-              getPrice(item)
-            : getPrice(item);
+      const price = variant
+        ? Number(variant.price || 0) || getPrice(item)
+        : getPrice(item);
 
-          const quantity =
-            Number(
-              item?.quantity || 1
-            );
+      const quantity = Number(item?.quantity || 1);
 
-          return (
-            total +
-            price * quantity
-          );
-        },
-        0
-      );
-    }, [
-      cart,
-      selectedVariants,
-    ]);
+      return total + price * quantity;
+    }, 0);
+  }, [cart, selectedVariants]);
 
   /* =========================================================
      DELIVERY CHARGE
 ========================================================= */
 
-  const deliveryCharge =
-    useMemo(() => {
-      if (
-        formData.deliveryMethod ===
-        "shop_pickup"
-      ) {
-        return 0;
-      }
+  const deliveryCharge = useMemo(() => {
+    if (formData.deliveryMethod === "shop_pickup") {
+      return 0;
+    }
 
-      if (
-        !formData.selectArea
-      ) {
-        return 0;
-      }
+    if (!formData.selectArea) {
+      return 0;
+    }
 
-      return formData.selectArea.startsWith(
-        "Dhaka"
-      )
-        ? 80
-        : 150;
-    }, [
-      formData.deliveryMethod,
-      formData.selectArea,
-    ]);
+    return formData.selectArea.startsWith("Dhaka") ? 80 : 150;
+  }, [formData.deliveryMethod, formData.selectArea]);
 
   /* =========================================================
      TOTAL
 ========================================================= */
 
-  const totalAmount =
-    Math.max(
-      0,
-      subTotal +
-        deliveryCharge -
-        couponDiscount
-    );
+  const totalAmount = Math.max(0, subTotal + deliveryCharge - couponDiscount);
 
   /* =========================================================
      FORMAT PRICE
 ========================================================= */
 
-  const formatPrice = (
-    price
-  ) =>
-    Number(
-      price || 0
-    ).toLocaleString("en-BD");
+  const formatPrice = (price) => Number(price || 0).toLocaleString("en-BD");
 
   /* =========================================================
      FORM CHANGE
 ========================================================= */
 
-  const handleChange = (
-    e
-  ) => {
-    const {
-      name,
-      value,
-      type,
-      checked,
-    } = e.target;
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
 
-    setFormData(
-      (prev) => ({
-        ...prev,
+    setFormData((prev) => ({
+      ...prev,
 
-        [name]:
-          type ===
-          "checkbox"
-            ? checked
-            : value,
-      })
-    );
+      [name]: type === "checkbox" ? checked : value,
+    }));
   };
 
   /* =========================================================
@@ -917,397 +667,261 @@ const getVariants = (item) => {
 ========================================================= */
 
   const applyCoupon = () => {
-    const code =
-      formData.couponCode
-        .trim()
-        .toUpperCase();
+    const code = formData.couponCode.trim().toUpperCase();
 
     if (!code) {
       setCouponDiscount(0);
 
-      alert(
-        "Please enter coupon code"
-      );
+      alert("Please enter coupon code");
 
       return;
     }
 
-    if (
-      code === "SAVE500"
-    ) {
-      setCouponDiscount(
-        Math.min(
-          500,
-          subTotal
-        )
-      );
+    if (code === "SAVE500") {
+      setCouponDiscount(Math.min(500, subTotal));
 
-      alert(
-        "Coupon applied successfully!"
-      );
+      alert("Coupon applied successfully!");
 
       return;
     }
 
     setCouponDiscount(0);
 
-    alert(
-      "Invalid coupon code"
-    );
+    alert("Invalid coupon code");
   };
 
   /* =========================================================
      SUBMIT ORDER
 ========================================================= */
 
-  const handleSubmit =
-    async (e) => {
-      e.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-      /* BASIC VALIDATION */
+    /* BASIC VALIDATION */
 
-      if (!cart.length) {
-        alert(
-          "Your cart is empty!"
-        );
-        return;
-      }
+    if (!cart.length) {
+      alert("Your cart is empty!");
+      return;
+    }
 
-      if (
-        !formData.termsAgreed
-      ) {
-        alert(
-          "You must agree to the Terms and Conditions."
-        );
-        return;
-      }
+    if (!formData.termsAgreed) {
+      alert("You must agree to the Terms and Conditions.");
+      return;
+    }
 
-      if (
-        !formData.fullName.trim()
-      ) {
-        alert(
-          "Please enter your full name."
-        );
-        return;
-      }
+    if (!formData.fullName.trim()) {
+      alert("Please enter your full name.");
+      return;
+    }
 
-      if (
-        !formData.phone.trim()
-      ) {
-        alert(
-          "Please enter your phone number."
-        );
-        return;
-      }
+    if (!formData.phone.trim()) {
+      alert("Please enter your phone number.");
+      return;
+    }
 
-      if (
-        !formData.selectArea
-      ) {
-        alert(
-          "Please select delivery area."
-        );
-        return;
-      }
+    if (!formData.selectArea) {
+      alert("Please select delivery area.");
+      return;
+    }
 
-      if (
-        !formData.address.trim()
-      ) {
-        alert(
-          "Please enter your delivery address."
-        );
-        return;
-      }
+    if (!formData.address.trim()) {
+      alert("Please enter your delivery address.");
+      return;
+    }
 
-      /* =====================================================
+    /* =====================================================
          CHECK EVERY PRODUCT
       ===================================================== */
 
-      for (const item of cart) {
-        const variants =
-          getVariants(item);
+    for (const item of cart) {
+      const variants = getVariants(item);
 
-        /* NORMAL PRODUCT */
+      /* NORMAL PRODUCT */
 
-        if (!variants.length) {
-          continue;
-        }
-
-        const status =
-          getVariantStatus(item);
-
-        /* FIELD MISSING */
-
-        if (!status.complete) {
-          alert(
-            `${item.name}: ${status.message}`
-          );
-          return;
-        }
-
-        /* VARIANT NOT FOUND */
-
-        if (!status.variant) {
-          alert(
-            `${item.name}: এই selected combination-এর variant available নেই।`
-          );
-          return;
-        }
-
-        const variantStock =
-          Number(
-            status.stock || 0
-          );
-
-        const quantity =
-          Number(
-            item?.quantity || 1
-          );
-
-        /* STOCK ZERO */
-
-        if (
-          variantStock <= 0
-        ) {
-          alert(
-            `${item.name} এর selected variant-এর stock শেষ।`
-          );
-          return;
-        }
-
-        /* QUANTITY > STOCK */
-
-        if (
-          quantity >
-          variantStock
-        ) {
-          alert(
-            `${item.name} এর selected variant-এ মাত্র ${variantStock}টি available আছে।`
-          );
-          return;
-        }
+      if (!variants.length) {
+        continue;
       }
 
-      setLoading(true);
+      const status = getVariantStatus(item);
 
-      try {
-        /* ===================================================
+      /* FIELD MISSING */
+
+      if (!status.complete) {
+        alert(`${item.name}: ${status.message}`);
+        return;
+      }
+
+      /* VARIANT NOT FOUND */
+
+      if (!status.variant) {
+        alert(
+          `${item.name}: এই selected combination-এর variant available নেই।`,
+        );
+        return;
+      }
+
+      const variantStock = Number(status.stock || 0);
+
+      const quantity = Number(item?.quantity || 1);
+
+      /* STOCK ZERO */
+
+      if (variantStock <= 0) {
+        alert(`${item.name} এর selected variant-এর stock শেষ।`);
+        return;
+      }
+
+      /* QUANTITY > STOCK */
+
+      if (quantity > variantStock) {
+        alert(
+          `${item.name} এর selected variant-এ মাত্র ${variantStock}টি available আছে।`,
+        );
+        return;
+      }
+    }
+
+    setLoading(true);
+
+    try {
+      /* ===================================================
            CREATE PRODUCTS PAYLOAD
         =================================================== */
 
-        const products =
-          cart.map((item) => {
-            const productId =
-              getProductId(item);
+      const products = cart.map((item) => {
+        const productId = getProductId(item);
 
-            const variants =
-              getVariants(item);
+        const variants = getVariants(item);
 
-            const variant =
-              variants.length
-                ? getMatchedVariant(
-                    item
-                  )
-                : null;
+        const variant = variants.length ? getMatchedVariant(item) : null;
 
-            const price = variant
-              ? Number(
-                  variant.price || 0
-                ) ||
-                getPrice(item)
-              : getPrice(item);
+        const price = variant
+          ? Number(variant.price || 0) || getPrice(item)
+          : getPrice(item);
 
-            const quantity =
-              Number(
-                item?.quantity || 1
-              );
+        const quantity = Number(item?.quantity || 1);
 
-            return {
-              productId,
+        return {
+          productId,
 
-              name:
-                item?.name || "",
+          name: item?.name || "",
 
-              image:
-                variant?.image ||
-                getImage(item),
+          image: variant?.image || getImage(item),
 
-              price,
+          price,
 
-              quantity,
+          quantity,
 
-              subtotal:
-                price * quantity,
+          subtotal: price * quantity,
 
-              slug:
-                item?.slug || "",
+          slug: item?.slug || "",
 
-              /* EXACT VARIANT */
+          /* EXACT VARIANT */
 
-              variant: variant
-                ? {
-                    color:
-                      variant.color ||
-                      "",
+          variant: variant
+            ? {
+                color: variant.color || "",
 
-                    ram:
-                      variant.ram ||
-                      "",
+                ram: variant.ram || "",
 
-                    storage:
-                      variant.storage ||
-                      "",
+                storage: variant.storage || "",
 
-                    sku:
-                      variant.sku ||
-                      "",
+                sku: variant.sku || "",
 
-                    variantId:
-                      variant.variantId ||
-                      "",
+                variantId: variant.variantId || "",
 
-                    variantPrice:
-                      Number(
-                        variant.price ||
-                          0
-                      ),
+                variantPrice: Number(variant.price || 0),
 
-                    variantStock:
-                      Number(
-                        variant.stock ||
-                          0
-                      ),
-                  }
-                : null,
-            };
-          });
+                variantStock: Number(variant.stock || 0),
+              }
+            : null,
+        };
+      });
 
-        /* ===================================================
+      /* ===================================================
            ORDER PAYLOAD
         =================================================== */
 
-        const payload = {
-          customerName:
-            formData.fullName.trim(),
+      const payload = {
+        customerName: formData.fullName.trim(),
 
-          email:
-            formData.email.trim(),
+        email: formData.email.trim(),
 
-          phone:
-            formData.phone.trim(),
+        phone: formData.phone.trim(),
 
-          selectArea:
-            formData.selectArea,
+        selectArea: formData.selectArea,
 
-          deliveryAddress:
-            formData.address.trim(),
+        deliveryAddress: formData.address.trim(),
 
-          note:
-            formData.note.trim(),
+        note: formData.note.trim(),
 
-          products,
+        products,
 
-          totalItems,
+        totalItems,
 
-          subTotal,
+        subTotal,
 
-          deliveryCharge,
+        deliveryCharge,
 
-          discountAmount:
-            couponDiscount,
+        discountAmount: couponDiscount,
 
-          totalAmount,
+        totalAmount,
 
-          couponCode:
-            formData.couponCode
-              .trim()
-              .toUpperCase(),
+        couponCode: formData.couponCode.trim().toUpperCase(),
 
-          paymentMethod:
-            formData.paymentMethod,
+        paymentMethod: formData.paymentMethod,
 
-          deliveryMethod:
-            formData.deliveryMethod,
+        deliveryMethod: formData.deliveryMethod,
 
-          termsAgreed:
-            formData.termsAgreed,
+        termsAgreed: formData.termsAgreed,
 
-          orderSource:
-            "website",
-        };
+        orderSource: "website",
+      };
 
-        console.log(
-          "FINAL ORDER PAYLOAD:",
-          payload
-        );
+      console.log("FINAL ORDER PAYLOAD:", payload);
 
-        /* ===================================================
+      /* ===================================================
            API
         =================================================== */
 
-        const response =
-          await fetch(
-            `${API_BASE}/products/CreateOrder`,
-            {
-              method: "POST",
+      const response = await fetch(`${API_BASE}/products/CreateOrder`, {
+        method: "POST",
 
-              headers: {
-                "Content-Type":
-                  "application/json",
-              },
+        headers: {
+          "Content-Type": "application/json",
+        },
 
-              body: JSON.stringify(
-                payload
-              ),
-            }
-          );
+        body: JSON.stringify(payload),
+      });
 
-        const data =
-          await response.json();
+      const data = await response.json();
 
-        console.log(
-          "ORDER RESPONSE:",
-          data
-        );
+      console.log("ORDER RESPONSE:", data);
 
-        if (!response.ok) {
-          throw new Error(
-            data?.message ||
-              "Order creation failed"
-          );
-        }
-
-        if (data?.success) {
-          clearCart()
-          alert(
-            `Order placed successfully!\nOrder ID: ${
-              data?.data?.orderId ||
-              data?.orderId ||
-              "Created"
-            }`
-          );
-
-          window.location.href =
-            "/";
-        } else {
-          alert(
-            data?.message ||
-              "Something went wrong!"
-          );
-        }
-      } catch (error) {
-        console.error(
-          "ORDER ERROR:",
-          error
-        );
-
-        alert(
-          error?.message ||
-            "Failed to place order!"
-        );
-      } finally {
-        setLoading(false);
+      if (!response.ok) {
+        throw new Error(data?.message || "Order creation failed");
       }
-    };
+
+      if (data?.success) {
+        clearCart();
+        alert(
+          `Order placed successfully!\nOrder ID: ${
+            data?.data?.orderId || data?.orderId || "Created"
+          }`,
+        );
+
+        window.location.href = "/";
+      } else {
+        alert(data?.message || "Something went wrong!");
+      }
+    } catch (error) {
+      console.error("ORDER ERROR:", error);
+
+      alert(error?.message || "Failed to place order!");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   /* =========================================================
      EMPTY CART
@@ -1318,19 +932,14 @@ const getVariants = (item) => {
       <main className="min-h-screen bg-gray-50 px-4 py-12 dark:bg-slate-950">
         <div className="mx-auto max-w-[1440px]">
           <div className="rounded-2xl border border-gray-100 bg-white px-6 py-16 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
-
-            <ShoppingBag
-              size={50}
-              className="mx-auto mb-5 text-[#f47421]"
-            />
+            <ShoppingBag size={50} className="mx-auto mb-5 text-[#f47421]" />
 
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
               Your Cart is Empty
             </h1>
 
             <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-              Please add some products
-              before checkout.
+              Please add some products before checkout.
             </p>
 
             <Link
@@ -1340,7 +949,6 @@ const getVariants = (item) => {
             >
               Continue Shopping
             </Link>
-
           </div>
         </div>
       </main>
@@ -1354,11 +962,9 @@ const getVariants = (item) => {
   return (
     <div className="min-h-screen bg-[#f8f9fa] px-4 py-8 text-gray-800 dark:bg-slate-950 dark:text-gray-100">
       <div className="mx-auto max-w-[1440px] space-y-6">
-
         {/* HEADER */}
 
         <div className="flex items-center gap-3">
-
           <Link
             href="/cart"
             prefetch={false}
@@ -1374,45 +980,27 @@ const getVariants = (item) => {
             </h1>
 
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              {totalItems}{" "}
-              {totalItems === 1
-                ? "Item"
-                : "Items"}
+              {totalItems} {totalItems === 1 ? "Item" : "Items"}
             </p>
           </div>
-
         </div>
 
         {/* NOTICE */}
 
         <div className="rounded-lg border border-[#fde2c4] bg-[#fef4e8] p-3 text-sm text-[#8c5211] dark:border-orange-800/50 dark:bg-orange-900/20 dark:text-orange-300">
-
-          {formData.paymentMethod !==
-          "cash_on_delivery" ? (
+          {formData.paymentMethod !== "cash_on_delivery" ? (
             <>
-              অ্যাডভান্স পেমেন্ট করার আগে
-              আপনার কাঙ্ক্ষিত পণ্যটি আমাদের
-              স্টকে আছে কি না কাস্টমার সার্ভিস
-              প্রতিনিধির সাথে কনফার্ম করে নিন।
-
-              <span className="font-semibold">
-                {" "}
-                09678148148
-              </span>
+              অ্যাডভান্স পেমেন্ট করার আগে আপনার কাঙ্ক্ষিত পণ্যটি আমাদের স্টকে
+              আছে কি না কাস্টমার সার্ভিস প্রতিনিধির সাথে কনফার্ম করে নিন।
+              <span className="font-semibold"> 09678148148</span>
             </>
           ) : (
             <>
-              অর্ডার সংক্রান্ত যেকোনো প্রয়োজনে
-              আমাদের কাস্টমার সার্ভিস প্রতিনিধির
-              সাথে কথা বলুন -
-
-              <span className="font-semibold">
-                {" "}
-                09678148148
-              </span>
+              অর্ডার সংক্রান্ত যেকোনো প্রয়োজনে আমাদের কাস্টমার সার্ভিস
+              প্রতিনিধির সাথে কথা বলুন -
+              <span className="font-semibold"> 09678148148</span>
             </>
           )}
-
         </div>
 
         {/* FORM */}
@@ -1421,23 +1009,19 @@ const getVariants = (item) => {
           onSubmit={handleSubmit}
           className="grid grid-cols-1 gap-6 lg:grid-cols-12"
         >
-
           {/* =================================================
               LEFT
           ================================================= */}
 
           <div className="space-y-6 rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 lg:col-span-7">
-
             {/* DELIVERY */}
 
             <div>
-
               <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
                 Delivery Information
               </h2>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-
                 {/* NAME */}
 
                 <div>
@@ -1449,12 +1033,8 @@ const getVariants = (item) => {
                     type="text"
                     name="fullName"
                     required
-                    value={
-                      formData.fullName
-                    }
-                    onChange={
-                      handleChange
-                    }
+                    value={formData.fullName}
+                    onChange={handleChange}
                     placeholder="Enter full name"
                     className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:ring-1 focus:ring-orange-500 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
                   />
@@ -1470,12 +1050,8 @@ const getVariants = (item) => {
                   <input
                     type="email"
                     name="email"
-                    value={
-                      formData.email
-                    }
-                    onChange={
-                      handleChange
-                    }
+                    value={formData.email}
+                    onChange={handleChange}
                     placeholder="Enter Email"
                     className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:ring-1 focus:ring-orange-500 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
                   />
@@ -1489,7 +1065,6 @@ const getVariants = (item) => {
                   </label>
 
                   <div className="flex">
-
                     <span className="flex items-center rounded-l-md border border-r-0 border-gray-300 bg-gray-50 px-3 text-sm text-gray-500 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-400">
                       +88
                     </span>
@@ -1498,50 +1073,35 @@ const getVariants = (item) => {
                       type="tel"
                       name="phone"
                       required
-                      value={
-                        formData.phone
-                      }
-                      onChange={
-                        handleChange
-                      }
+                      value={formData.phone}
+                      onChange={handleChange}
                       placeholder="01XXXXXXXXX"
                       className="w-full rounded-r-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
                     />
-
                   </div>
                 </div>
 
                 {/* AREA */}
 
                 <div>
-
                   <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Select Area *
                   </label>
 
                   <AreaSelector
-                    value={
-                      formData.selectArea
-                    }
-                    onChange={(
-                      value
-                    ) =>
-                      setFormData(
-                        (prev) => ({
-                          ...prev,
-                          selectArea:
-                            value,
-                        })
-                      )
+                    value={formData.selectArea}
+                    onChange={(value) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        selectArea: value,
+                      }))
                     }
                   />
-
                 </div>
 
                 {/* ADDRESS */}
 
                 <div className="sm:col-span-2">
-
                   <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Address *
                   </label>
@@ -1550,22 +1110,16 @@ const getVariants = (item) => {
                     type="text"
                     name="address"
                     required
-                    value={
-                      formData.address
-                    }
-                    onChange={
-                      handleChange
-                    }
+                    value={formData.address}
+                    onChange={handleChange}
                     placeholder="House# 123, Road# 24"
                     className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
                   />
-
                 </div>
 
                 {/* NOTE */}
 
                 <div className="sm:col-span-2">
-
                   <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Note
                   </label>
@@ -1573,57 +1127,43 @@ const getVariants = (item) => {
                   <textarea
                     name="note"
                     rows={3}
-                    value={
-                      formData.note
-                    }
-                    onChange={
-                      handleChange
-                    }
+                    value={formData.note}
+                    onChange={handleChange}
                     placeholder="Any special delivery instructions..."
                     className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
                   />
-
                 </div>
-
               </div>
             </div>
 
             {/* PAYMENT */}
 
             <div>
-
               <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-white">
                 Payment Method
               </h2>
 
               <div className="grid gap-3 sm:grid-cols-3">
-
                 {[
                   {
                     id: "cash_on_delivery",
-                    label:
-                      "Cash on Delivery",
+                    label: "Cash on Delivery",
                     icon: Banknote,
                   },
                   {
                     id: "online_payment",
-                    label:
-                      "Online Payment",
+                    label: "Online Payment",
                     icon: CreditCard,
                   },
                   {
                     id: "partial_payment",
-                    label:
-                      "Partial Payment",
+                    label: "Partial Payment",
                     icon: Wallet,
                   },
                 ].map((item) => {
-                  const Icon =
-                    item.icon;
+                  const Icon = item.icon;
 
-                  const selected =
-                    formData.paymentMethod ===
-                    item.id;
+                  const selected = formData.paymentMethod === item.id;
 
                   return (
                     <label
@@ -1634,7 +1174,6 @@ const getVariants = (item) => {
                           : "border-gray-200 dark:border-slate-700 dark:bg-slate-800/50"
                       }`}
                     >
-
                       <Icon
                         size={20}
                         className={
@@ -1651,55 +1190,40 @@ const getVariants = (item) => {
                       <input
                         type="radio"
                         name="paymentMethod"
-                        value={
-                          item.id
-                        }
-                        checked={
-                          selected
-                        }
-                        onChange={
-                          handleChange
-                        }
+                        value={item.id}
+                        checked={selected}
+                        onChange={handleChange}
                         className="ml-auto accent-orange-500"
                       />
-
                     </label>
                   );
                 })}
-
               </div>
             </div>
 
             {/* DELIVERY METHOD */}
 
             <div>
-
               <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-white">
                 Delivery Method
               </h2>
 
               <div className="grid gap-3 sm:grid-cols-2">
-
                 {[
                   {
                     id: "courier_service",
-                    label:
-                      "Courier Service",
+                    label: "Courier Service",
                     icon: Truck,
                   },
                   {
                     id: "shop_pickup",
-                    label:
-                      "Shop Pickup",
+                    label: "Shop Pickup",
                     icon: Store,
                   },
                 ].map((item) => {
-                  const Icon =
-                    item.icon;
+                  const Icon = item.icon;
 
-                  const selected =
-                    formData.deliveryMethod ===
-                    item.id;
+                  const selected = formData.deliveryMethod === item.id;
 
                   return (
                     <label
@@ -1710,7 +1234,6 @@ const getVariants = (item) => {
                           : "border-gray-200 dark:border-slate-700 dark:bg-slate-800/50"
                       }`}
                     >
-
                       <Icon
                         size={20}
                         className={
@@ -1727,25 +1250,16 @@ const getVariants = (item) => {
                       <input
                         type="radio"
                         name="deliveryMethod"
-                        value={
-                          item.id
-                        }
-                        checked={
-                          selected
-                        }
-                        onChange={
-                          handleChange
-                        }
+                        value={item.id}
+                        checked={selected}
+                        onChange={handleChange}
                         className="ml-auto accent-orange-500"
                       />
-
                     </label>
                   );
                 })}
-
               </div>
             </div>
-
           </div>
 
           {/* =================================================
@@ -1753,7 +1267,6 @@ const getVariants = (item) => {
           ================================================= */}
 
           <div className="h-fit space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 lg:col-span-5">
-
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
               Order Summary
             </h2>
@@ -1761,530 +1274,304 @@ const getVariants = (item) => {
             {/* PRODUCTS */}
 
             <div className="space-y-4">
+              {cart.map((item, index) => {
+                const productId = getProductId(item);
 
-              {cart.map(
-                (
-                  item,
-                  index
-                ) => {
-                  const productId =
-                    getProductId(
-                      item
-                    );
+                const cartId = getCartId(item);
 
-                  const cartId =
-                    getCartId(item);
+                const variants = getVariants(item);
 
-                  const variants =
-                    getVariants(
-                      item
-                    );
+                const selected = getSelected(item);
 
-                  const selected =
-                    getSelected(
-                      item
-                    );
+                const options = getOptions(item);
 
-                  const options =
-                    getOptions(
-                      item
-                    );
+                const variantStatus = getVariantStatus(item);
 
-                  const variantStatus =
-                    getVariantStatus(
-                      item
-                    );
+                const matchedVariant = variantStatus.variant;
 
-                  const matchedVariant =
-                    variantStatus.variant;
+                const price = matchedVariant
+                  ? Number(matchedVariant.price || 0) || getPrice(item)
+                  : getPrice(item);
 
-                  const price =
-                    matchedVariant
-                      ? Number(
-                          matchedVariant.price ||
-                            0
-                        ) ||
-                        getPrice(
-                          item
-                        )
-                      : getPrice(
-                          item
-                        );
+                const quantity = Number(item?.quantity || 1);
 
-                  const quantity =
-                    Number(
-                      item?.quantity ||
-                        1
-                    );
+                const itemTotal = price * quantity;
 
-                  const itemTotal =
-                    price *
-                    quantity;
+                const hasVariants = variants.length > 0;
 
-                  const hasVariants =
-                    variants.length >
-                    0;
+                const selectedVariantStock = Number(variantStatus.stock || 0);
 
-                  const selectedVariantStock =
-                    Number(
-                      variantStatus.stock ||
-                        0
-                    );
+                return (
+                  <div
+                    key={`${productId}-${index}`}
+                    className="flex gap-3 border-b border-gray-100 pb-4 dark:border-slate-800"
+                  >
+                    {/* IMAGE */}
 
-                  return (
-                    <div
-                      key={`${productId}-${index}`}
-                      className="flex gap-3 border-b border-gray-100 pb-4 dark:border-slate-800"
-                    >
+                    <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-gray-200 bg-gray-50 dark:border-slate-700 dark:bg-slate-800">
+                      {matchedVariant?.image || getImage(item) ? (
+                        <img
+                          src={matchedVariant?.image || getImage(item)}
+                          alt={item?.name || "Product"}
+                          className="h-full w-full object-contain p-1"
+                        />
+                      ) : (
+                        <ShoppingBag
+                          size={25}
+                          className="text-gray-300 dark:text-gray-600"
+                        />
+                      )}
+                    </div>
 
-                      {/* IMAGE */}
+                    <div className="min-w-0 flex-1">
+                      {/* NAME */}
 
-                      <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-gray-200 bg-gray-50 dark:border-slate-700 dark:bg-slate-800">
-
-                        {(
-                          matchedVariant?.image ||
-                          getImage(item)
-                        ) ? (
-                          <img
-                            src={
-                              matchedVariant?.image ||
-                              getImage(
-                                item
-                              )
-                            }
-                            alt={
-                              item?.name ||
-                              "Product"
-                            }
-                            className="h-full w-full object-contain p-1"
-                          />
-                        ) : (
-                          <ShoppingBag
-                            size={25}
-                            className="text-gray-300 dark:text-gray-600"
-                          />
-                        )}
-
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-
-                        {/* NAME */}
-
-                        <div className="flex justify-between gap-2">
-
-                          <p className="line-clamp-2 text-sm font-semibold text-gray-900 dark:text-white">
-                            {item?.name}
-                          </p>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              removeFromCart(
-                                cartId
-                              )
-                            }
-                            className="text-gray-400 transition hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400"
-                          >
-                            <X
-                              size={16}
-                            />
-                          </button>
-
-                        </div>
-
-                        {/* PRICE */}
-
-                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                          ৳{" "}
-                          {formatPrice(
-                            price
-                          )}
+                      <div className="flex justify-between gap-2">
+                        <p className="line-clamp-2 text-sm font-semibold text-gray-900 dark:text-white">
+                          {item?.name}
                         </p>
 
-                        {/* =================================================
+                        <button
+                          type="button"
+                          onClick={() => removeFromCart(cartId)}
+                          className="text-gray-400 transition hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+
+                      {/* PRICE */}
+
+                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        ৳ {formatPrice(price)}
+                      </p>
+
+                      {/* =================================================
                             VARIANTS
                         ================================================= */}
 
-                        {hasVariants && (
-                          <div className="mt-3 space-y-2">
+                      {hasVariants && (
+                        <div className="mt-3 space-y-2">
+                          {/* COLOR */}
 
-                            {/* COLOR */}
+                          {options.colors.length > 0 && (
+                            <div>
+                              <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">
+                                Select Color
+                              </label>
 
-                            {options.colors
-                              .length >
-                              0 && (
-                              <div>
+                              <select
+                                value={selected.color}
+                                onChange={(e) =>
+                                  changeVariant(
+                                    productId,
+                                    "color",
+                                    e.target.value,
+                                  )
+                                }
+                                className="w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                              >
+                                <option value="">Select Color</option>
 
-                                <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">
-                                  Select Color
-                                </label>
-
-                                <select
-                                  value={
-                                    selected.color
-                                  }
-                                  onChange={(
-                                    e
-                                  ) =>
-                                    changeVariant(
-                                      productId,
-                                      "color",
-                                      e.target
-                                        .value
-                                    )
-                                  }
-                                  className="w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
-                                >
-
-                                  <option value="">
-                                    Select Color
+                                {options.colors.map((color) => (
+                                  <option key={color} value={color}>
+                                    {color}
                                   </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
 
-                                  {options.colors.map(
-                                    (
-                                      color
-                                    ) => (
-                                      <option
-                                        key={
-                                          color
-                                        }
-                                        value={
-                                          color
-                                        }
-                                      >
-                                        {
-                                          color
-                                        }
-                                      </option>
-                                    )
-                                  )}
+                          {/* RAM */}
 
-                                </select>
+                          {options.rams.length > 0 && (
+                            <div>
+                              <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">
+                                Select RAM
+                              </label>
 
-                              </div>
-                            )}
+                              <select
+                                value={selected.ram}
+                                disabled={
+                                  options.colors.length > 0 && !selected.color
+                                }
+                                onChange={(e) =>
+                                  changeVariant(
+                                    productId,
+                                    "ram",
+                                    e.target.value,
+                                  )
+                                }
+                                className="w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-900 disabled:bg-gray-100 dark:border-slate-600 dark:bg-slate-800 dark:text-white dark:disabled:bg-slate-700"
+                              >
+                                <option value="">
+                                  {options.colors.length > 0 && !selected.color
+                                    ? "Select Color First"
+                                    : "Select RAM"}
+                                </option>
 
-                            {/* RAM */}
-
-                            {options.rams
-                              .length >
-                              0 && (
-                              <div>
-
-                                <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">
-                                  Select RAM
-                                </label>
-
-                                <select
-                                  value={
-                                    selected.ram
-                                  }
-                                  disabled={
-                                    options
-                                      .colors
-                                      .length >
-                                      0 &&
-                                    !selected.color
-                                  }
-                                  onChange={(
-                                    e
-                                  ) =>
-                                    changeVariant(
-                                      productId,
-                                      "ram",
-                                      e.target
-                                        .value
-                                    )
-                                  }
-                                  className="w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-900 disabled:bg-gray-100 dark:border-slate-600 dark:bg-slate-800 dark:text-white dark:disabled:bg-slate-700"
-                                >
-
-                                  <option value="">
-                                    {options
-                                      .colors
-                                      .length >
-                                      0 &&
-                                    !selected.color
-                                      ? "Select Color First"
-                                      : "Select RAM"}
+                                {options.rams.map((ram) => (
+                                  <option key={ram} value={ram}>
+                                    {ram}
                                   </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
 
-                                  {options.rams.map(
-                                    (
-                                      ram
-                                    ) => (
-                                      <option
-                                        key={
-                                          ram
-                                        }
-                                        value={
-                                          ram
-                                        }
-                                      >
-                                        {ram}
-                                      </option>
-                                    )
-                                  )}
+                          {/* STORAGE */}
 
-                                </select>
+                          {options.storages.length > 0 && (
+                            <div>
+                              <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">
+                                Select Storage
+                              </label>
 
-                              </div>
-                            )}
+                              <select
+                                value={selected.storage}
+                                disabled={
+                                  (options.colors.length > 0 &&
+                                    !selected.color) ||
+                                  (options.rams.length > 0 && !selected.ram)
+                                }
+                                onChange={(e) =>
+                                  changeVariant(
+                                    productId,
+                                    "storage",
+                                    e.target.value,
+                                  )
+                                }
+                                className="w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-900 disabled:bg-gray-100 dark:border-slate-600 dark:bg-slate-800 dark:text-white dark:disabled:bg-slate-700"
+                              >
+                                <option value="">Select Storage</option>
 
-                            {/* STORAGE */}
-
-                            {options.storages
-                              .length >
-                              0 && (
-                              <div>
-
-                                <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">
-                                  Select Storage
-                                </label>
-
-                                <select
-                                  value={
-                                    selected.storage
-                                  }
-                                  disabled={
-                                    (
-                                      options
-                                        .colors
-                                        .length >
-                                        0 &&
-                                      !selected.color
-                                    ) ||
-                                    (
-                                      options
-                                        .rams
-                                        .length >
-                                        0 &&
-                                      !selected.ram
-                                    )
-                                  }
-                                  onChange={(
-                                    e
-                                  ) =>
-                                    changeVariant(
-                                      productId,
-                                      "storage",
-                                      e.target
-                                        .value
-                                    )
-                                  }
-                                  className="w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-900 disabled:bg-gray-100 dark:border-slate-600 dark:bg-slate-800 dark:text-white dark:disabled:bg-slate-700"
-                                >
-
-                                  <option value="">
-                                    Select Storage
+                                {options.storages.map((storage) => (
+                                  <option key={storage} value={storage}>
+                                    {storage}
                                   </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
+                        </div>
+                      )}
 
-                                  {options.storages.map(
-                                    (
-                                      storage
-                                    ) => (
-                                      <option
-                                        key={
-                                          storage
-                                        }
-                                        value={
-                                          storage
-                                        }
-                                      >
-                                        {
-                                          storage
-                                        }
-                                      </option>
-                                    )
-                                  )}
-
-                                </select>
-
-                              </div>
-                            )}
-
-                          </div>
-                        )}
-
-                        {/* =================================================
+                      {/* =================================================
                             SELECTED VARIANT
                         ================================================= */}
 
-                        {(selected.color ||
-                          selected.ram ||
-                          selected.storage) && (
-                          <div className="mt-2 rounded-md bg-orange-50 px-2 py-1.5 text-[11px] text-orange-700 dark:bg-orange-900/20 dark:text-orange-300">
+                      {(selected.color || selected.ram || selected.storage) && (
+                        <div className="mt-2 rounded-md bg-orange-50 px-2 py-1.5 text-[11px] text-orange-700 dark:bg-orange-900/20 dark:text-orange-300">
+                          <b>Selected:</b>{" "}
+                          {selected.color && `Color: ${selected.color}`}
+                          {selected.ram && ` • RAM: ${selected.ram}`}
+                          {selected.storage &&
+                            ` • Storage: ${selected.storage}`}
+                        </div>
+                      )}
 
-                            <b>
-                              Selected:
-                            </b>{" "}
+                      {/* SKU */}
 
-                            {selected.color &&
-                              `Color: ${selected.color}`}
+                      {matchedVariant?.sku && (
+                        <p className="mt-1 text-[10px] text-gray-400 dark:text-gray-500">
+                          SKU: {matchedVariant.sku}
+                        </p>
+                      )}
 
-                            {selected.ram &&
-                              ` • RAM: ${selected.ram}`}
-
-                            {selected.storage &&
-                              ` • Storage: ${selected.storage}`}
-
-                          </div>
-                        )}
-
-                        {/* SKU */}
-
-                        {matchedVariant?.sku && (
-                          <p className="mt-1 text-[10px] text-gray-400 dark:text-gray-500">
-                            SKU:{" "}
-                            {
-                              matchedVariant.sku
-                            }
-                          </p>
-                        )}
-
-                        {/* =================================================
+                      {/* =================================================
                             VARIANT STATUS
                         ================================================= */}
 
-                        {hasVariants && (
-                          <div className="mt-2">
+                      {hasVariants && (
+                        <div className="mt-2">
+                          {/* NOT COMPLETE */}
 
-                            {/* NOT COMPLETE */}
+                          {!variantStatus.complete && (
+                            <p className="rounded-md bg-gray-50 px-2 py-1.5 text-[11px] text-gray-500 dark:bg-slate-800 dark:text-gray-400">
+                              <b>{variantStatus.message}</b>
+                            </p>
+                          )}
 
-                            {!variantStatus.complete && (
-                              <p className="rounded-md bg-gray-50 px-2 py-1.5 text-[11px] text-gray-500 dark:bg-slate-800 dark:text-gray-400">
-                                <b>
-                                  {
-                                    variantStatus.message
-                                  }
-                                </b>
+                          {/* AVAILABLE */}
+
+                          {variantStatus.complete &&
+                            variantStatus.variant &&
+                            variantStatus.available && (
+                              <p className="rounded-md bg-green-50 px-2 py-1.5 text-[11px] text-green-700 dark:bg-green-900/20 dark:text-green-400">
+                                <b>✓ Variant Available</b>
+
+                                <span className="ml-2">
+                                  Stock: {variantStatus.stock}
+                                </span>
                               </p>
                             )}
 
-                            {/* AVAILABLE */}
+                          {/* COMBINATION NOT FOUND */}
 
-                            {variantStatus.complete &&
-                              variantStatus.variant &&
-                              variantStatus.available && (
-                                <p className="rounded-md bg-green-50 px-2 py-1.5 text-[11px] text-green-700 dark:bg-green-900/20 dark:text-green-400">
+                          {variantStatus.complete && !variantStatus.variant && (
+                            <p className="rounded-md bg-red-50 px-2 py-1.5 text-[11px] text-red-600 dark:bg-red-900/20 dark:text-red-400">
+                              <b>✕ এই combination-এর variant available নেই।</b>
+                            </p>
+                          )}
 
-                                  <b>
-                                    ✓ Variant Available
-                                  </b>
+                          {/* STOCK ZERO */}
 
-                                  <span className="ml-2">
-                                    Stock:{" "}
-                                    {
-                                      variantStatus.stock
-                                    }
-                                  </span>
+                          {variantStatus.complete &&
+                            variantStatus.variant &&
+                            !variantStatus.available && (
+                              <p className="rounded-md bg-red-50 px-2 py-1.5 text-[11px] text-red-600 dark:bg-red-900/20 dark:text-red-400">
+                                <b>✕ এই selected variant-এর stock শেষ।</b>
+                              </p>
+                            )}
+                        </div>
+                      )}
 
-                                </p>
-                              )}
-
-                            {/* COMBINATION NOT FOUND */}
-
-                            {variantStatus.complete &&
-                              !variantStatus.variant && (
-                                <p className="rounded-md bg-red-50 px-2 py-1.5 text-[11px] text-red-600 dark:bg-red-900/20 dark:text-red-400">
-
-                                  <b>
-                                    ✕ এই combination-এর variant available নেই।
-                                  </b>
-
-                                </p>
-                              )}
-
-                            {/* STOCK ZERO */}
-
-                            {variantStatus.complete &&
-                              variantStatus.variant &&
-                              !variantStatus.available && (
-                                <p className="rounded-md bg-red-50 px-2 py-1.5 text-[11px] text-red-600 dark:bg-red-900/20 dark:text-red-400">
-
-                                  <b>
-                                    ✕ এই selected variant-এর stock শেষ।
-                                  </b>
-
-                                </p>
-                              )}
-
-                          </div>
-                        )}
-
-                        {/* =================================================
+                      {/* =================================================
                             QUANTITY
                         ================================================= */}
 
-                        <div className="mt-2 flex items-center justify-between">
+                      <div className="mt-2 flex items-center justify-between">
+                        <div className="flex items-center rounded-full border border-gray-200 dark:border-slate-700">
+                          {/* MINUS */}
 
-                          <div className="flex items-center rounded-full border border-gray-200 dark:border-slate-700">
+                          <button
+                            type="button"
+                            onClick={() => decreasePopulation(cartId)}
+                            className="flex h-7 w-7 items-center justify-center text-gray-700 dark:text-gray-300"
+                          >
+                            <Minus size={13} />
+                          </button>
 
-                            {/* MINUS */}
+                          {/* QUANTITY */}
 
-                            <button
-                              type="button"
-                              onClick={() =>
-                                decreasePopulation(
-                                  cartId
-                                )
-                              }
-                              className="flex h-7 w-7 items-center justify-center text-gray-700 dark:text-gray-300"
-                            >
-                              <Minus
-                                size={13}
-                              />
-                            </button>
-
-                            {/* QUANTITY */}
-
-                            <span className="w-7 text-center text-xs font-semibold text-gray-900 dark:text-white">
-                              {quantity}
-                            </span>
-
-                            {/* PLUS */}
-
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleIncreaseQuantity(
-                                  item,
-                                  cartId
-                                )
-                              }
-                              disabled={
-                                hasVariants &&
-                                (
-                                  !variantStatus.available ||
-                                  selectedVariantStock <=
-                                    quantity
-                                )
-                              }
-                              className="flex h-7 w-7 items-center justify-center text-gray-700 disabled:cursor-not-allowed disabled:opacity-40 dark:text-gray-300"
-                            >
-                              <Plus
-                                size={13}
-                              />
-                            </button>
-
-                          </div>
-
-                          <span className="text-sm font-bold text-gray-900 dark:text-white">
-                            ৳{" "}
-                            {formatPrice(
-                              itemTotal
-                            )}
+                          <span className="w-7 text-center text-xs font-semibold text-gray-900 dark:text-white">
+                            {quantity}
                           </span>
 
+                          {/* PLUS */}
+
+                          <button
+                            type="button"
+                            onClick={() => handleIncreaseQuantity(item, cartId)}
+                            disabled={
+                              hasVariants &&
+                              (!variantStatus.available ||
+                                selectedVariantStock <= quantity)
+                            }
+                            className="flex h-7 w-7 items-center justify-center text-gray-700 disabled:cursor-not-allowed disabled:opacity-40 dark:text-gray-300"
+                          >
+                            <Plus size={13} />
+                          </button>
                         </div>
 
+                        <span className="text-sm font-bold text-gray-900 dark:text-white">
+                          ৳ {formatPrice(itemTotal)}
+                        </span>
                       </div>
                     </div>
-                  );
-                }
-              )}
-
+                  </div>
+                );
+              })}
             </div>
 
             {/* =================================================
@@ -2292,36 +1579,27 @@ const getVariants = (item) => {
             ================================================= */}
 
             <div>
-
               <label className="mb-1.5 block text-xs font-semibold text-gray-700 dark:text-gray-300">
                 Apply Coupon
               </label>
 
               <div className="flex gap-2">
-
                 <input
                   type="text"
                   name="couponCode"
-                  value={
-                    formData.couponCode
-                  }
-                  onChange={
-                    handleChange
-                  }
+                  value={formData.couponCode}
+                  onChange={handleChange}
                   placeholder="Coupon Code"
                   className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-xs text-gray-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
                 />
 
                 <button
                   type="button"
-                  onClick={
-                    applyCoupon
-                  }
+                  onClick={applyCoupon}
                   className="rounded-md bg-black px-4 py-2 text-xs font-medium text-white dark:bg-white dark:text-black"
                 >
                   Apply
                 </button>
-
               </div>
             </div>
 
@@ -2330,93 +1608,47 @@ const getVariants = (item) => {
             ================================================= */}
 
             <div className="space-y-3 border-y border-gray-200 py-4 text-sm text-gray-700 dark:border-slate-700 dark:text-gray-300">
-
               <div className="flex justify-between">
+                <span>Sub Total ({totalItems} items)</span>
 
-                <span>
-                  Sub Total (
-                  {totalItems} items)
-                </span>
-
-                <b>
-                  ৳{" "}
-                  {formatPrice(
-                    subTotal
-                  )}
-                </b>
-
+                <b>৳ {formatPrice(subTotal)}</b>
               </div>
 
               <div className="flex justify-between">
-
                 <span className="flex items-center gap-1">
-
                   Delivery
-
-                  <Info
-                    size={13}
-                    className="text-orange-500"
-                  />
-
+                  <Info size={13} className="text-orange-500" />
                 </span>
 
-                <b>
-                  ৳{" "}
-                  {formatPrice(
-                    deliveryCharge
-                  )}
-                </b>
-
+                <b>৳ {formatPrice(deliveryCharge)}</b>
               </div>
 
               <div className="flex justify-between">
-
-                <span>
-                  Discount
-                </span>
+                <span>Discount</span>
 
                 <b className="text-green-600 dark:text-green-400">
-                  - ৳{" "}
-                  {formatPrice(
-                    couponDiscount
-                  )}
+                  - ৳ {formatPrice(couponDiscount)}
                 </b>
-
               </div>
-
             </div>
 
             {/* TOTAL */}
 
             <div className="flex justify-between text-lg font-bold text-gray-900 dark:text-white">
+              <span>Total Amount</span>
 
-              <span>
-                Total Amount
-              </span>
-
-              <span>
-                ৳{" "}
-                {formatPrice(
-                  totalAmount
-                )}
-              </span>
-
+              <span>৳ {formatPrice(totalAmount)}</span>
             </div>
 
             {/* TERMS */}
 
             <div className="flex items-start gap-2">
-
               <input
                 type="checkbox"
                 id="terms"
                 name="termsAgreed"
-                checked={
-                  formData.termsAgreed
-                }
-                onChange={
-                  handleChange
-                }
+                checked={formData.termsAgreed}
+                onChange={handleChange}
                 className="mt-0.5 accent-orange-500"
               />
 
@@ -2424,33 +1656,23 @@ const getVariants = (item) => {
                 htmlFor="terms"
                 className="text-xs text-gray-600 dark:text-gray-400"
               >
-                I have read & agree to
-                the website{" "}
-                <a
-                  href="#"
-                  className="text-orange-500 underline"
-                >
+                I have read & agree to the website{" "}
+                <a href="#" className="text-orange-500 underline">
                   Terms and Conditions
                 </a>
               </label>
-
             </div>
 
             {/* SUBMIT */}
 
             <button
-           
               type="submit"
               disabled={loading}
               className="w-full rounded-lg bg-[#f47421] px-4 py-3 text-sm font-bold text-white shadow-md disabled:opacity-50"
             >
-              {loading
-                ? "Placing Order..."
-                : "Confirm & Place Order"}
+              {loading ? "Placing Order..." : "Confirm & Place Order"}
             </button>
-
           </div>
-
         </form>
       </div>
     </div>

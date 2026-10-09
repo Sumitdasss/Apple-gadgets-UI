@@ -16,19 +16,11 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { useTheme } from "next-themes";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-const API_BASE =
-  "https://apple-gadgets-ui-backend.vercel.app";
+const API_BASE = "https://apple-gadgets-ui-backend.vercel.app";
 
-const SEARCH_HISTORY_KEY =
-  "apple_gadgets_search_history";
+const SEARCH_HISTORY_KEY = "apple_gadgets_search_history";
 import useStore from "./Store/store";
 export default function Header() {
   // =====================================================
@@ -36,24 +28,19 @@ export default function Header() {
   // =====================================================
 
   const [search, setSearch] = useState("");
-  const [searchFocused, setSearchFocused] =
-    useState(false);
-const { cart } = useStore();
-;
+  const [searchFocused, setSearchFocused] = useState(false);
+  const { cart } = useStore();
   const totalItems = cart.length;
   const [allProducts, setAllProducts] = useState([]);
-  const [searchResults, setSearchResults] =
-    useState([]);
+  const [searchResults, setSearchResults] = useState([]);
 
-  const [productsLoading, setProductsLoading] =
-    useState(false);
+  const [productsLoading, setProductsLoading] = useState(false);
 
   // =====================================================
   // SEARCH HISTORY
   // =====================================================
 
-  const [searchHistory, setSearchHistory] =
-    useState([]);
+  const [searchHistory, setSearchHistory] = useState([]);
 
   // =====================================================
   // CATEGORY
@@ -63,20 +50,15 @@ const { cart } = useStore();
 
   const [categories, setCategories] = useState([]);
 
-  const [categoriesLoading, setCategoriesLoading] =
-    useState(true);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
 
-  const [
-    expandedMobileCategories,
-    setExpandedMobileCategories,
-  ] = useState({});
+  const [expandedMobileCategories, setExpandedMobileCategories] = useState({});
 
   // =====================================================
   // MOBILE MENU
   // =====================================================
 
-  const [isMobileMenuOpen, setIsMobileMenuOpen] =
-    useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // =====================================================
   // THEME
@@ -84,8 +66,7 @@ const { cart } = useStore();
 
   const { theme, setTheme } = useTheme();
 
-  const [mounted, setMounted] =
-    useState(false);
+  const [mounted, setMounted] = useState(false);
 
   // =====================================================
   // REFS
@@ -102,24 +83,17 @@ const { cart } = useStore();
     setMounted(true);
 
     try {
-      const saved =
-        localStorage.getItem(
-          SEARCH_HISTORY_KEY
-        );
+      const saved = localStorage.getItem(SEARCH_HISTORY_KEY);
 
       if (saved) {
-        const parsed =
-          JSON.parse(saved);
+        const parsed = JSON.parse(saved);
 
         if (Array.isArray(parsed)) {
           setSearchHistory(parsed);
         }
       }
     } catch (error) {
-      console.error(
-        "Search history loading error:",
-        error
-      );
+      console.error("Search history loading error:", error);
     }
   }, []);
 
@@ -142,28 +116,17 @@ const { cart } = useStore();
     const sorted = [...searchHistory]
       .filter(
         (item) =>
-          item &&
-          typeof item.keyword ===
-            "string" &&
-          item.keyword.trim()
+          item && typeof item.keyword === "string" && item.keyword.trim(),
       )
-      .sort(
-        (a, b) =>
-          Number(b.count || 0) -
-          Number(a.count || 0)
-      )
-      .map((item) =>
-        item.keyword.trim()
-      )
+      .sort((a, b) => Number(b.count || 0) - Number(a.count || 0))
+      .map((item) => item.keyword.trim())
       .filter(Boolean);
 
     const unique = [];
 
     for (const keyword of sorted) {
       const exists = unique.some(
-        (item) =>
-          item.toLowerCase() ===
-          keyword.toLowerCase()
+        (item) => item.toLowerCase() === keyword.toLowerCase(),
       );
 
       if (!exists) {
@@ -171,25 +134,19 @@ const { cart } = useStore();
       }
     }
 
-    const finalTrending =
-      unique.slice(0, 6);
+    const finalTrending = unique.slice(0, 6);
 
     if (finalTrending.length < 4) {
       for (const item of defaultTrending) {
-        const exists =
-          finalTrending.some(
-            (keyword) =>
-              keyword.toLowerCase() ===
-              item.toLowerCase()
-          );
+        const exists = finalTrending.some(
+          (keyword) => keyword.toLowerCase() === item.toLowerCase(),
+        );
 
         if (!exists) {
           finalTrending.push(item);
         }
 
-        if (
-          finalTrending.length >= 4
-        ) {
+        if (finalTrending.length >= 4) {
           break;
         }
       }
@@ -202,83 +159,52 @@ const { cart } = useStore();
   // SAVE SEARCH HISTORY
   // =====================================================
 
-  const saveSearchHistory =
-    useCallback((keyword) => {
-      const cleanKeyword =
-        String(keyword || "").trim();
+  const saveSearchHistory = useCallback((keyword) => {
+    const cleanKeyword = String(keyword || "").trim();
 
-      if (!cleanKeyword) return;
+    if (!cleanKeyword) return;
 
-      try {
-        const saved =
-          localStorage.getItem(
-            SEARCH_HISTORY_KEY
-          );
+    try {
+      const saved = localStorage.getItem(SEARCH_HISTORY_KEY);
 
-        const current = saved
-          ? JSON.parse(saved)
-          : [];
+      const current = saved ? JSON.parse(saved) : [];
 
-        const list = Array.isArray(
-          current
-        )
-          ? current
-          : [];
+      const list = Array.isArray(current) ? current : [];
 
-        const existingIndex =
-          list.findIndex(
-            (item) =>
-              String(
-                item?.keyword || ""
-              ).toLowerCase() ===
-              cleanKeyword.toLowerCase()
-          );
+      const existingIndex = list.findIndex(
+        (item) =>
+          String(item?.keyword || "").toLowerCase() ===
+          cleanKeyword.toLowerCase(),
+      );
 
-        let updated = [...list];
+      let updated = [...list];
 
-        if (existingIndex >= 0) {
-          updated[existingIndex] = {
-            ...updated[existingIndex],
-            keyword:
-              updated[existingIndex]
-                .keyword ||
-              cleanKeyword,
-            count:
-              Number(
-                updated[existingIndex]
-                  .count || 0
-              ) + 1,
-            lastSearched: Date.now(),
-          };
-        } else {
-          updated.push({
-            keyword: cleanKeyword,
-            count: 1,
-            lastSearched: Date.now(),
-          });
-        }
-
-        updated = updated
-          .sort(
-            (a, b) =>
-              Number(b.count || 0) -
-              Number(a.count || 0)
-          )
-          .slice(0, 30);
-
-        localStorage.setItem(
-          SEARCH_HISTORY_KEY,
-          JSON.stringify(updated)
-        );
-
-        setSearchHistory(updated);
-      } catch (error) {
-        console.error(
-          "Search history save error:",
-          error
-        );
+      if (existingIndex >= 0) {
+        updated[existingIndex] = {
+          ...updated[existingIndex],
+          keyword: updated[existingIndex].keyword || cleanKeyword,
+          count: Number(updated[existingIndex].count || 0) + 1,
+          lastSearched: Date.now(),
+        };
+      } else {
+        updated.push({
+          keyword: cleanKeyword,
+          count: 1,
+          lastSearched: Date.now(),
+        });
       }
-    }, []);
+
+      updated = updated
+        .sort((a, b) => Number(b.count || 0) - Number(a.count || 0))
+        .slice(0, 30);
+
+      localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(updated));
+
+      setSearchHistory(updated);
+    } catch (error) {
+      console.error("Search history save error:", error);
+    }
+  }, []);
 
   // =====================================================
   // LOAD CATEGORIES
@@ -300,167 +226,110 @@ const { cart } = useStore();
   // =====================================================
 
   useEffect(() => {
-    const loadCategories =
-      async () => {
-        try {
-          setCategoriesLoading(true);
+    const loadCategories = async () => {
+      try {
+        setCategoriesLoading(true);
 
-          const response =
-            await fetch(
-              `${API_BASE}/category/tree`,
-              {
-                method: "GET",
-                cache: "no-store",
-              }
-            );
+        const response = await fetch(`${API_BASE}/category/tree`, {
+          method: "GET",
+          cache: "no-store",
+        });
 
-          const contentType =
-            response.headers.get(
-              "content-type"
-            ) || "";
+        const contentType = response.headers.get("content-type") || "";
 
-          // ---------------------------------------------
-          // Prevent:
-          // Unexpected token '<'
-          // ---------------------------------------------
+        // ---------------------------------------------
+        // Prevent:
+        // Unexpected token '<'
+        // ---------------------------------------------
 
-          if (
-            !contentType.includes(
-              "application/json"
-            )
-          ) {
-            const text =
-              await response.text();
+        if (!contentType.includes("application/json")) {
+          const text = await response.text();
 
-            console.error(
-              "Category API returned non-JSON:",
-              text
-            );
+          console.error("Category API returned non-JSON:", text);
 
-            throw new Error(
-              `Category API returned ${response.status}`
-            );
-          }
-
-          const data =
-            await response.json();
-
-          if (!response.ok) {
-            throw new Error(
-              data?.message ||
-                "Failed to load categories"
-            );
-          }
-
-          // ---------------------------------------------
-          // Get categories
-          // ---------------------------------------------
-
-          const list =
-            Array.isArray(
-              data?.categories
-            )
-              ? data.categories
-              : [];
-
-          // ---------------------------------------------
-          // Normalize SubChild
-          // ---------------------------------------------
-
-          const normalizeSubChild = (
-            subChild
-          ) => {
-            return {
-              ...subChild,
-              children: [],
-            };
-          };
-
-          // ---------------------------------------------
-          // Normalize Child
-          // ---------------------------------------------
-
-          const normalizeChild = (
-            child
-          ) => {
-            const subChildren =
-              Array.isArray(
-                child?.subChildCategories
-              )
-                ? child.subChildCategories
-                : [];
-
-            return {
-              ...child,
-
-              children:
-                subChildren.map(
-                  normalizeSubChild
-                ),
-            };
-          };
-
-          // ---------------------------------------------
-          // Normalize Sub
-          // ---------------------------------------------
-
-          const normalizeSub = (
-            sub
-          ) => {
-            const children =
-              Array.isArray(
-                sub?.childCategories
-              )
-                ? sub.childCategories
-                : [];
-
-            return {
-              ...sub,
-
-              children:
-                children.map(
-                  normalizeChild
-                ),
-            };
-          };
-
-          // ---------------------------------------------
-          // Normalize Main
-          // ---------------------------------------------
-
-          const normalized =
-            list.map((main) => {
-              const subCategories =
-                Array.isArray(
-                  main?.subCategories
-                )
-                  ? main.subCategories
-                  : [];
-
-              return {
-                ...main,
-
-                children:
-                  subCategories.map(
-                    normalizeSub
-                  ),
-              };
-            });
-
-          setCategories(
-            normalized
-          );
-        } catch (error) {
-          console.error(
-            "Header category loading error:",
-            error
-          );
-
-          setCategories([]);
-        } finally {
-          setCategoriesLoading(false);
+          throw new Error(`Category API returned ${response.status}`);
         }
-      };
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data?.message || "Failed to load categories");
+        }
+
+        // ---------------------------------------------
+        // Get categories
+        // ---------------------------------------------
+
+        const list = Array.isArray(data?.categories) ? data.categories : [];
+
+        // ---------------------------------------------
+        // Normalize SubChild
+        // ---------------------------------------------
+
+        const normalizeSubChild = (subChild) => {
+          return {
+            ...subChild,
+            children: [],
+          };
+        };
+
+        // ---------------------------------------------
+        // Normalize Child
+        // ---------------------------------------------
+
+        const normalizeChild = (child) => {
+          const subChildren = Array.isArray(child?.subChildCategories)
+            ? child.subChildCategories
+            : [];
+
+          return {
+            ...child,
+
+            children: subChildren.map(normalizeSubChild),
+          };
+        };
+
+        // ---------------------------------------------
+        // Normalize Sub
+        // ---------------------------------------------
+
+        const normalizeSub = (sub) => {
+          const children = Array.isArray(sub?.childCategories)
+            ? sub.childCategories
+            : [];
+
+          return {
+            ...sub,
+
+            children: children.map(normalizeChild),
+          };
+        };
+
+        // ---------------------------------------------
+        // Normalize Main
+        // ---------------------------------------------
+
+        const normalized = list.map((main) => {
+          const subCategories = Array.isArray(main?.subCategories)
+            ? main.subCategories
+            : [];
+
+          return {
+            ...main,
+
+            children: subCategories.map(normalizeSub),
+          };
+        });
+
+        setCategories(normalized);
+      } catch (error) {
+        console.error("Header category loading error:", error);
+
+        setCategories([]);
+      } finally {
+        setCategoriesLoading(false);
+      }
+    };
 
     loadCategories();
   }, []);
@@ -468,402 +337,268 @@ const { cart } = useStore();
   // =====================================================
   // LOAD PRODUCTS
   // =====================================================
-useEffect(() => {
-  const loadProducts = async () => {
-    try {
-      setProductsLoading(true);
+  useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        setProductsLoading(true);
 
-      const url = `${API_BASE}/products/getALLproducts`;
+        const url = `${API_BASE}/products/getALLproducts`;
 
-      console.log("Loading products from:", url);
+        console.log("Loading products from:", url);
 
-      const response = await fetch(url, {
-        method: "GET",
-        cache: "no-store",
-      });
+        const response = await fetch(url, {
+          method: "GET",
+          cache: "no-store",
+        });
 
-      const contentType =
-        response.headers.get("content-type") || "";
+        const contentType = response.headers.get("content-type") || "";
 
-      let data;
+        let data;
 
-      if (contentType.includes("application/json")) {
-        data = await response.json();
-      } else {
-        const text = await response.text();
+        if (contentType.includes("application/json")) {
+          data = await response.json();
+        } else {
+          const text = await response.text();
 
-        console.error(
-          "Product API returned non-JSON:",
-          text
-        );
+          console.error("Product API returned non-JSON:", text);
 
-        throw new Error(
-          `Product API returned ${response.status}`
-        );
+          throw new Error(`Product API returned ${response.status}`);
+        }
+
+        console.log("Product API response:", data);
+
+        if (!response.ok) {
+          throw new Error(
+            data?.message ||
+              data?.error ||
+              `Failed to get products (${response.status})`,
+          );
+        }
+
+        // Backend response support:
+        // []
+        // { products: [] }
+        // { data: [] }
+
+        const list = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.products)
+            ? data.products
+            : Array.isArray(data?.data)
+              ? data.data
+              : [];
+
+        console.log("Products loaded:", list.length);
+
+        setAllProducts(list);
+        setSearchResults(list.slice(0, 8));
+      } catch (error) {
+        console.error("Header product loading error:", error);
+
+        setAllProducts([]);
+        setSearchResults([]);
+      } finally {
+        setProductsLoading(false);
       }
+    };
 
-      console.log("Product API response:", data);
-
-      if (!response.ok) {
-        throw new Error(
-          data?.message ||
-            data?.error ||
-            `Failed to get products (${response.status})`
-        );
-      }
-
-      // Backend response support:
-      // []
-      // { products: [] }
-      // { data: [] }
-
-      const list = Array.isArray(data)
-        ? data
-        : Array.isArray(data?.products)
-        ? data.products
-        : Array.isArray(data?.data)
-        ? data.data
-        : [];
-
-      console.log(
-        "Products loaded:",
-        list.length
-      );
-
-      setAllProducts(list);
-      setSearchResults(list.slice(0, 8));
-    } catch (error) {
-      console.error(
-        "Header product loading error:",
-        error
-      );
-
-      setAllProducts([]);
-      setSearchResults([]);
-    } finally {
-      setProductsLoading(false);
-    }
-  };
-
-  loadProducts();
-}, []);
+    loadProducts();
+  }, []);
 
   // =====================================================
   // SLUG
   // =====================================================
 
-  const makeSlug = useCallback(
-    (item) => {
-      if (item?.slug) {
-        return item.slug;
-      }
+  const makeSlug = useCallback((item) => {
+    if (item?.slug) {
+      return item.slug;
+    }
 
-      return String(
-        item?.name || ""
-      )
-        .toLowerCase()
-        .trim()
-        .replace(
-          /[^\w\s-]/g,
-          ""
-        )
-        .replace(
-          /\s+/g,
-          "-"
-        )
-        .replace(
-          /-+/g,
-          "-"
-        );
-    },
-    []
-  );
+    return String(item?.name || "")
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-");
+  }, []);
 
   // =====================================================
   // PRODUCT IMAGE
   // =====================================================
 
-  const getProductImage =
-    useCallback((product) => {
-      if (
-        Array.isArray(
-          product?.images
-        ) &&
-        product.images.length > 0
-      ) {
-        return product.images[0];
-      }
+  const getProductImage = useCallback((product) => {
+    if (Array.isArray(product?.images) && product.images.length > 0) {
+      return product.images[0];
+    }
 
-      if (product?.image) {
-        return product.image;
-      }
+    if (product?.image) {
+      return product.image;
+    }
 
-      return "";
-    }, []);
+    return "";
+  }, []);
 
   // =====================================================
   // PRODUCT PRICE
   // =====================================================
 
-  const getProductPrice =
-    useCallback((product) => {
-      const price = Number(
-        product?.price || 0
-      );
+  const getProductPrice = useCallback((product) => {
+    const price = Number(product?.price || 0);
 
-      const discountPrice =
-        product?.discountPrice !==
-          null &&
-        product?.discountPrice !==
-          undefined &&
-        product?.discountPrice !== ""
-          ? Number(
-              product.discountPrice
-            )
-          : null;
+    const discountPrice =
+      product?.discountPrice !== null &&
+      product?.discountPrice !== undefined &&
+      product?.discountPrice !== ""
+        ? Number(product.discountPrice)
+        : null;
 
-      const hasDiscount =
-        discountPrice !== null &&
-        discountPrice > 0 &&
-        discountPrice < price;
+    const hasDiscount =
+      discountPrice !== null && discountPrice > 0 && discountPrice < price;
 
-      return {
-        price,
-        discountPrice,
-        hasDiscount,
-        finalPrice: hasDiscount
-          ? discountPrice
-          : price,
-        discountAmount:
-          hasDiscount
-            ? price -
-              discountPrice
-            : 0,
-      };
-    }, []);
+    return {
+      price,
+      discountPrice,
+      hasDiscount,
+      finalPrice: hasDiscount ? discountPrice : price,
+      discountAmount: hasDiscount ? price - discountPrice : 0,
+    };
+  }, []);
 
   // =====================================================
   // SEARCH CHANGE
   // =====================================================
 
-  const handleSearchChange =
-    useCallback(
-      (value) => {
-        setSearch(value);
+  const handleSearchChange = useCallback(
+    (value) => {
+      setSearch(value);
 
-        const keyword =
-          value
-            .trim()
-            .toLowerCase();
+      const keyword = value.trim().toLowerCase();
 
-        if (!keyword) {
-          setSearchResults(
-            allProducts.slice(0, 8)
+      if (!keyword) {
+        setSearchResults(allProducts.slice(0, 8));
+        return;
+      }
+
+      const filtered = allProducts
+        .filter((product) => {
+          const name = String(product?.name || "").toLowerCase();
+
+          const brand = String(product?.brand || "").toLowerCase();
+
+          const sku = String(product?.sku || "").toLowerCase();
+
+          const category = String(
+            product?.category?.name || product?.category || "",
+          ).toLowerCase();
+
+          const shortDescription = String(
+            product?.shortDescription || "",
+          ).toLowerCase();
+
+          const description = String(product?.description || "").toLowerCase();
+
+          return (
+            name.includes(keyword) ||
+            brand.includes(keyword) ||
+            sku.includes(keyword) ||
+            category.includes(keyword) ||
+            shortDescription.includes(keyword) ||
+            description.includes(keyword)
           );
-          return;
-        }
+        })
+        .slice(0, 12);
 
-        const filtered =
-          allProducts
-            .filter((product) => {
-              const name =
-                String(
-                  product?.name || ""
-                ).toLowerCase();
-
-              const brand =
-                String(
-                  product?.brand || ""
-                ).toLowerCase();
-
-              const sku =
-                String(
-                  product?.sku || ""
-                ).toLowerCase();
-
-              const category =
-                String(
-                  product?.category
-                    ?.name ||
-                    product?.category ||
-                    ""
-                ).toLowerCase();
-
-              const shortDescription =
-                String(
-                  product?.shortDescription ||
-                    ""
-                ).toLowerCase();
-
-              const description =
-                String(
-                  product?.description ||
-                    ""
-                ).toLowerCase();
-
-              return (
-                name.includes(
-                  keyword
-                ) ||
-                brand.includes(
-                  keyword
-                ) ||
-                sku.includes(
-                  keyword
-                ) ||
-                category.includes(
-                  keyword
-                ) ||
-                shortDescription.includes(
-                  keyword
-                ) ||
-                description.includes(
-                  keyword
-                )
-              );
-            })
-            .slice(0, 12);
-
-        setSearchResults(
-          filtered
-        );
-      },
-      [allProducts]
-    );
+      setSearchResults(filtered);
+    },
+    [allProducts],
+  );
 
   // =====================================================
   // SEARCH SUBMIT
   // =====================================================
 
-  const handleSearch =
-    useCallback(
-      (e) => {
-        e.preventDefault();
+  const handleSearch = useCallback(
+    (e) => {
+      e.preventDefault();
 
-        const keyword =
-          search.trim();
+      const keyword = search.trim();
 
-        if (!keyword) {
-          setSearchFocused(true);
-          return;
-        }
+      if (!keyword) {
+        setSearchFocused(true);
+        return;
+      }
 
-        saveSearchHistory(
-          keyword
-        );
+      saveSearchHistory(keyword);
 
-        setSearchFocused(false);
-        setIsOpen(false);
+      setSearchFocused(false);
+      setIsOpen(false);
 
-        window.location.href =
-          `/search?q=${encodeURIComponent(
-            keyword
-          )}`;
-      },
-      [
-        search,
-        saveSearchHistory,
-      ]
-    );
+      window.location.href = `/search?q=${encodeURIComponent(keyword)}`;
+    },
+    [search, saveSearchHistory],
+  );
 
   // =====================================================
   // TRENDING SEARCH CLICK
   // =====================================================
 
-  const handleTrendingSearch =
-    useCallback(
-      (value) => {
-        const keyword =
-          String(
-            value || ""
-          ).trim();
+  const handleTrendingSearch = useCallback(
+    (value) => {
+      const keyword = String(value || "").trim();
 
-        if (!keyword) return;
+      if (!keyword) return;
 
-        setSearch(keyword);
+      setSearch(keyword);
 
-        saveSearchHistory(
-          keyword
-        );
+      saveSearchHistory(keyword);
 
-        handleSearchChange(
-          keyword
-        );
+      handleSearchChange(keyword);
 
-        setSearchFocused(true);
-      },
-      [
-        handleSearchChange,
-        saveSearchHistory,
-      ]
-    );
+      setSearchFocused(true);
+    },
+    [handleSearchChange, saveSearchHistory],
+  );
 
   // =====================================================
   // CLOSE SEARCH
   // =====================================================
 
-  const closeSearch =
-    useCallback(() => {
-      setSearchFocused(false);
-    }, []);
+  const closeSearch = useCallback(() => {
+    setSearchFocused(false);
+  }, []);
 
   // =====================================================
   // OUTSIDE CLICK
   // =====================================================
 
   useEffect(() => {
-    const handleOutsideClick =
-      (event) => {
-        const desktopInside =
-          desktopSearchRef.current?.contains(
-            event.target
-          );
+    const handleOutsideClick = (event) => {
+      const desktopInside = desktopSearchRef.current?.contains(event.target);
 
-        const mobileInside =
-          mobileSearchRef.current?.contains(
-            event.target
-          );
+      const mobileInside = mobileSearchRef.current?.contains(event.target);
 
-        if (
-          !desktopInside &&
-          !mobileInside
-        ) {
-          setSearchFocused(false);
-          setIsOpen(false);
-        }
-      };
+      if (!desktopInside && !mobileInside) {
+        setSearchFocused(false);
+        setIsOpen(false);
+      }
+    };
 
-    const handleEscape =
-      (event) => {
-        if (
-          event.key === "Escape"
-        ) {
-          setSearchFocused(false);
-          setIsOpen(false);
-          setIsMobileMenuOpen(false);
-        }
-      };
+    const handleEscape = (event) => {
+      if (event.key === "Escape") {
+        setSearchFocused(false);
+        setIsOpen(false);
+        setIsMobileMenuOpen(false);
+      }
+    };
 
-    document.addEventListener(
-      "mousedown",
-      handleOutsideClick
-    );
+    document.addEventListener("mousedown", handleOutsideClick);
 
-    document.addEventListener(
-      "keydown",
-      handleEscape
-    );
+    document.addEventListener("keydown", handleEscape);
 
     return () => {
-      document.removeEventListener(
-        "mousedown",
-        handleOutsideClick
-      );
+      document.removeEventListener("mousedown", handleOutsideClick);
 
-      document.removeEventListener(
-        "keydown",
-        handleEscape
-      );
+      document.removeEventListener("keydown", handleEscape);
     };
   }, []);
 
@@ -871,24 +606,20 @@ useEffect(() => {
   // MOBILE CATEGORY TOGGLE
   // =====================================================
 
-  const toggleMobileCategory =
-    (id) => {
-      setExpandedMobileCategories(
-        (prev) => ({
-          ...prev,
-          [id]: !prev[id],
-        })
-      );
-    };
+  const toggleMobileCategory = (id) => {
+    setExpandedMobileCategories((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
 
   // =====================================================
   // CLOSE MOBILE
   // =====================================================
 
-  const closeMobileMenu =
-    () => {
-      setIsMobileMenuOpen(false);
-    };
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+  };
 
   // =====================================================
   // CLOSE EVERYTHING
@@ -906,32 +637,21 @@ useEffect(() => {
 
   return (
     <header className="sticky top-0 z-[9999] w-full border-b border-gray-200/80 bg-white/95 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95">
-
       {/* =================================================
           MAIN HEADER
       ================================================= */}
 
       <div className="mx-auto max-w-[1440px] px-3 py-2.5 sm:px-4 lg:py-3">
-
         <div className="flex items-center justify-between gap-2 lg:gap-5">
-
           {/* MOBILE MENU */}
 
           <button
             type="button"
-            onClick={() =>
-              setIsMobileMenuOpen(
-                (prev) => !prev
-              )
-            }
+            onClick={() => setIsMobileMenuOpen((prev) => !prev)}
             aria-label="Toggle Menu"
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-gray-800 transition hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-slate-800 lg:hidden"
           >
-            {isMobileMenuOpen ? (
-              <X size={25} />
-            ) : (
-              <Menu size={25} />
-            )}
+            {isMobileMenuOpen ? <X size={25} /> : <Menu size={25} />}
           </button>
 
           {/* LOGO */}
@@ -962,67 +682,56 @@ useEffect(() => {
               onSubmit={handleSearch}
               className="flex h-[46px] w-full items-center rounded-full border border-gray-200/70 bg-gray-100/80 px-2 transition-all focus-within:border-[#f47421] focus-within:bg-white focus-within:shadow-md dark:border-slate-700/60 dark:bg-slate-800/80 dark:focus-within:border-[#f47421] dark:focus-within:bg-slate-800"
             >
-
               {/* CATEGORY */}
 
               <div className="relative shrink-0">
-
                 <button
                   type="button"
-                  onClick={() =>
-                    setIsOpen(
-                      (prev) => !prev
-                    )
-                  }
+                  onClick={() => setIsOpen((prev) => !prev)}
                   className="group flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-semibold text-gray-700 transition hover:text-[#f47421] dark:text-gray-200"
                 >
-                  <span>
-                    Category
-                  </span>
+                  <span>Category</span>
 
                   <ChevronDown
                     size={15}
                     className={`transition-transform ${
-                      isOpen
-                        ? "rotate-180 text-[#f47421]"
-                        : "text-gray-500"
+                      isOpen ? "rotate-180 text-[#f47421]" : "text-gray-500"
                     }`}
                   />
                 </button>
 
                 {/* CATEGORY DROPDOWN */}
-<div
-  className={`absolute left-0 top-[50px] z-[10000] w-[300px] rounded-2xl border border-gray-100 bg-white p-2 shadow-2xl transition-all duration-200 dark:border-slate-800 dark:bg-slate-900 ${
-    isOpen
-      ? "visible translate-y-0 opacity-100"
-      : "invisible -translate-y-2 opacity-0"
-  }`}
->
-  <div className="max-h-[420px] overflow-y-auto rounded-xl p-1">
-    {categoriesLoading ? (
-      <div className="px-3 py-4 text-sm text-gray-400">
-        Loading categories...
-      </div>
-    ) : categories.length === 0 ? (
-      <div className="px-3 py-4 text-sm text-gray-400">
-        No categories found
-      </div>
-    ) : (
-      categories.map((category) => (
-        <Link
-          key={category._id}
-          prefetch={false}
-          href={`/category/${makeSlug(category)}`}
-          onClick={closeAll}
-          className="flex items-center justify-between rounded-lg px-3 py-2.5 text-[14px] font-medium text-gray-700 transition hover:bg-orange-50 hover:text-[#f47421] dark:text-gray-200 dark:hover:bg-slate-800 dark:hover:text-[#f47421]"
-        >
-          <span>{category.name}</span>
-        </Link>
-      ))
-    )}
-  </div>
-</div>
-
+                <div
+                  className={`absolute left-0 top-[50px] z-[10000] w-[300px] rounded-2xl border border-gray-100 bg-white p-2 shadow-2xl transition-all duration-200 dark:border-slate-800 dark:bg-slate-900 ${
+                    isOpen
+                      ? "visible translate-y-0 opacity-100"
+                      : "invisible -translate-y-2 opacity-0"
+                  }`}
+                >
+                  <div className="max-h-[420px] overflow-y-auto rounded-xl p-1">
+                    {categoriesLoading ? (
+                      <div className="px-3 py-4 text-sm text-gray-400">
+                        Loading categories...
+                      </div>
+                    ) : categories.length === 0 ? (
+                      <div className="px-3 py-4 text-sm text-gray-400">
+                        No categories found
+                      </div>
+                    ) : (
+                      categories.map((category) => (
+                        <Link
+                          key={category._id}
+                          prefetch={false}
+                          href={`/category/${makeSlug(category)}`}
+                          onClick={closeAll}
+                          className="flex items-center justify-between rounded-lg px-3 py-2.5 text-[14px] font-medium text-gray-700 transition hover:bg-orange-50 hover:text-[#f47421] dark:text-gray-200 dark:hover:bg-slate-800 dark:hover:text-[#f47421]"
+                        >
+                          <span>{category.name}</span>
+                        </Link>
+                      ))
+                    )}
+                  </div>
+                </div>
               </div>
 
               <div className="h-5 w-px shrink-0 bg-gray-300 dark:bg-slate-700" />
@@ -1030,41 +739,23 @@ useEffect(() => {
               {/* SEARCH INPUT */}
 
               <div className="flex min-w-0 flex-1 items-center gap-2.5 px-3">
-
-                <Search
-                  size={18}
-                  className="shrink-0 text-gray-400"
-                />
+                <Search size={18} className="shrink-0 text-gray-400" />
 
                 <input
                   type="search"
                   value={search}
                   onFocus={() => {
-                    setSearchFocused(
-                      true
-                    );
+                    setSearchFocused(true);
 
-                    if (
-                      !search.trim()
-                    ) {
-                      setSearchResults(
-                        allProducts.slice(
-                          0,
-                          8
-                        )
-                      );
+                    if (!search.trim()) {
+                      setSearchResults(allProducts.slice(0, 8));
                     }
                   }}
-                  onChange={(e) =>
-                    handleSearchChange(
-                      e.target.value
-                    )
-                  }
+                  onChange={(e) => handleSearchChange(e.target.value)}
                   placeholder="Search products..."
                   aria-label="Search products"
                   className="w-full bg-transparent text-[14px] font-medium text-gray-900 outline-none placeholder:text-gray-400 dark:text-white dark:placeholder:text-gray-500"
                 />
-
               </div>
 
               {/* SEARCH BUTTON */}
@@ -1075,7 +766,6 @@ useEffect(() => {
               >
                 Search
               </button>
-
             </form>
 
             {/* SEARCH PANEL */}
@@ -1083,33 +773,16 @@ useEffect(() => {
             {searchFocused && (
               <SearchPanel
                 search={search}
-                searchResults={
-                  searchResults
-                }
-                productsLoading={
-                  productsLoading
-                }
-                trendingSearches={
-                  trendingSearches
-                }
-                onTrendingClick={
-                  handleTrendingSearch
-                }
-                onClose={
-                  closeSearch
-                }
-                getProductImage={
-                  getProductImage
-                }
-                getProductPrice={
-                  getProductPrice
-                }
-                makeSlug={
-                  makeSlug
-                }
+                searchResults={searchResults}
+                productsLoading={productsLoading}
+                trendingSearches={trendingSearches}
+                onTrendingClick={handleTrendingSearch}
+                onClose={closeSearch}
+                getProductImage={getProductImage}
+                getProductPrice={getProductPrice}
+                makeSlug={makeSlug}
               />
             )}
-
           </div>
 
           {/* =================================================
@@ -1117,7 +790,6 @@ useEffect(() => {
           ================================================= */}
 
           <nav className="flex shrink-0 items-center gap-1.5 sm:gap-2.5 lg:gap-4 xl:gap-5">
-
             <Link
               prefetch={false}
               href="/blog"
@@ -1157,20 +829,10 @@ useEffect(() => {
               <button
                 type="button"
                 aria-label="Toggle Theme"
-                onClick={() =>
-                  setTheme(
-                    theme === "dark"
-                      ? "light"
-                      : "dark"
-                  )
-                }
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
                 className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 text-gray-700 transition hover:border-[#f47421] hover:text-[#f47421] dark:border-slate-800 dark:text-gray-200 sm:h-10 sm:w-10"
               >
-                {theme === "dark" ? (
-                  <Sun size={18} />
-                ) : (
-                  <Moon size={18} />
-                )}
+                {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
               </button>
             )}
 
@@ -1199,54 +861,31 @@ useEffect(() => {
             >
               <User size={18} />
             </Link>
-
           </nav>
-
         </div>
 
         {/* =================================================
             MOBILE SEARCH
         ================================================= */}
 
-        <div
-          ref={mobileSearchRef}
-          className="relative mt-2.5 lg:hidden"
-        >
-
+        <div ref={mobileSearchRef} className="relative mt-2.5 lg:hidden">
           <form
             onSubmit={handleSearch}
             className="flex h-[44px] w-full items-center rounded-full border border-gray-200 bg-white p-1 pl-4 shadow-sm dark:border-slate-700 dark:bg-slate-800"
           >
-
-            <Search
-              size={17}
-              className="mr-2 shrink-0 text-gray-400"
-            />
+            <Search size={17} className="mr-2 shrink-0 text-gray-400" />
 
             <input
               type="search"
               value={search}
               onFocus={() => {
-                setSearchFocused(
-                  true
-                );
+                setSearchFocused(true);
 
-                if (
-                  !search.trim()
-                ) {
-                  setSearchResults(
-                    allProducts.slice(
-                      0,
-                      8
-                    )
-                  );
+                if (!search.trim()) {
+                  setSearchResults(allProducts.slice(0, 8));
                 }
               }}
-              onChange={(e) =>
-                handleSearchChange(
-                  e.target.value
-                )
-              }
+              onChange={(e) => handleSearchChange(e.target.value)}
               placeholder="Search product, brand..."
               className="w-full bg-transparent text-[13px] text-gray-900 outline-none placeholder:text-gray-400 dark:text-white dark:placeholder:text-gray-500"
             />
@@ -1257,95 +896,63 @@ useEffect(() => {
             >
               <Search size={18} />
             </button>
-
           </form>
 
           {/* MOBILE SEARCH PANEL */}
 
           {searchFocused && (
             <div className="absolute left-1/2 top-[52px] z-[10000] w-[calc(100vw-24px)] -translate-x-1/2 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
-
               {/* TRENDING */}
 
               <div className="border-b border-gray-100 p-4 dark:border-slate-800">
-
                 <div className="mb-3 flex items-center gap-2">
-
-                  <TrendingUp
-                    size={17}
-                    className="text-[#f47421]"
-                  />
+                  <TrendingUp size={17} className="text-[#f47421]" />
 
                   <h3 className="text-[15px] font-bold text-gray-900 dark:text-white">
                     Trending Search
                   </h3>
-
                 </div>
 
                 <div className="flex flex-wrap gap-2">
+                  {trendingSearches.map((item, index) => (
+                    <button
+                      key={`${item}-${index}`}
+                      type="button"
+                      onClick={() => handleTrendingSearch(item)}
+                      className="flex items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1.5 text-[12px] text-gray-600 transition hover:border-[#f47421] hover:text-[#f47421] dark:border-slate-700 dark:text-gray-300"
+                    >
+                      <TrendingUp size={11} />
 
-                  {trendingSearches.map(
-                    (
-                      item,
-                      index
-                    ) => (
-                      <button
-                        key={`${item}-${index}`}
-                        type="button"
-                        onClick={() =>
-                          handleTrendingSearch(
-                            item
-                          )
-                        }
-                        className="flex items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1.5 text-[12px] text-gray-600 transition hover:border-[#f47421] hover:text-[#f47421] dark:border-slate-700 dark:text-gray-300"
-                      >
-                        <TrendingUp
-                          size={11}
-                        />
-
-                        {item}
-                      </button>
-                    )
-                  )}
-
+                      {item}
+                    </button>
+                  ))}
                 </div>
-
               </div>
 
               {/* PRODUCTS */}
 
               <div className="p-4">
-
                 <div className="mb-4 flex items-center justify-between">
-
                   <h3 className="text-[16px] font-bold text-gray-900 dark:text-white">
-                    {search.trim()
-                      ? "Search Products"
-                      : "Popular Products"}
+                    {search.trim() ? "Search Products" : "Popular Products"}
                   </h3>
 
                   <button
                     type="button"
-                    onClick={
-                      closeSearch
-                    }
+                    onClick={closeSearch}
                     className="text-xs text-gray-400 hover:text-[#f47421]"
                   >
                     Close
                   </button>
-
                 </div>
 
                 <div className="max-h-[55vh] overflow-y-auto">
-
                   {productsLoading ? (
                     <div className="py-16 text-center text-sm text-gray-400">
                       Loading products...
                     </div>
-                  ) : searchResults.length ===
-                    0 ? (
+                  ) : searchResults.length === 0 ? (
                     <div className="py-16 text-center">
-
                       <Search
                         size={30}
                         className="mx-auto mb-3 text-gray-300"
@@ -1354,48 +961,26 @@ useEffect(() => {
                       <p className="text-sm font-medium text-gray-500">
                         No products found
                       </p>
-
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 gap-3">
-
-                      {searchResults.map(
-                        (product) => (
-                          <ProductSearchCard
-                            key={
-                              product._id
-                            }
-                            product={
-                              product
-                            }
-                            getProductImage={
-                              getProductImage
-                            }
-                            getProductPrice={
-                              getProductPrice
-                            }
-                            makeSlug={
-                              makeSlug
-                            }
-                            onClick={
-                              closeAll
-                            }
-                          />
-                        )
-                      )}
-
+                      {searchResults.map((product) => (
+                        <ProductSearchCard
+                          key={product._id}
+                          product={product}
+                          getProductImage={getProductImage}
+                          getProductPrice={getProductPrice}
+                          makeSlug={makeSlug}
+                          onClick={closeAll}
+                        />
+                      ))}
                     </div>
                   )}
-
                 </div>
-
               </div>
-
             </div>
           )}
-
         </div>
-
       </div>
 
       {/* =====================================================
@@ -1403,38 +988,21 @@ useEffect(() => {
       ===================================================== */}
 
       <nav className="hidden w-full border-t border-gray-100 bg-gray-50/70 dark:border-slate-800/80 dark:bg-slate-900/60 lg:block">
-
         <div className="mx-auto flex h-[48px] max-w-[1440px] items-center justify-center gap-5 px-4 xl:gap-8">
-
           {categoriesLoading ? (
-            <span className="text-sm text-gray-400">
-              Loading categories...
-            </span>
-          ) : categories.length ===
-            0 ? (
-            <span className="text-sm text-gray-400">
-              No categories
-            </span>
+            <span className="text-sm text-gray-400">Loading categories...</span>
+          ) : categories.length === 0 ? (
+            <span className="text-sm text-gray-400">No categories</span>
           ) : (
-            categories.map(
-              (category) => (
-                <DesktopCategory
-                  key={
-                    category._id
-                  }
-                  category={
-                    category
-                  }
-                  makeSlug={
-                    makeSlug
-                  }
-                />
-              )
-            )
+            categories.map((category) => (
+              <DesktopCategory
+                key={category._id}
+                category={category}
+                makeSlug={makeSlug}
+              />
+            ))
           )}
-
         </div>
-
       </nav>
 
       {/* =====================================================
@@ -1443,11 +1011,8 @@ useEffect(() => {
 
       {isMobileMenuOpen && (
         <div className="fixed inset-x-0 top-0 z-[9998] h-screen overflow-y-auto bg-white px-4 pb-8 pt-[120px] shadow-2xl dark:bg-slate-900 lg:hidden">
-
           <div className="mx-auto max-w-[600px]">
-
             <div className="mb-4 flex items-center justify-between">
-
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">
                   Menu
@@ -1460,24 +1025,18 @@ useEffect(() => {
 
               <button
                 type="button"
-                onClick={
-                  closeMobileMenu
-                }
+                onClick={closeMobileMenu}
                 className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 text-gray-600 dark:border-slate-700 dark:text-gray-300"
               >
                 <X size={20} />
               </button>
-
             </div>
 
             <div className="mb-5 grid grid-cols-2 gap-2">
-
               <Link
                 prefetch={false}
                 href="/blog"
-                onClick={
-                  closeMobileMenu
-                }
+                onClick={closeMobileMenu}
                 className="rounded-xl border border-gray-200 px-4 py-3 text-sm font-semibold text-gray-700 dark:border-slate-700 dark:text-gray-200"
               >
                 Blog
@@ -1486,9 +1045,7 @@ useEffect(() => {
               <Link
                 prefetch={false}
                 href="/offers"
-                onClick={
-                  closeMobileMenu
-                }
+                onClick={closeMobileMenu}
                 className="rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm font-semibold text-[#f47421] dark:border-orange-900/40 dark:bg-orange-900/20"
               >
                 🎁 Offers
@@ -1497,9 +1054,7 @@ useEffect(() => {
               <Link
                 prefetch={false}
                 href="/pre-order"
-                onClick={
-                  closeMobileMenu
-                }
+                onClick={closeMobileMenu}
                 className="rounded-xl border border-gray-200 px-4 py-3 text-sm font-semibold text-gray-700 dark:border-slate-700 dark:text-gray-200"
               >
                 Pre-order
@@ -1508,14 +1063,11 @@ useEffect(() => {
               <Link
                 prefetch={false}
                 href="/compare"
-                onClick={
-                  closeMobileMenu
-                }
+                onClick={closeMobileMenu}
                 className="rounded-xl border border-gray-200 px-4 py-3 text-sm font-semibold text-gray-700 dark:border-slate-700 dark:text-gray-200"
               >
                 ⇄ Compare
               </Link>
-
             </div>
 
             {/* MOBILE CATEGORIES */}
@@ -1524,213 +1076,124 @@ useEffect(() => {
               <div className="py-8 text-center text-sm text-gray-400">
                 Loading categories...
               </div>
-            ) : categories.length ===
-              0 ? (
+            ) : categories.length === 0 ? (
               <div className="py-8 text-center text-sm text-gray-400">
                 No categories found
               </div>
             ) : (
               <div className="space-y-2">
+                {categories.map((category) => {
+                  const expanded = expandedMobileCategories[category._id];
 
-                {categories.map(
-                  (category) => {
-                    const expanded =
-                      expandedMobileCategories[
-                        category._id
-                      ];
+                  return (
+                    <div
+                      key={category._id}
+                      className="overflow-hidden rounded-xl border border-gray-200 dark:border-slate-700"
+                    >
+                      <div className="flex items-center justify-between px-4 py-3.5">
+                        <Link
+                          prefetch={false}
+                          href={`/category/${makeSlug(category)}`}
+                          onClick={closeMobileMenu}
+                          className="flex-1 text-sm font-bold text-gray-800 dark:text-gray-100"
+                        >
+                          {category.name}
+                        </Link>
 
-                    return (
-                      <div
-                        key={
-                          category._id
-                        }
-                        className="overflow-hidden rounded-xl border border-gray-200 dark:border-slate-700"
-                      >
-
-                        <div className="flex items-center justify-between px-4 py-3.5">
-
-                          <Link
-                            prefetch={false}
-                            href={`/category/${makeSlug(
-                              category
-                            )}`}
-                            onClick={
-                              closeMobileMenu
-                            }
-                            className="flex-1 text-sm font-bold text-gray-800 dark:text-gray-100"
+                        {category.children?.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => toggleMobileCategory(category._id)}
+                            className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-500 dark:bg-slate-800"
                           >
-                            {
-                              category.name
-                            }
-                          </Link>
-
-                          {category.children?.length >
-                            0 && (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                toggleMobileCategory(
-                                  category._id
-                                )
-                              }
-                              className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-500 dark:bg-slate-800"
-                            >
-                              <ChevronDown
-                                size={17}
-                                className={`transition-transform ${
-                                  expanded
-                                    ? "rotate-180 text-[#f47421]"
-                                    : ""
-                                }`}
-                              />
-                            </button>
-                          )}
-
-                        </div>
-
-                        {expanded &&
-                          category.children?.length >
-                            0 && (
-                            <MobileCategoryChildren
-                              items={
-                                category.children
-                              }
-                              level={1}
-                              expandedState={
-                                expandedMobileCategories
-                              }
-                              toggle={
-                                toggleMobileCategory
-                              }
-                              makeSlug={
-                                makeSlug
-                              }
-                              closeMenu={
-                                closeMobileMenu
-                              }
+                            <ChevronDown
+                              size={17}
+                              className={`transition-transform ${
+                                expanded ? "rotate-180 text-[#f47421]" : ""
+                              }`}
                             />
-                          )}
-
+                          </button>
+                        )}
                       </div>
-                    );
-                  }
-                )}
 
+                      {expanded && category.children?.length > 0 && (
+                        <MobileCategoryChildren
+                          items={category.children}
+                          level={1}
+                          expandedState={expandedMobileCategories}
+                          toggle={toggleMobileCategory}
+                          makeSlug={makeSlug}
+                          closeMenu={closeMobileMenu}
+                        />
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
-
           </div>
-
         </div>
       )}
-
     </header>
   );
 }
-
 
 // =========================================================
 // SEARCH CATEGORY ITEM
 // =========================================================
 
-function SearchCategoryItem({
-  category,
-  makeSlug,
-  closeAll,
-  level = 0,
-}) {
+function SearchCategoryItem({ category, makeSlug, closeAll, level = 0 }) {
   const hasChildren =
-    Array.isArray(
-      category?.children
-    ) &&
-    category.children.length > 0;
+    Array.isArray(category?.children) && category.children.length > 0;
 
   return (
     <div>
-
       <Link
         prefetch={false}
-        href={`/category/${makeSlug(
-          category
-        )}`}
+        href={`/category/${makeSlug(category)}`}
         onClick={closeAll}
         className="flex items-center justify-between rounded-lg px-3 py-2.5 text-[14px] font-medium text-gray-700 transition hover:bg-orange-50 hover:text-[#f47421] dark:text-gray-200 dark:hover:bg-slate-800 dark:hover:text-[#f47421]"
         style={{
-          paddingLeft:
-            `${12 + level * 14}px`,
+          paddingLeft: `${12 + level * 14}px`,
         }}
       >
+        <span>{category.name}</span>
 
-        <span>
-          {category.name}
-        </span>
-
-        {hasChildren && (
-          <ChevronRight
-            size={14}
-            className="shrink-0"
-          />
-        )}
-
+        {hasChildren && <ChevronRight size={14} className="shrink-0" />}
       </Link>
 
       {hasChildren && (
         <div>
-          {category.children.map(
-            (child) => (
-              <SearchCategoryItem
-                key={
-                  child._id
-                }
-                category={
-                  child
-                }
-                makeSlug={
-                  makeSlug
-                }
-                closeAll={
-                  closeAll
-                }
-                level={
-                  level + 1
-                }
-              />
-            )
-          )}
+          {category.children.map((child) => (
+            <SearchCategoryItem
+              key={child._id}
+              category={child}
+              makeSlug={makeSlug}
+              closeAll={closeAll}
+              level={level + 1}
+            />
+          ))}
         </div>
       )}
-
     </div>
   );
 }
-
 
 // =========================================================
 // DESKTOP CATEGORY
 // =========================================================
 
-function DesktopCategory({
-  category,
-  makeSlug,
-}) {
-  const hasChildren =
-    category?.children?.length >
-    0;
+function DesktopCategory({ category, makeSlug }) {
+  const hasChildren = category?.children?.length > 0;
 
   return (
     <div className="group relative h-full">
-
       <Link
         prefetch={false}
-        href={`/category/${makeSlug(
-          category
-        )}`}
+        href={`/category/${makeSlug(category)}`}
         className="flex h-full items-center gap-1.5 whitespace-nowrap text-[14px] font-medium text-gray-700 transition hover:text-[#f47421] dark:text-gray-300"
       >
-
-        <span>
-          {category.name}
-        </span>
+        <span>{category.name}</span>
 
         {hasChildren && (
           <ChevronDown
@@ -1738,99 +1201,57 @@ function DesktopCategory({
             className="transition-transform group-hover:rotate-180"
           />
         )}
-
       </Link>
 
       {hasChildren && (
         <div className="invisible absolute left-0 top-full z-[9999] min-w-[235px] translate-y-1 rounded-xl border border-gray-100 bg-white py-2 opacity-0 shadow-xl transition-all duration-200 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 dark:border-slate-800 dark:bg-slate-900">
-
-          {category.children.map(
-            (child) => (
-              <DesktopSubCategory
-                key={
-                  child._id
-                }
-                category={
-                  child
-                }
-                makeSlug={
-                  makeSlug
-                }
-              />
-            )
-          )}
-
+          {category.children.map((child) => (
+            <DesktopSubCategory
+              key={child._id}
+              category={child}
+              makeSlug={makeSlug}
+            />
+          ))}
         </div>
       )}
-
     </div>
   );
 }
-
 
 // =========================================================
 // DESKTOP SUB CATEGORY
 // Recursive
 // =========================================================
 
-function DesktopSubCategory({
-  category,
-  makeSlug,
-}) {
-  const hasChildren =
-    category?.children?.length >
-    0;
+function DesktopSubCategory({ category, makeSlug }) {
+  const hasChildren = category?.children?.length > 0;
 
   return (
     <div className="group/sub relative">
-
       <Link
         prefetch={false}
-        href={`/category/${makeSlug(
-          category
-        )}`}
+        href={`/category/${makeSlug(category)}`}
         className="flex items-center justify-between px-4 py-2.5 text-[13px] font-medium text-gray-700 transition hover:bg-orange-50 hover:text-[#f47421] dark:text-gray-300 dark:hover:bg-slate-800"
       >
+        <span>{category.name}</span>
 
-        <span>
-          {category.name}
-        </span>
-
-        {hasChildren && (
-          <ChevronRight
-            size={14}
-            className="text-gray-400"
-          />
-        )}
-
+        {hasChildren && <ChevronRight size={14} className="text-gray-400" />}
       </Link>
 
       {hasChildren && (
         <div className="invisible absolute left-full top-0 z-[9999] min-w-[235px] -translate-x-2 rounded-xl border border-gray-100 bg-white py-2 opacity-0 shadow-xl transition-all duration-200 group-hover/sub:visible group-hover/sub:translate-x-0 group-hover/sub:opacity-100 dark:border-slate-800 dark:bg-slate-900">
-
-          {category.children.map(
-            (child) => (
-              <DesktopSubCategory
-                key={
-                  child._id
-                }
-                category={
-                  child
-                }
-                makeSlug={
-                  makeSlug
-                }
-              />
-            )
-          )}
-
+          {category.children.map((child) => (
+            <DesktopSubCategory
+              key={child._id}
+              category={child}
+              makeSlug={makeSlug}
+            />
+          ))}
         </div>
       )}
-
     </div>
   );
 }
-
 
 // =========================================================
 // MOBILE CATEGORY CHILDREN
@@ -1848,114 +1269,64 @@ function MobileCategoryChildren({
   return (
     <div
       className={`space-y-1 border-t border-gray-100 bg-gray-50/70 p-2 dark:border-slate-700 dark:bg-slate-800/40 ${
-        level > 1
-          ? "ml-3 border-l-2 border-l-[#f47421]"
-          : ""
+        level > 1 ? "ml-3 border-l-2 border-l-[#f47421]" : ""
       }`}
     >
+      {items.map((item) => {
+        const expanded = expandedState[item._id];
 
-      {items.map(
-        (item) => {
-          const expanded =
-            expandedState[
-              item._id
-            ];
+        const hasChildren = item?.children?.length > 0;
 
-          const hasChildren =
-            item?.children
-              ?.length > 0;
-
-          return (
-            <div
-              key={
-                item._id
-              }
-              className="rounded-lg bg-white dark:bg-slate-800"
-            >
-
-              <div className="flex items-center justify-between px-3 py-2.5">
-
-                <Link
-                  prefetch={false}
-                  href={`/category/${makeSlug(
-                    item
-                  )}`}
-                  onClick={
-                    closeMenu
-                  }
-                  className={`flex-1 font-medium text-gray-700 dark:text-gray-200 ${
-                    level === 1
-                      ? "text-sm"
-                      : level === 2
+        return (
+          <div key={item._id} className="rounded-lg bg-white dark:bg-slate-800">
+            <div className="flex items-center justify-between px-3 py-2.5">
+              <Link
+                prefetch={false}
+                href={`/category/${makeSlug(item)}`}
+                onClick={closeMenu}
+                className={`flex-1 font-medium text-gray-700 dark:text-gray-200 ${
+                  level === 1
+                    ? "text-sm"
+                    : level === 2
                       ? "text-xs"
                       : "text-[11px]"
-                  }`}
+                }`}
+              >
+                {item.name}
+              </Link>
+
+              {hasChildren && (
+                <button
+                  type="button"
+                  onClick={() => toggle(item._id)}
+                  className="flex h-7 w-7 items-center justify-center rounded-full text-gray-400"
                 >
-                  {item.name}
-                </Link>
-
-                {hasChildren && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      toggle(
-                        item._id
-                      )
-                    }
-                    className="flex h-7 w-7 items-center justify-center rounded-full text-gray-400"
-                  >
-
-                    <ChevronDown
-                      size={
-                        level === 1
-                          ? 16
-                          : 14
-                      }
-                      className={`transition-transform ${
-                        expanded
-                          ? "rotate-180 text-[#f47421]"
-                          : ""
-                      }`}
-                    />
-
-                  </button>
-                )}
-
-              </div>
-
-              {expanded &&
-                hasChildren && (
-                  <MobileCategoryChildren
-                    items={
-                      item.children
-                    }
-                    level={
-                      level + 1
-                    }
-                    expandedState={
-                      expandedState
-                    }
-                    toggle={
-                      toggle
-                    }
-                    makeSlug={
-                      makeSlug
-                    }
-                    closeMenu={
-                      closeMenu
-                    }
+                  <ChevronDown
+                    size={level === 1 ? 16 : 14}
+                    className={`transition-transform ${
+                      expanded ? "rotate-180 text-[#f47421]" : ""
+                    }`}
                   />
-                )}
-
+                </button>
+              )}
             </div>
-          );
-        }
-      )}
 
+            {expanded && hasChildren && (
+              <MobileCategoryChildren
+                items={item.children}
+                level={level + 1}
+                expandedState={expandedState}
+                toggle={toggle}
+                makeSlug={makeSlug}
+                closeMenu={closeMenu}
+              />
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
-
 
 // =========================================================
 // PRODUCT SEARCH CARD
@@ -1968,48 +1339,28 @@ function ProductSearchCard({
   makeSlug,
   onClick,
 }) {
-  const image =
-    getProductImage(
-      product
-    );
+  const image = getProductImage(product);
 
-  const {
-    price,
-    finalPrice,
-    hasDiscount,
-    discountAmount,
-  } =
-    getProductPrice(
-      product
-    );
+  const { price, finalPrice, hasDiscount, discountAmount } =
+    getProductPrice(product);
 
-  const slug =
-    makeSlug(product);
+  const slug = makeSlug(product);
 
   return (
     <Link
       prefetch={false}
-      href={`/Product/${
-        slug ||
-        product._id
-      }`}
+      href={`/Product/${slug || product._id}`}
       onClick={onClick}
       className="group block"
     >
-
       <div className="h-full overflow-hidden rounded-xl border border-gray-200 bg-white p-2.5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-orange-200 hover:shadow-lg dark:border-slate-700 dark:bg-slate-800">
-
         {/* IMAGE */}
 
         <div className="mb-2 flex h-[125px] items-center justify-center overflow-hidden rounded-lg bg-gray-50 dark:bg-slate-700">
-
           {image ? (
             <img
               src={image}
-              alt={
-                product.name ||
-                "Product"
-              }
+              alt={product.name || "Product"}
               className="h-full w-full object-contain p-2 transition-transform duration-300 group-hover:scale-105"
             />
           ) : (
@@ -2017,7 +1368,6 @@ function ProductSearchCard({
               No Image
             </div>
           )}
-
         </div>
 
         {/* NAME */}
@@ -2029,37 +1379,28 @@ function ProductSearchCard({
         {/* PRICE */}
 
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
-
           <span className="text-[14px] font-bold text-gray-900 dark:text-white">
-            ৳{" "}
-            {finalPrice.toLocaleString()}
+            ৳ {finalPrice.toLocaleString()}
           </span>
 
           {hasDiscount && (
             <span className="text-[10px] text-gray-400 line-through">
-              ৳{" "}
-              {price.toLocaleString()}
+              ৳ {price.toLocaleString()}
             </span>
           )}
-
         </div>
 
         {/* DISCOUNT */}
 
         {hasDiscount && (
           <span className="mt-1.5 inline-flex rounded-full bg-green-100 px-2 py-0.5 text-[9px] font-semibold text-green-600 dark:bg-green-900/30 dark:text-green-400">
-            ৳{" "}
-            {discountAmount.toLocaleString()}{" "}
-            OFF
+            ৳ {discountAmount.toLocaleString()} OFF
           </span>
         )}
-
       </div>
-
     </Link>
   );
 }
-
 
 // =========================================================
 // DESKTOP SEARCH PANEL
@@ -2078,82 +1419,48 @@ function SearchPanel({
 }) {
   return (
     <div className="absolute left-1/2 top-[58px] z-[9998] w-[min(950px,calc(100vw-32px))] -translate-x-1/2 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_20px_60px_-15px_rgba(0,0,0,0.25)] dark:border-slate-700 dark:bg-slate-900">
-
       <div className="grid grid-cols-[190px_minmax(0,1fr)]">
-
         {/* TRENDING */}
 
         <div className="border-r border-gray-100 p-5 dark:border-slate-800">
-
           <div className="mb-5 flex items-center gap-2">
-
-            <TrendingUp
-              size={18}
-              className="text-[#f47421]"
-            />
+            <TrendingUp size={18} className="text-[#f47421]" />
 
             <h3 className="text-[17px] font-bold text-gray-900 dark:text-white">
               Trending Search
             </h3>
-
           </div>
 
           <div className="space-y-3">
+            {trendingSearches.map((item, index) => (
+              <button
+                key={`${item}-${index}`}
+                type="button"
+                onClick={() => onTrendingClick(item)}
+                className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-[13px] text-gray-600 transition hover:bg-orange-50 hover:text-[#f47421] dark:text-gray-300 dark:hover:bg-slate-800"
+              >
+                <TrendingUp size={13} className="shrink-0 text-gray-400" />
 
-            {trendingSearches.map(
-              (
-                item,
-                index
-              ) => (
-                <button
-                  key={`${item}-${index}`}
-                  type="button"
-                  onClick={() =>
-                    onTrendingClick(
-                      item
-                    )
-                  }
-                  className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-[13px] text-gray-600 transition hover:bg-orange-50 hover:text-[#f47421] dark:text-gray-300 dark:hover:bg-slate-800"
-                >
-
-                  <TrendingUp
-                    size={13}
-                    className="shrink-0 text-gray-400"
-                  />
-
-                  <span className="line-clamp-2">
-                    {item}
-                  </span>
-
-                </button>
-              )
-            )}
-
+                <span className="line-clamp-2">{item}</span>
+              </button>
+            ))}
           </div>
-
         </div>
 
         {/* PRODUCTS */}
 
         <div className="min-w-0 p-5">
-
           <div className="mb-5 flex items-center justify-between">
-
             <div>
-
               <h3 className="text-[18px] font-bold text-gray-900 dark:text-white">
-                {search.trim()
-                  ? "Search Products"
-                  : "Popular Products"}
+                {search.trim() ? "Search Products" : "Popular Products"}
               </h3>
 
               {search.trim() && (
                 <p className="mt-1 text-xs text-gray-400">
-                  Results for{" "}
-                  {search}
+                  Results for {search}
                 </p>
               )}
-
             </div>
 
             <button
@@ -2163,77 +1470,44 @@ function SearchPanel({
             >
               Close
             </button>
-
           </div>
 
           <div className="max-h-[570px] overflow-y-auto pr-1">
-
             {productsLoading ? (
               <div className="flex min-h-[250px] items-center justify-center">
-                <p className="text-sm text-gray-400">
-                  Loading products...
-                </p>
+                <p className="text-sm text-gray-400">Loading products...</p>
               </div>
-            ) : searchResults.length ===
-              0 ? (
+            ) : searchResults.length === 0 ? (
               <div className="flex min-h-[250px] items-center justify-center">
-
                 <div className="text-center">
-
-                  <Search
-                    size={34}
-                    className="mx-auto mb-3 text-gray-300"
-                  />
+                  <Search size={34} className="mx-auto mb-3 text-gray-300" />
 
                   <p className="text-sm font-medium text-gray-500">
                     No products found
                   </p>
 
                   <p className="mt-1 text-xs text-gray-400">
-                    Try another product
-                    name
+                    Try another product name
                   </p>
-
                 </div>
-
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-4 xl:grid-cols-3">
-
-                {searchResults.map(
-                  (product) => (
-                    <ProductSearchCard
-                      key={
-                        product._id
-                      }
-                      product={
-                        product
-                      }
-                      getProductImage={
-                        getProductImage
-                      }
-                      getProductPrice={
-                        getProductPrice
-                      }
-                      makeSlug={
-                        makeSlug
-                      }
-                      onClick={
-                        onClose
-                      }
-                    />
-                  )
-                )}
-
+                {searchResults.map((product) => (
+                  <ProductSearchCard
+                    key={product._id}
+                    product={product}
+                    getProductImage={getProductImage}
+                    getProductPrice={getProductPrice}
+                    makeSlug={makeSlug}
+                    onClick={onClose}
+                  />
+                ))}
               </div>
             )}
-
           </div>
-
         </div>
-
       </div>
-
     </div>
   );
 }

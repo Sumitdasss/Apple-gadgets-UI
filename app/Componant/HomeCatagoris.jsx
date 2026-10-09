@@ -34,11 +34,7 @@ export default function FeaturedCategories() {
       return item.slug;
     }
 
-    const name =
-      item.name ||
-      item.title ||
-      item.label ||
-      "";
+    const name = item.name || item.title || item.label || "";
 
     return String(name)
       .toLowerCase()
@@ -118,10 +114,7 @@ export default function FeaturedCategories() {
         // NEW CATEGORY TREE API
         const endpoint = `${API_BASE}/category/tree`;
 
-        console.log(
-          "Loading featured categories from:",
-          endpoint
-        );
+        console.log("Loading featured categories from:", endpoint);
 
         const response = await fetch(endpoint, {
           method: "GET",
@@ -134,15 +127,9 @@ export default function FeaturedCategories() {
         // Check HTTP status BEFORE JSON.parse
         // -----------------------------------------
         if (!response.ok) {
-          console.error(
-            "Category API error:",
-            response.status,
-            text
-          );
+          console.error("Category API error:", response.status, text);
 
-          throw new Error(
-            `Category API returned ${response.status}`
-          );
+          throw new Error(`Category API returned ${response.status}`);
         }
 
         // -----------------------------------------
@@ -153,20 +140,12 @@ export default function FeaturedCategories() {
         try {
           data = JSON.parse(text);
         } catch (jsonError) {
-          console.error(
-            "Category API did not return JSON:",
-            text
-          );
+          console.error("Category API did not return JSON:", text);
 
-          throw new Error(
-            "Category API returned invalid JSON"
-          );
+          throw new Error("Category API returned invalid JSON");
         }
 
-        console.log(
-          "Category API response:",
-          data
-        );
+        console.log("Category API response:", data);
 
         const list = normalizeCategories(data);
 
@@ -210,21 +189,14 @@ export default function FeaturedCategories() {
             );
           };
 
-          rootCategories = list.filter(
-            (item) => !getParentId(item)
-          );
+          rootCategories = list.filter((item) => !getParentId(item));
         }
 
         // -----------------------------------------
         // Remove invalid categories
         // -----------------------------------------
         rootCategories = rootCategories.filter(
-          (item) =>
-            item &&
-            (item._id ||
-              item.id ||
-              item.name ||
-              item.title)
+          (item) => item && (item._id || item.id || item.name || item.title),
         );
 
         // -----------------------------------------
@@ -236,14 +208,9 @@ export default function FeaturedCategories() {
 
         for (const category of rootCategories) {
           const id =
-            category._id ||
-            category.id ||
-            category.slug ||
-            category.name;
+            category._id || category.id || category.slug || category.name;
 
-          const key = String(id)
-            .trim()
-            .toLowerCase();
+          const key = String(id).trim().toLowerCase();
 
           if (!seen.has(key)) {
             seen.add(key);
@@ -255,10 +222,7 @@ export default function FeaturedCategories() {
           setCategories(uniqueCategories);
         }
       } catch (error) {
-        console.error(
-          "Featured categories loading error:",
-          error
-        );
+        console.error("Featured categories loading error:", error);
 
         if (!cancelled) {
           setCategories([]);
@@ -283,7 +247,6 @@ export default function FeaturedCategories() {
   return (
     <section className="w-full bg-white py-12 sm:py-14 lg:py-16">
       <div className="mx-auto max-w-[1450px] px-5 sm:px-8 lg:px-10">
-
         {/* Heading */}
         <div className="mb-10 sm:mb-12 lg:mb-14">
           <h2 className="text-[32px] font-bold tracking-tight text-[#171717] sm:text-[40px] lg:text-[46px]">
@@ -301,41 +264,28 @@ export default function FeaturedCategories() {
         {/* Loading State */}
         {loading ? (
           <div className="grid grid-cols-2 gap-x-5 gap-y-10 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 lg:gap-x-6 lg:gap-y-12">
-            {Array.from({ length: 16 }).map(
-              (_, index) => (
-                <div
-                  key={index}
-                  className="flex flex-col items-center"
-                >
-                  <div className="h-[76px] w-[76px] animate-pulse rounded-2xl bg-gray-100 sm:h-[88px] sm:w-[88px]" />
+            {Array.from({ length: 16 }).map((_, index) => (
+              <div key={index} className="flex flex-col items-center">
+                <div className="h-[76px] w-[76px] animate-pulse rounded-2xl bg-gray-100 sm:h-[88px] sm:w-[88px]" />
 
-                  <div className="mt-4 h-3.5 w-20 animate-pulse rounded-full bg-gray-100" />
-                </div>
-              )
-            )}
+                <div className="mt-4 h-3.5 w-20 animate-pulse rounded-full bg-gray-100" />
+              </div>
+            ))}
           </div>
         ) : categories.length === 0 ? (
           /* Empty State */
           <div className="py-16 text-center">
-            <p className="text-sm text-gray-400">
-              No categories found
-            </p>
+            <p className="text-sm text-gray-400">No categories found</p>
           </div>
         ) : (
           /* Categories Grid */
           <div className="grid grid-cols-2 gap-x-5 gap-y-10 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 lg:gap-x-6 lg:gap-y-12">
             {categories.map((category, index) => {
               const categoryId =
-                category._id ||
-                category.id ||
-                category.slug ||
-                category.name;
+                category._id || category.id || category.slug || category.name;
 
               const categoryName =
-                category.name ||
-                category.title ||
-                category.label ||
-                "Category";
+                category.name || category.title || category.label || "Category";
 
               const slug = makeSlug(category);
 
@@ -347,16 +297,13 @@ export default function FeaturedCategories() {
                 >
                   {/* Image Container */}
                   <div className="relative flex h-[76px] w-[76px] items-center justify-center overflow-hidden rounded-2xl bg-gray-50 ring-1 ring-gray-100 transition-all duration-300 group-hover:bg-white group-hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] group-hover:ring-[#ff4b2b]/20 sm:h-[88px] sm:w-[88px]">
-
                     <img
                       src={
                         category.image ||
                         category.imageUrl ||
                         category.thumbnail ||
                         category.icon ||
-                        categoryImages[
-                          index % categoryImages.length
-                        ]
+                        categoryImages[index % categoryImages.length]
                       }
                       alt={categoryName}
                       className="h-[70%] w-[70%] object-contain transition-transform duration-300 group-hover:scale-110"
@@ -365,10 +312,7 @@ export default function FeaturedCategories() {
                         event.currentTarget.onerror = null;
 
                         event.currentTarget.src =
-                          categoryImages[
-                            index %
-                              categoryImages.length
-                          ];
+                          categoryImages[index % categoryImages.length];
                       }}
                     />
                   </div>

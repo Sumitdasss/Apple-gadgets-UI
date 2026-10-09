@@ -1,22 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import {
-  Minus,
-  Plus,
-  X,
-  ShoppingBag,
-} from "lucide-react";
+import { Minus, Plus, X, ShoppingBag } from "lucide-react";
 import { useMemo, useState } from "react";
 import useStore from "../Store/store";
 
 export default function CartPage() {
-  const {
-    cart,
-    increasePopulation,
-    decreasePopulation,
-    removeFromCart,
-  } = useStore();
+  const { cart, increasePopulation, decreasePopulation, removeFromCart } =
+    useStore();
 
   const [coupon, setCoupon] = useState("");
   const [discount, setDiscount] = useState(0);
@@ -26,10 +17,7 @@ export default function CartPage() {
   // ==========================================
 
   const totalItems = useMemo(() => {
-    return cart.reduce(
-      (total, item) => total + Number(item.quantity || 1),
-      0,
-    );
+    return cart.reduce((total, item) => total + Number(item.quantity || 1), 0);
   }, [cart]);
 
   // ==========================================
@@ -200,10 +188,7 @@ export default function CartPage() {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <Link
-                            href={`/Product/${item.slug}`}
-                            prefetch={false}
-                          >
+                          <Link href={`/Product/${item.slug}`} prefetch={false}>
                             <h2 className="line-clamp-2 text-base font-bold text-gray-900 transition hover:text-[#f47421] dark:text-white dark:hover:text-[#f47421]">
                               {item.name}
                             </h2>

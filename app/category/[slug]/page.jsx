@@ -154,9 +154,15 @@ function FilterSection({ label, count, isOpen, onToggle, children }) {
         </span>
 
         {isOpen ? (
-          <ChevronUp size={15} className="shrink-0 text-gray-400 dark:text-gray-500" />
+          <ChevronUp
+            size={15}
+            className="shrink-0 text-gray-400 dark:text-gray-500"
+          />
         ) : (
-          <ChevronDown size={15} className="shrink-0 text-gray-400 dark:text-gray-500" />
+          <ChevronDown
+            size={15}
+            className="shrink-0 text-gray-400 dark:text-gray-500"
+          />
         )}
       </button>
 
@@ -242,7 +248,10 @@ function FilterContent({
           {isSectionOpen("price") ? (
             <ChevronUp size={15} className="text-gray-400 dark:text-gray-500" />
           ) : (
-            <ChevronDown size={15} className="text-gray-400 dark:text-gray-500" />
+            <ChevronDown
+              size={15}
+              className="text-gray-400 dark:text-gray-500"
+            />
           )}
         </button>
 
@@ -256,7 +265,9 @@ function FilterContent({
               className="h-9 min-w-0 w-full rounded-[9px] border border-gray-200 bg-gray-50 px-3 text-[12px] text-gray-900 outline-none focus:border-[#f47421] dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:focus:border-[#f47421]"
             />
 
-            <span className="shrink-0 text-[12px] text-gray-400 dark:text-gray-500">–</span>
+            <span className="shrink-0 text-[12px] text-gray-400 dark:text-gray-500">
+              –
+            </span>
 
             <input
               type="number"
@@ -1135,7 +1146,10 @@ function CategoryPageContent() {
               <h2 className="text-[15px] font-semibold text-gray-900 dark:text-white">
                 Filters
               </h2>
-              <SlidersHorizontal size={16} className="text-gray-400 dark:text-gray-500" />
+              <SlidersHorizontal
+                size={16}
+                className="text-gray-400 dark:text-gray-500"
+              />
             </div>
 
             <FilterContent
@@ -1305,7 +1319,9 @@ function CategoryPageContent() {
                 <div className="px-5 text-center">
                   <h2
                     className="text-[17px] font-semibold text-gray-900 dark:text-white"
-                    style={{ fontFamily: "'Space Grotesk', 'Inter', sans-serif" }}
+                    style={{
+                      fontFamily: "'Space Grotesk', 'Inter', sans-serif",
+                    }}
                   >
                     No products found
                   </h2>

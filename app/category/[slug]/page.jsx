@@ -693,6 +693,26 @@ const handleAddToCart = (product) => {
 };
 
 
+const handleAddToCart2 = (product) => {
+  const token = localStorage.getItem("token");
+
+  // Login না থাকলে Auth পেজে পাঠাবে
+  if (!token) {
+    router.push(
+      `/Auth?redirect=${encodeURIComponent("/CheakOut")}&message=login_required`
+    );
+    return;
+  }
+
+  // Login থাকলে Cart-এ add করবে
+  addTocart(product);
+
+  // Checkout পেজে পাঠাবে
+  router.push("/CheakOut");
+};
+
+
+
   const isSectionOpen = (key) => !closedSections[key];
 
   const toggleSection = (key) => {
@@ -1568,22 +1588,25 @@ const handleAddToCart = (product) => {
                           </div>
 
                           <div className="mt-2.5 flex items-center gap-1.5 sm:mt-3 sm:gap-2">
-                            <Link
-                              prefetch={false}
-                              href={`/Product/${product.slug}`}
-                              className={`flex h-8 min-w-0 flex-1 items-center justify-center rounded-full text-[9.5px] font-medium sm:h-10 sm:text-[13px] ${
-                                outOfStock
-                                  ? "border border-gray-200 bg-gray-50 text-gray-400 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-500"
-                                  : "border border-gray-900 bg-gray-900 text-white dark:border-white dark:bg-white dark:text-gray-900"
-                              }`}
-                            >
-                              {outOfStock
-                                ? "Out of stock"
-                                : product.isPreOrder
-                                  ? "Pre order"
-                                  : "Shop now"}
-                            </Link>
-
+                        <button
+  type="button"
+  disabled={outOfStock}
+  onClick={() => {
+    if (outOfStock) return;
+    handleAddToCart2(product);
+  }}
+  className={`flex h-8 min-w-0 flex-1 items-center justify-center rounded-full text-[9.5px] font-medium sm:h-10 sm:text-[13px] ${
+    outOfStock
+      ? "cursor-not-allowed border border-gray-200 bg-gray-50 text-gray-400 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-500"
+      : "border border-gray-900 bg-gray-900 text-white dark:border-white dark:bg-white dark:text-gray-900"
+  }`}
+>
+  {outOfStock
+    ? "Out of stock"
+    : product.isPreOrder
+      ? "Pre order"
+      : "Buy now"}
+</button>
                             <button
                               type="button"
                               disabled={outOfStock}

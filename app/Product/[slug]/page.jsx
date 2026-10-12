@@ -1,4 +1,3 @@
-
 /* eslint-disable react-hooks/set-state-in-effect */
 
 "use client";
@@ -16,6 +15,8 @@ import {
   Percent,
   ShoppingBag,
   Truck,
+  Check,
+  ShieldCheck,
 } from "lucide-react";
 
 import RecentlyViewed from "../../Componant/RecentlyViewed";
@@ -66,6 +67,20 @@ export default function ProductDetailsPage() {
     }
 
     return true;
+  };
+
+  const handleAddToCart2 = (product) => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      router.push(
+        `/Auth?redirect=${encodeURIComponent("/CheakOut")}&message=login_required`
+      );
+      return;
+    }
+
+    addTocart(product);
+    router.push("/CheakOut");
   };
 
   // =====================================================
@@ -151,10 +166,7 @@ export default function ProductDetailsPage() {
             setSelectedColor(colorName);
             setSelectedColorImage(colorImage);
 
-            if (
-              colorImage &&
-              Array.isArray(foundProduct.images)
-            ) {
+            if (colorImage && Array.isArray(foundProduct.images)) {
               const index = foundProduct.images.indexOf(colorImage);
 
               if (index >= 0) {
@@ -302,8 +314,6 @@ export default function ProductDetailsPage() {
     setSelectedVariant(
       findVariant(selectedColor, selectedRam, selectedStorage)
     );
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [variants, selectedColor, selectedRam, selectedStorage]);
 
   useEffect(() => {
@@ -437,18 +447,10 @@ export default function ProductDetailsPage() {
   // ADD TO CART
   // =====================================================
   const handleAddToCart = () => {
-    // Login ছাড়া cart-এ যোগ করা যাবে না
     if (!requireLogin()) return;
 
     if (typeof addTocart !== "function") {
-      console.error(
-        "addTocart is missing. Check your Store/store.js action name."
-      );
-
-      alert(
-        "Cart function পাওয়া যাচ্ছে না। Store/store.js ফাইলটি পরীক্ষা করুন।"
-      );
-
+      alert("Cart function পাওয়া যাচ্ছে না। Store/store.js ফাইলটি পরীক্ষা করুন।");
       return;
     }
 
@@ -458,10 +460,7 @@ export default function ProductDetailsPage() {
     }
 
     if (hasVariants && !selectedVariant) {
-      alert(
-        "Please select a valid Color, RAM and Storage combination."
-      );
-
+      alert("Please select a valid Color, RAM and Storage combination.");
       return;
     }
 
@@ -476,9 +475,7 @@ export default function ProductDetailsPage() {
     }
 
     const cartProduct = createCartProduct();
-
     addTocart(cartProduct);
-
     alert("Product successfully added to cart!");
   };
 
@@ -486,7 +483,6 @@ export default function ProductDetailsPage() {
   // BUY NOW
   // =====================================================
   const handlePreOrder = () => {
-    // Login ছাড়া Buy করা যাবে না
     if (!requireLogin()) return;
 
     if (typeof addTocart !== "function") {
@@ -500,10 +496,7 @@ export default function ProductDetailsPage() {
     }
 
     if (hasVariants && !selectedVariant) {
-      alert(
-        "Please select a valid Color, RAM and Storage combination."
-      );
-
+      alert("Please select a valid Color, RAM and Storage combination.");
       return;
     }
 
@@ -518,8 +511,6 @@ export default function ProductDetailsPage() {
     }
 
     addTocart(createCartProduct());
-
-    // তোমার project-এর checkout route
     router.push("/CheakOut");
   };
 
@@ -550,13 +541,10 @@ export default function ProductDetailsPage() {
 
       const validProducts = savedProducts
         .map((item) =>
-          item?.viewedAt
-            ? item
-            : { ...item, viewedAt: now }
+          item?.viewedAt ? item : { ...item, viewedAt: now }
         )
         .filter((item) => {
           const viewedAt = Number(item?.viewedAt || 0);
-
           return viewedAt > 0 && now - viewedAt < THIRTY_DAYS;
         });
 
@@ -586,7 +574,6 @@ export default function ProductDetailsPage() {
       const updated = [newProduct, ...filtered].slice(0, 10);
 
       localStorage.setItem("recentlyViewed", JSON.stringify(updated));
-
       window.dispatchEvent(new Event("recentlyViewedUpdated"));
     } catch (error) {
       console.error("Recently viewed save error:", error);
@@ -599,11 +586,10 @@ export default function ProductDetailsPage() {
   if (loading) {
     return (
       <div
-        className={`${inter.className} min-h-screen bg-white flex items-center justify-center`}
+        className={`${inter.className} min-h-screen bg-[#f8f9fb] flex items-center justify-center`}
       >
         <div className="flex flex-col items-center gap-4">
-          <div className="w-11 h-11 border-[3px] border-orange-500 border-t-transparent rounded-full animate-spin" />
-
+          <div className="w-12 h-12 border-[3px] border-orange-500 border-t-transparent rounded-full animate-spin" />
           <p className="text-gray-500 text-sm tracking-wide">
             Loading product...
           </p>
@@ -618,19 +604,17 @@ export default function ProductDetailsPage() {
   if (!product) {
     return (
       <div
-        className={`${inter.className} min-h-screen bg-white flex flex-col items-center justify-center px-4`}
+        className={`${inter.className} min-h-screen bg-[#f8f9fb] flex flex-col items-center justify-center px-4`}
       >
         <h1 className="text-2xl font-semibold text-gray-900 tracking-tight">
           Product Not Found
         </h1>
-
         <p className="text-gray-500 mt-2 text-center text-[15px]">
           The product you are looking for does not exist or has been removed.
         </p>
-
         <Link
           href="/"
-          className="mt-7 px-7 py-2.5 rounded-full bg-orange-500 text-white text-sm font-medium hover:bg-orange-600 transition-all shadow-sm"
+          className="mt-8 px-8 py-3 rounded-full bg-orange-500 text-white text-sm font-medium hover:bg-orange-600 transition-all shadow-sm"
         >
           Go Home
         </Link>
@@ -649,34 +633,29 @@ export default function ProductDetailsPage() {
   // =====================================================
   return (
     <main
-      className={`${inter.className} bg-[#fafafa] text-gray-900 min-h-screen`}
+      className={`${inter.className} bg-[#f8f9fb] text-gray-900 min-h-screen`}
     >
-      <div className="max-w-[1320px] mx-auto px-4 sm:px-6 pt-6">
+      {/* Breadcrumb */}
+      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 pt-5">
         <nav className="flex items-center gap-1.5 text-[13px] text-gray-500">
-          <Link
-            href="/"
-            className="hover:text-orange-600 transition-colors"
-          >
+          <Link href="/" className="hover:text-orange-600 transition-colors">
             Home
           </Link>
-
-          <ChevronRight size={13} className="text-gray-400" />
-
+          <ChevronRight size={14} className="text-gray-400" />
           <span>Mobile Phone</span>
-
-          <ChevronRight size={13} className="text-gray-400" />
-
-          <span className="text-gray-800 font-medium truncate max-w-[180px]">
+          <ChevronRight size={14} className="text-gray-400" />
+          <span className="text-gray-800 font-medium truncate max-w-[200px]">
             {product.brand || product.name?.split(" ")[0] || "Product"}
           </span>
         </nav>
       </div>
 
-      <section className="max-w-[1320px] mx-auto px-4 sm:px-6 pt-7 pb-20">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] xl:grid-cols-[500px_1fr] gap-10 lg:gap-14">
-          {/* IMAGE GALLERY */}
-          <div className="space-y-5">
-            <div className="relative aspect-square w-full rounded-3xl bg-white border border-gray-100 shadow-[0_2px_20px_-4px_rgba(0,0,0,0.06)] flex items-center justify-center overflow-hidden">
+      <section className="max-w-[1280px] mx-auto px-4 sm:px-6 pt-6 pb-24">
+        <div className="grid grid-cols-1 lg:grid-cols-[480px_1fr] xl:grid-cols-[520px_1fr] gap-8 lg:gap-12">
+          
+          {/* ===================== IMAGE GALLERY ===================== */}
+          <div className="space-y-4">
+            <div className="relative aspect-square w-full rounded-3xl bg-white border border-gray-100 shadow-sm flex items-center justify-center overflow-hidden group">
               {mainImage ? (
                 <img
                   src={mainImage}
@@ -685,17 +664,15 @@ export default function ProductDetailsPage() {
                       ? `${product.name} - ${selectedColor}`
                       : product.name
                   }
-                  className="w-full h-full object-contain p-8 md:p-10 transition-all duration-500"
+                  className="w-full h-full object-contain p-6 md:p-10 transition-transform duration-500 group-hover:scale-[1.02]"
                 />
               ) : (
-                <div className="text-gray-400 text-sm">
-                  No Image Available
-                </div>
+                <div className="text-gray-400 text-sm">No Image Available</div>
               )}
 
               {isOutOfStock && (
-                <div className="absolute inset-0 flex items-center justify-center bg-white/30 backdrop-blur-[2px]">
-                  <span className="inline-flex items-center px-5 py-2 rounded-full bg-rose-50 text-rose-600 text-sm font-medium border border-rose-200/80 shadow-sm">
+                <div className="absolute inset-0 flex items-center justify-center bg-white/40 backdrop-blur-[2px]">
+                  <span className="inline-flex items-center px-5 py-2 rounded-full bg-rose-50 text-rose-600 text-sm font-medium border border-rose-200 shadow-sm">
                     Out of Stock
                   </span>
                 </div>
@@ -703,7 +680,7 @@ export default function ProductDetailsPage() {
             </div>
 
             {images.length > 1 && (
-              <div className="flex gap-3 overflow-x-auto pb-1">
+              <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
                 {images.map((image, index) => (
                   <button
                     key={`${image}-${index}`}
@@ -712,10 +689,10 @@ export default function ProductDetailsPage() {
                       setSelectedImage(index);
                       setSelectedColorImage("");
                     }}
-                    className={`relative flex-shrink-0 w-[76px] h-[76px] sm:w-20 sm:h-20 rounded-2xl border-2 overflow-hidden bg-white transition-all duration-300 ${
+                    className={`relative flex-shrink-0 w-[72px] h-[72px] sm:w-[80px] sm:h-[80px] rounded-2xl border-2 overflow-hidden bg-white transition-all duration-200 ${
                       !selectedColorImage && selectedImage === index
-                        ? "border-orange-500 shadow-md shadow-orange-500/10"
-                        : "border-gray-200/80 hover:border-gray-300"
+                        ? "border-orange-500 shadow-md shadow-orange-500/15"
+                        : "border-gray-200 hover:border-gray-300"
                     }`}
                   >
                     <img
@@ -729,164 +706,162 @@ export default function ProductDetailsPage() {
             )}
           </div>
 
-          {/* PRODUCT INFORMATION */}
-          <div className="flex flex-col pt-1">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[15px] font-semibold text-blue-600 tracking-wide">
-                {product.brand?.toLowerCase() || "brand"}
+          {/* ===================== PRODUCT INFO ===================== */}
+          <div className="flex flex-col">
+            {/* Brand + Compare */}
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-semibold text-blue-600 tracking-wide uppercase">
+                {product.brand || "Brand"}
               </span>
 
               <button
                 type="button"
-                onClick={() =>
-                  alert("Compare feature is not connected yet.")
-                }
+                onClick={() => alert("Compare feature is not connected yet.")}
                 className="flex items-center gap-1.5 text-orange-500 font-medium text-[13px] hover:text-orange-600 transition-colors"
               >
                 <ArrowLeftRight size={15} />
-                Add to Compare
+                Compare
               </button>
             </div>
 
-            <h1 className="text-[26px] sm:text-[32px] font-semibold text-gray-900 leading-[1.25] tracking-tight">
+            {/* Product Name */}
+            <h1 className="text-[26px] sm:text-[30px] lg:text-[32px] font-semibold text-gray-900 leading-tight tracking-tight">
               {product.name}
             </h1>
 
-            <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[14px]">
-              <span className="font-semibold text-gray-900">
-                {displayPrice > 0
-                  ? `৳${displayPrice.toLocaleString()}`
-                  : "TBA"}{" "}
-                <span className="font-normal text-gray-500">
-                  (Cash Price)
+            {/* Price + Stock + SKU */}
+            <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 text-[14.5px]">
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl font-bold text-gray-900">
+                  {displayPrice > 0
+                    ? `৳${displayPrice.toLocaleString()}`
+                    : "TBA"}
                 </span>
-              </span>
-
-              {originalPrice && (
-                <>
-                  <span className="text-gray-300">|</span>
-
-                  <span className="text-gray-400 line-through">
+                {originalPrice && (
+                  <span className="text-gray-400 line-through text-base">
                     ৳{originalPrice.toLocaleString()}
                   </span>
-                </>
-              )}
+                )}
+              </div>
 
-              <span className="text-gray-300">|</span>
+              <span className="hidden sm:inline text-gray-300">|</span>
 
-              <span className="text-gray-600">
-                Availability:{" "}
+              <div className="flex items-center gap-1.5">
                 {!variantFound ? (
-                  <span className="font-medium text-rose-500">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-50 text-rose-600 text-[13px] font-medium">
                     Variant Not Available
                   </span>
                 ) : isOutOfStock ? (
-                  <span className="font-medium text-rose-500">
-                    Out Of Stock
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-50 text-rose-600 text-[13px] font-medium">
+                    Out of Stock
                   </span>
                 ) : (
-                  <span className="font-medium text-emerald-600">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[13px] font-medium">
+                    <Check size={13} />
                     In Stock ({currentStock})
                   </span>
                 )}
-              </span>
+              </div>
 
-              <span className="text-gray-300">|</span>
+              <span className="hidden sm:inline text-gray-300">|</span>
 
-              <span className="text-gray-600">
+              <span className="text-gray-600 text-[13.5px]">
                 Code:{" "}
-                <span className="font-medium text-blue-600 underline underline-offset-2 decoration-blue-300">
+                <span className="font-medium text-blue-600">
                   {selectedVariant?.sku || product.sku || "N/A"}
                 </span>
               </span>
             </div>
 
-            {/* COLOR AND STORAGE */}
-            <div className="mt-7 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {colors.length > 0 && (
-                <div className="rounded-2xl border border-gray-200/80 bg-white p-4 shadow-sm">
-                  <h3 className="text-[13px] font-medium text-gray-600 mb-3 tracking-wide">
-                    Color
-                  </h3>
+            {/* Color Selection */}
+            {colors.length > 0 && (
+              <div className="mt-8">
+                <h3 className="text-[13px] font-medium text-gray-600 mb-3">
+                  Color{" "}
+                  {selectedColor && (
+                    <span className="text-gray-900 font-semibold">
+                      — {selectedColor}
+                    </span>
+                  )}
+                </h3>
+                <div className="flex flex-wrap gap-2.5">
+                  {colors.map((color, index) => {
+                    const available = isColorAvailable(color.name);
+                    const isSelected = selectedColor === color.name;
 
-                  <div className="flex flex-wrap gap-2">
-                    {colors.map((color, index) => {
-                      const available = isColorAvailable(color.name);
-
-                      return (
-                        <button
-                          key={`${color.name}-${index}`}
-                          type="button"
-                          disabled={!available}
-                          onClick={() => handleColorSelect(color)}
-                          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full border text-[13px] font-medium transition-all ${
-                            selectedColor === color.name
-                              ? "border-orange-500 bg-orange-50 text-orange-700 shadow-sm"
-                              : "border-gray-200 text-gray-700 hover:border-gray-300"
-                          } ${
-                            !available
-                              ? "opacity-40 cursor-not-allowed line-through"
-                              : ""
-                          }`}
-                        >
-                          <span
-                            className="w-3.5 h-3.5 rounded-full border border-gray-300/80 shadow-inner"
-                            style={{ backgroundColor: color.code }}
-                          />
-
-                          {color.name}
-                        </button>
-                      );
-                    })}
-                  </div>
+                    return (
+                      <button
+                        key={`${color.name}-${index}`}
+                        type="button"
+                        disabled={!available}
+                        onClick={() => handleColorSelect(color)}
+                        className={`flex items-center gap-2.5 px-4 py-2 rounded-full border text-[13.5px] font-medium transition-all ${
+                          isSelected
+                            ? "border-orange-500 bg-orange-50 text-orange-700 shadow-sm"
+                            : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
+                        } ${
+                          !available
+                            ? "opacity-40 cursor-not-allowed line-through"
+                            : ""
+                        }`}
+                      >
+                        <span
+                          className="w-4 h-4 rounded-full border border-gray-300 shadow-inner"
+                          style={{ backgroundColor: color.code }}
+                        />
+                        {color.name}
+                      </button>
+                    );
+                  })}
                 </div>
-              )}
+              </div>
+            )}
 
-              {storageOptions.length > 0 && (
-                <div className="rounded-2xl border border-gray-200/80 bg-white p-4 shadow-sm">
-                  <h3 className="text-[13px] font-medium text-gray-600 mb-3 tracking-wide">
-                    Storage
-                  </h3>
+            {/* Storage Selection */}
+            {storageOptions.length > 0 && (
+              <div className="mt-6">
+                <h3 className="text-[13px] font-medium text-gray-600 mb-3">
+                  Storage
+                </h3>
+                <div className="flex flex-wrap gap-2.5">
+                  {storageOptions.map((storage, index) => {
+                    const available = isStorageAvailable(storage);
+                    const isSelected = selectedStorage === storage;
 
-                  <div className="flex flex-wrap gap-2">
-                    {storageOptions.map((storage, index) => {
-                      const available = isStorageAvailable(storage);
-
-                      return (
-                        <button
-                          key={`${storage}-${index}`}
-                          type="button"
-                          disabled={!available}
-                          onClick={() => setSelectedStorage(storage)}
-                          className={`px-3.5 py-1.5 rounded-full border text-[13px] font-medium transition-all ${
-                            selectedStorage === storage
-                              ? "border-orange-500 bg-orange-50 text-orange-700 shadow-sm"
-                              : "border-gray-200 text-gray-700 hover:border-gray-300"
-                          } ${
-                            !available
-                              ? "opacity-40 cursor-not-allowed line-through"
-                              : ""
-                          }`}
-                        >
-                          {storage}
-                        </button>
-                      );
-                    })}
-                  </div>
+                    return (
+                      <button
+                        key={`${storage}-${index}`}
+                        type="button"
+                        disabled={!available}
+                        onClick={() => setSelectedStorage(storage)}
+                        className={`px-4 py-2 rounded-full border text-[13.5px] font-medium transition-all ${
+                          isSelected
+                            ? "border-orange-500 bg-orange-50 text-orange-700 shadow-sm"
+                            : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
+                        } ${
+                          !available
+                            ? "opacity-40 cursor-not-allowed line-through"
+                            : ""
+                        }`}
+                      >
+                        {storage}
+                      </button>
+                    );
+                  })}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
-            {/* RAM */}
+            {/* RAM Selection */}
             {ramOptions.length > 0 && (
-              <div className="mt-4 rounded-2xl border border-gray-200/80 bg-white p-4 shadow-sm">
-                <h3 className="text-[13px] font-medium text-gray-600 mb-3 tracking-wide">
+              <div className="mt-6">
+                <h3 className="text-[13px] font-medium text-gray-600 mb-3">
                   RAM
                 </h3>
-
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2.5">
                   {ramOptions.map((ram, index) => {
                     const available = isRamAvailable(ram);
+                    const isSelected = selectedRam === ram;
 
                     return (
                       <button
@@ -894,10 +869,10 @@ export default function ProductDetailsPage() {
                         type="button"
                         disabled={!available}
                         onClick={() => setSelectedRam(ram)}
-                        className={`px-3.5 py-1.5 rounded-full border text-[13px] font-medium transition-all ${
-                          selectedRam === ram
+                        className={`px-4 py-2 rounded-full border text-[13.5px] font-medium transition-all ${
+                          isSelected
                             ? "border-orange-500 bg-orange-50 text-orange-700 shadow-sm"
-                            : "border-gray-200 text-gray-700 hover:border-gray-300"
+                            : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
                         } ${
                           !available
                             ? "opacity-40 cursor-not-allowed line-through"
@@ -913,95 +888,84 @@ export default function ProductDetailsPage() {
             )}
 
             {hasVariants && !selectedVariant && (
-              <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50/80 px-4 py-3 text-[13px] text-rose-600">
+              <div className="mt-5 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-[13.5px] text-rose-600">
                 This Color, RAM and Storage combination is not available.
               </div>
             )}
 
-            {/* QUANTITY */}
-            <div className="mt-7">
-              <h3 className="text-[13px] font-medium text-gray-600 mb-3 tracking-wide">
-                Select Quantity
+            {/* Quantity */}
+            <div className="mt-8">
+              <h3 className="text-[13px] font-medium text-gray-600 mb-3">
+                Quantity
               </h3>
-
-              <div className="inline-flex items-center gap-1 bg-gray-100/80 rounded-full p-1 border border-gray-200/60">
+              <div className="inline-flex items-center gap-1 bg-gray-100 rounded-full p-1 border border-gray-200/70">
                 <button
                   type="button"
                   onClick={decreaseQuantity}
                   disabled={currentStock <= 0 || quantity <= 1}
-                  className="w-9 h-9 rounded-full bg-white flex items-center justify-center text-gray-700 hover:bg-gray-50 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-gray-700 hover:bg-gray-50 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  <Minus size={15} />
+                  <Minus size={16} />
                 </button>
-
-                <span className="min-w-[40px] text-center font-semibold text-gray-900 text-[15px]">
+                <span className="min-w-[44px] text-center font-semibold text-gray-900 text-[16px]">
                   {quantity}
                 </span>
-
                 <button
                   type="button"
                   onClick={increaseQuantity}
-                  disabled={
-                    currentStock <= 0 || quantity >= currentStock
-                  }
-                  className="w-9 h-9 rounded-full bg-white flex items-center justify-center text-gray-700 hover:bg-gray-50 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                  disabled={currentStock <= 0 || quantity >= currentStock}
+                  className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-gray-700 hover:bg-gray-50 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  <Plus size={15} />
+                  <Plus size={16} />
                 </button>
               </div>
             </div>
 
-            {/* EMI AND WHATSAPP */}
+            {/* EMI + WhatsApp */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-7">
               <button
                 type="button"
-                className="h-[48px] rounded-2xl bg-[#fff8f0] border border-orange-100/80 flex items-center justify-center gap-2.5 text-gray-800 hover:bg-orange-50/80 transition-all text-[13.5px]"
+                className="h-[48px] rounded-2xl bg-[#fff8f0] border border-orange-100 flex items-center justify-center gap-2.5 text-gray-800 hover:bg-orange-50 transition-all text-[13.5px]"
               >
                 <Percent size={16} className="text-orange-500" />
-                <span>EMI Available for orders above ৳ 5000</span>
+                <span>EMI Available (above ৳5,000)</span>
               </button>
 
               <a
                 href={whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="h-[48px] rounded-2xl bg-emerald-50 border border-emerald-200/70 flex items-center justify-center gap-2.5 text-gray-800 hover:bg-emerald-100/60 transition-all text-[13.5px] font-medium"
+                className="h-[48px] rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center gap-2.5 text-gray-800 hover:bg-emerald-100/70 transition-all text-[13.5px] font-medium"
               >
                 <MessageCircle size={17} className="text-emerald-600" />
-                <span>WhatsApp</span>
+                <span>Chat on WhatsApp</span>
               </a>
             </div>
 
-            {/* DELIVERY */}
-            <div className="mt-4 flex items-center gap-3 rounded-2xl border border-gray-200/80 bg-white px-4 py-3.5 text-[13.5px] text-gray-700 shadow-sm">
-              <Truck size={17} className="text-gray-500 flex-shrink-0" />
-
+            {/* Delivery Info */}
+            <div className="mt-4 flex items-center gap-3 rounded-2xl border border-gray-200 bg-white px-4 py-3.5 text-[13.5px] text-gray-700 shadow-sm">
+              <Truck size={18} className="text-gray-500 flex-shrink-0" />
               <span>
-                Delivery Timescale:{" "}
-                <span className="font-medium text-gray-900">
-                  3-5 Days
-                </span>
+                Delivery Time:{" "}
+                <span className="font-semibold text-gray-900">3–5 Days</span>
               </span>
             </div>
 
-            {/* CART AND BUY BUTTONS */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Action Buttons */}
+            <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3">
               <button
                 type="button"
                 onClick={handleAddToCart}
                 disabled={
-                  currentStock <= 0 ||
-                  (hasVariants && !selectedVariant)
+                  currentStock <= 0 || (hasVariants && !selectedVariant)
                 }
-                className={`mt-7 w-full h-[50px] rounded-2xl font-semibold text-[15px] transition-all duration-200 flex items-center justify-center gap-2.5 ${
-                  currentStock <= 0 ||
-                  (hasVariants && !selectedVariant)
+                className={`h-[52px] rounded-2xl font-semibold text-[15px] transition-all duration-200 flex items-center justify-center gap-2.5 ${
+                  currentStock <= 0 || (hasVariants && !selectedVariant)
                     ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                    : "bg-orange-500 hover:bg-orange-600 active:scale-[0.985] text-white shadow-lg shadow-orange-500/25"
+                    : "bg-white border-2 border-orange-500 text-orange-600 hover:bg-orange-50 active:scale-[0.98]"
                 }`}
               >
                 <ShoppingBag size={18} />
-
                 {currentStock <= 0
                   ? "Out of Stock"
                   : hasVariants && !selectedVariant
@@ -1011,54 +975,61 @@ export default function ProductDetailsPage() {
 
               <button
                 type="button"
-                onClick={handlePreOrder}
+                onClick={() => handleAddToCart2(createCartProduct())}
                 disabled={
-                  currentStock <= 0 ||
-                  (hasVariants && !selectedVariant)
+                  currentStock <= 0 || (hasVariants && !selectedVariant)
                 }
-                className={`mt-7 w-full h-[50px] rounded-2xl font-semibold text-[15px] transition-all duration-200 flex items-center justify-center gap-2.5 ${
-                  currentStock <= 0 ||
-                  (hasVariants && !selectedVariant)
+                className={`h-[52px] rounded-2xl font-semibold text-[15px] transition-all duration-200 flex items-center justify-center gap-2.5 ${
+                  currentStock <= 0 || (hasVariants && !selectedVariant)
                     ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                    : "bg-orange-500 hover:bg-orange-600 active:scale-[0.985] text-white shadow-lg shadow-orange-500/25"
+                    : "bg-orange-500 text-white shadow-lg shadow-orange-500/25 hover:bg-orange-600 active:scale-[0.98]"
                 }`}
               >
                 <ShoppingBag size={18} />
-
                 {currentStock <= 0
                   ? "Out of Stock"
                   : hasVariants && !selectedVariant
                     ? "Select Variant"
-                    : "Buy"}
+                    : product?.isPreOrder
+                      ? "Pre-order Now"
+                      : "Buy Now"}
               </button>
+            </div>
+
+            {/* Trust badges */}
+            <div className="mt-6 flex flex-wrap items-center gap-4 text-[12.5px] text-gray-500">
+              <div className="flex items-center gap-1.5">
+                <ShieldCheck size={15} className="text-emerald-600" />
+                <span>100% Authentic</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Truck size={15} className="text-blue-600" />
+                <span>Fast Delivery</span>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* SPECIFICATIONS AND RECENTLY VIEWED */}
+        {/* ===================== SPECIFICATION + RECENTLY VIEWED ===================== */}
         <section className="mt-16 sm:mt-20">
-          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-8 lg:gap-10 items-start">
-            <div className="min-w-0">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-8 lg:gap-10 items-start">
+            {/* Specification */}
+            <div>
               <div className="mb-5">
-                <h2 className="text-[24px] sm:text-[26px] font-semibold text-gray-900 tracking-tight">
+                <h2 className="text-[22px] sm:text-[24px] font-semibold text-gray-900 tracking-tight">
                   Specification
                 </h2>
-
                 <p className="mt-1 text-[14px] text-gray-500">
-                  Product details and specifications
+                  Detailed product information
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-[0_2px_15px_-5px_rgba(0,0,0,0.08)]">
+              <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-sm">
                 <SpecificationRow
                   label="Brand"
                   value={product.brand || "Apple"}
                 />
-
-                <SpecificationRow
-                  label="Model"
-                  value={product.name}
-                />
+                <SpecificationRow label="Model" value={product.name} />
 
                 {Array.isArray(product.specifications) &&
                   product.specifications.map((spec, index) => {
@@ -1066,10 +1037,7 @@ export default function ProductDetailsPage() {
                     const value = String(spec?.value || "").trim();
 
                     if (!key || !value) return null;
-
-                    if (
-                      ["brand", "model"].includes(key.toLowerCase())
-                    ) {
+                    if (["brand", "model"].includes(key.toLowerCase())) {
                       return null;
                     }
 
@@ -1084,18 +1052,18 @@ export default function ProductDetailsPage() {
               </div>
             </div>
 
-            <aside className="min-w-0 lg:sticky lg:top-24">
+            {/* Recently Viewed */}
+            <aside className="lg:sticky lg:top-24">
               <div className="mb-5">
-                <h2 className="text-[24px] sm:text-[26px] font-semibold text-gray-900 tracking-tight">
+                <h2 className="text-[22px] sm:text-[24px] font-semibold text-gray-900 tracking-tight">
                   Recently Viewed
                 </h2>
-
                 <p className="mt-1 text-[14px] text-gray-500">
                   Products you viewed recently
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-[0_2px_15px_-5px_rgba(0,0,0,0.08)]">
+              <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-sm">
                 <RecentlyViewed />
               </div>
             </aside>
@@ -1111,11 +1079,10 @@ export default function ProductDetailsPage() {
 // =====================================================
 function SpecificationRow({ label, value }) {
   return (
-    <div className="grid grid-cols-[140px_1fr] sm:grid-cols-[180px_1fr] border-b border-gray-100 last:border-b-0">
+    <div className="grid grid-cols-[130px_1fr] sm:grid-cols-[160px_1fr] border-b border-gray-100 last:border-b-0">
       <div className="px-5 py-3.5 bg-gray-50/80 text-[13.5px] text-gray-600 font-medium">
         {label}
       </div>
-
       <div className="px-5 py-3.5 text-[13.5px] font-medium text-gray-900 border-l border-gray-100 break-words">
         {value}
       </div>

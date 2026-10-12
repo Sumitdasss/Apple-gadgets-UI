@@ -1,9 +1,10 @@
+
 /* eslint-disable react-hooks/set-state-in-effect */
 
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Inter } from "next/font/google";
 import {
@@ -16,6 +17,7 @@ import {
   ShoppingBag,
   Truck,
 } from "lucide-react";
+
 import RecentlyViewed from "../../Componant/RecentlyViewed";
 import useStore from "../../Store/store.js";
 
@@ -28,9 +30,9 @@ const API_BASE = "https://apple-gadgets-ui-backend.vercel.app";
 
 export default function ProductDetailsPage() {
   const params = useParams();
+  const router = useRouter();
   const slug = params?.slug;
 
-  // IMPORTANT: Store action name is addTocart
   const { addTocart } = useStore();
 
   const [product, setProduct] = useState(null);
@@ -44,6 +46,29 @@ export default function ProductDetailsPage() {
   const [quantity, setQuantity] = useState(1);
 
   // =====================================================
+  // AUTH CHECK
+  // =====================================================
+  const requireLogin = () => {
+    if (typeof window === "undefined") return false;
+
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      alert("Add to Cart করতে হলে আগে Login করুন!");
+
+      const currentPath = window.location.pathname;
+
+      router.push(
+        `/Auth?redirect=${encodeURIComponent(currentPath)}`
+      );
+
+      return false;
+    }
+
+    return true;
+  };
+
+  // =====================================================
   // FETCH PRODUCT
   // =====================================================
   useEffect(() => {
@@ -55,9 +80,11 @@ export default function ProductDetailsPage() {
       try {
         setLoading(true);
 
+        const currentSlug = Array.isArray(slug) ? slug[0] : slug;
+
         const response = await fetch(
           `${API_BASE}/products/getALLproducts?slug=${encodeURIComponent(
-            Array.isArray(slug) ? slug[0] : slug
+            currentSlug
           )}`
         );
 
@@ -66,7 +93,6 @@ export default function ProductDetailsPage() {
         }
 
         const data = await response.json();
-        const currentSlug = Array.isArray(slug) ? slug[0] : slug;
 
         let foundProduct = null;
 
@@ -84,10 +110,21 @@ export default function ProductDetailsPage() {
                 item?.slug === currentSlug ||
                 item?._id === currentSlug
             ) || null;
+        } else if (Array.isArray(data?.data)) {
+          foundProduct =
+            data.data.find(
+              (item) =>
+                item?.slug === currentSlug ||
+                item?._id === currentSlug
+            ) || null;
         } else if (data?.product) {
           foundProduct = data.product;
+        } else if (data?.data?.product) {
+          foundProduct = data.data.product;
         } else if (data?._id || data?.slug) {
           foundProduct = data;
+        } else if (data?.data?._id || data?.data?.slug) {
+          foundProduct = data.data;
         }
 
         if (cancelled) return;
@@ -114,7 +151,10 @@ export default function ProductDetailsPage() {
             setSelectedColor(colorName);
             setSelectedColorImage(colorImage);
 
-            if (colorImage && Array.isArray(foundProduct.images)) {
+            if (
+              colorImage &&
+              Array.isArray(foundProduct.images)
+            ) {
               const index = foundProduct.images.indexOf(colorImage);
 
               if (index >= 0) {
@@ -240,7 +280,9 @@ export default function ProductDetailsPage() {
         const variantColor =
           typeof variant?.color === "string"
             ? variant.color
-            : variant?.color?.name || variant?.color?.value || "";
+            : variant?.color?.name ||
+              variant?.color?.value ||
+              "";
 
         return (
           variantColor === color &&
@@ -260,6 +302,7 @@ export default function ProductDetailsPage() {
     setSelectedVariant(
       findVariant(selectedColor, selectedRam, selectedStorage)
     );
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [variants, selectedColor, selectedRam, selectedStorage]);
 
@@ -301,7 +344,9 @@ export default function ProductDetailsPage() {
       const color =
         typeof variant?.color === "string"
           ? variant.color
-          : variant?.color?.name || variant?.color?.value || "";
+          : variant?.color?.name ||
+            variant?.color?.value ||
+            "";
 
       return (
         (!selectedColor || color === selectedColor) &&
@@ -316,7 +361,9 @@ export default function ProductDetailsPage() {
       const color =
         typeof variant?.color === "string"
           ? variant.color
-          : variant?.color?.name || variant?.color?.value || "";
+          : variant?.color?.name ||
+            variant?.color?.value ||
+            "";
 
       return (
         (!selectedColor || color === selectedColor) &&
@@ -331,7 +378,9 @@ export default function ProductDetailsPage() {
       const color =
         typeof variant?.color === "string"
           ? variant.color
-          : variant?.color?.name || variant?.color?.value || "";
+          : variant?.color?.name ||
+            variant?.color?.value ||
+            "";
 
       return (
         color === colorName &&
@@ -350,6 +399,7 @@ export default function ProductDetailsPage() {
       setSelectedColorImage(color.image);
 
       const index = images.indexOf(color.image);
+
       if (index >= 0) setSelectedImage(index);
     } else {
       setSelectedColorImage("");
@@ -363,25 +413,55 @@ export default function ProductDetailsPage() {
   };
 
   const decreaseQuantity = () => {
-    if (quantity > 1) setQuantity((prev) => prev - 1);
+    if (quantity > 1) {
+      setQuantity((prev) => prev - 1);
+    }
   };
 
   // =====================================================
-  // CART
+  // CREATE CART PRODUCT
+  // =====================================================
+  const createCartProduct = () => ({
+    ...product,
+    quantity,
+    selectedColor,
+    selectedRam,
+    selectedStorage,
+    selectedVariant: selectedVariant || null,
+    price: displayPrice,
+    discountPrice: displayPrice,
+    sku: selectedVariant?.sku || product?.sku || "",
+  });
+
+  // =====================================================
+  // ADD TO CART
   // =====================================================
   const handleAddToCart = () => {
+    // Login ছাড়া cart-এ যোগ করা যাবে না
+    if (!requireLogin()) return;
+
     if (typeof addTocart !== "function") {
       console.error(
         "addTocart is missing. Check your Store/store.js action name."
       );
+
       alert(
         "Cart function পাওয়া যাচ্ছে না। Store/store.js ফাইলটি পরীক্ষা করুন।"
       );
+
+      return;
+    }
+
+    if (!product) {
+      alert("Product পাওয়া যাচ্ছে না।");
       return;
     }
 
     if (hasVariants && !selectedVariant) {
-      alert("Please select a valid Color, RAM and Storage combination.");
+      alert(
+        "Please select a valid Color, RAM and Storage combination."
+      );
+
       return;
     }
 
@@ -390,32 +470,40 @@ export default function ProductDetailsPage() {
       return;
     }
 
-    if (quantity > currentStock) {
+    if (quantity < 1 || quantity > currentStock) {
       alert("Selected quantity exceeds available stock.");
       return;
     }
 
-    const cartProduct = {
-      ...product,
-      quantity,
-      selectedColor,
-      selectedRam,
-      selectedStorage,
-      selectedVariant: selectedVariant || null,
-      price: displayPrice,
-      discountPrice: displayPrice,
-      sku: selectedVariant?.sku || product?.sku || "",
-    };
+    const cartProduct = createCartProduct();
 
     addTocart(cartProduct);
+
+    alert("Product successfully added to cart!");
   };
 
   // =====================================================
-  // BUY / PRE-ORDER
+  // BUY NOW
   // =====================================================
   const handlePreOrder = () => {
+    // Login ছাড়া Buy করা যাবে না
+    if (!requireLogin()) return;
+
+    if (typeof addTocart !== "function") {
+      alert("Cart function পাওয়া যাচ্ছে না।");
+      return;
+    }
+
+    if (!product) {
+      alert("Product পাওয়া যাচ্ছে না।");
+      return;
+    }
+
     if (hasVariants && !selectedVariant) {
-      alert("Please select a valid Color, RAM and Storage combination.");
+      alert(
+        "Please select a valid Color, RAM and Storage combination."
+      );
+
       return;
     }
 
@@ -424,20 +512,15 @@ export default function ProductDetailsPage() {
       return;
     }
 
-    console.log("Selected product order:", {
-      product: product.name,
-      productId: product._id,
-      color: selectedColor,
-      ram: selectedRam,
-      storage: selectedStorage,
-      price: displayPrice,
-      stock: currentStock,
-      quantity,
-      sku: selectedVariant?.sku || product.sku || "",
-      variant: selectedVariant,
-    });
+    if (quantity < 1 || quantity > currentStock) {
+      alert("Selected quantity exceeds available stock.");
+      return;
+    }
 
-    alert("Product selected. Checkout integration is not connected here yet.");
+    addTocart(createCartProduct());
+
+    // তোমার project-এর checkout route
+    router.push("/CheakOut");
   };
 
   // =====================================================
@@ -473,6 +556,7 @@ export default function ProductDetailsPage() {
         )
         .filter((item) => {
           const viewedAt = Number(item?.viewedAt || 0);
+
           return viewedAt > 0 && now - viewedAt < THIRTY_DAYS;
         });
 
@@ -502,6 +586,7 @@ export default function ProductDetailsPage() {
       const updated = [newProduct, ...filtered].slice(0, 10);
 
       localStorage.setItem("recentlyViewed", JSON.stringify(updated));
+
       window.dispatchEvent(new Event("recentlyViewedUpdated"));
     } catch (error) {
       console.error("Recently viewed save error:", error);
@@ -518,6 +603,7 @@ export default function ProductDetailsPage() {
       >
         <div className="flex flex-col items-center gap-4">
           <div className="w-11 h-11 border-[3px] border-orange-500 border-t-transparent rounded-full animate-spin" />
+
           <p className="text-gray-500 text-sm tracking-wide">
             Loading product...
           </p>
@@ -567,12 +653,17 @@ export default function ProductDetailsPage() {
     >
       <div className="max-w-[1320px] mx-auto px-4 sm:px-6 pt-6">
         <nav className="flex items-center gap-1.5 text-[13px] text-gray-500">
-          <Link href="/" className="hover:text-orange-600 transition-colors">
+          <Link
+            href="/"
+            className="hover:text-orange-600 transition-colors"
+          >
             Home
           </Link>
 
           <ChevronRight size={13} className="text-gray-400" />
+
           <span>Mobile Phone</span>
+
           <ChevronRight size={13} className="text-gray-400" />
 
           <span className="text-gray-800 font-medium truncate max-w-[180px]">
@@ -647,7 +738,9 @@ export default function ProductDetailsPage() {
 
               <button
                 type="button"
-                onClick={() => alert("Compare feature is not connected yet.")}
+                onClick={() =>
+                  alert("Compare feature is not connected yet.")
+                }
                 className="flex items-center gap-1.5 text-orange-500 font-medium text-[13px] hover:text-orange-600 transition-colors"
               >
                 <ArrowLeftRight size={15} />
@@ -672,6 +765,7 @@ export default function ProductDetailsPage() {
               {originalPrice && (
                 <>
                   <span className="text-gray-300">|</span>
+
                   <span className="text-gray-400 line-through">
                     ৳{originalPrice.toLocaleString()}
                   </span>
@@ -739,6 +833,7 @@ export default function ProductDetailsPage() {
                             className="w-3.5 h-3.5 rounded-full border border-gray-300/80 shadow-inner"
                             style={{ backgroundColor: color.code }}
                           />
+
                           {color.name}
                         </button>
                       );
@@ -846,7 +941,9 @@ export default function ProductDetailsPage() {
                 <button
                   type="button"
                   onClick={increaseQuantity}
-                  disabled={currentStock <= 0 || quantity >= currentStock}
+                  disabled={
+                    currentStock <= 0 || quantity >= currentStock
+                  }
                   className="w-9 h-9 rounded-full bg-white flex items-center justify-center text-gray-700 hover:bg-gray-50 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <Plus size={15} />
@@ -878,9 +975,12 @@ export default function ProductDetailsPage() {
             {/* DELIVERY */}
             <div className="mt-4 flex items-center gap-3 rounded-2xl border border-gray-200/80 bg-white px-4 py-3.5 text-[13.5px] text-gray-700 shadow-sm">
               <Truck size={17} className="text-gray-500 flex-shrink-0" />
+
               <span>
                 Delivery Timescale:{" "}
-                <span className="font-medium text-gray-900">3-5 Days</span>
+                <span className="font-medium text-gray-900">
+                  3-5 Days
+                </span>
               </span>
             </div>
 
@@ -889,14 +989,19 @@ export default function ProductDetailsPage() {
               <button
                 type="button"
                 onClick={handleAddToCart}
-                disabled={currentStock <= 0 || (hasVariants && !selectedVariant)}
+                disabled={
+                  currentStock <= 0 ||
+                  (hasVariants && !selectedVariant)
+                }
                 className={`mt-7 w-full h-[50px] rounded-2xl font-semibold text-[15px] transition-all duration-200 flex items-center justify-center gap-2.5 ${
-                  currentStock <= 0 || (hasVariants && !selectedVariant)
+                  currentStock <= 0 ||
+                  (hasVariants && !selectedVariant)
                     ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                     : "bg-orange-500 hover:bg-orange-600 active:scale-[0.985] text-white shadow-lg shadow-orange-500/25"
                 }`}
               >
                 <ShoppingBag size={18} />
+
                 {currentStock <= 0
                   ? "Out of Stock"
                   : hasVariants && !selectedVariant
@@ -907,14 +1012,19 @@ export default function ProductDetailsPage() {
               <button
                 type="button"
                 onClick={handlePreOrder}
-                disabled={currentStock <= 0 || (hasVariants && !selectedVariant)}
+                disabled={
+                  currentStock <= 0 ||
+                  (hasVariants && !selectedVariant)
+                }
                 className={`mt-7 w-full h-[50px] rounded-2xl font-semibold text-[15px] transition-all duration-200 flex items-center justify-center gap-2.5 ${
-                  currentStock <= 0 || (hasVariants && !selectedVariant)
+                  currentStock <= 0 ||
+                  (hasVariants && !selectedVariant)
                     ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                     : "bg-orange-500 hover:bg-orange-600 active:scale-[0.985] text-white shadow-lg shadow-orange-500/25"
                 }`}
               >
                 <ShoppingBag size={18} />
+
                 {currentStock <= 0
                   ? "Out of Stock"
                   : hasVariants && !selectedVariant
@@ -933,6 +1043,7 @@ export default function ProductDetailsPage() {
                 <h2 className="text-[24px] sm:text-[26px] font-semibold text-gray-900 tracking-tight">
                   Specification
                 </h2>
+
                 <p className="mt-1 text-[14px] text-gray-500">
                   Product details and specifications
                 </p>
@@ -944,7 +1055,10 @@ export default function ProductDetailsPage() {
                   value={product.brand || "Apple"}
                 />
 
-                <SpecificationRow label="Model" value={product.name} />
+                <SpecificationRow
+                  label="Model"
+                  value={product.name}
+                />
 
                 {Array.isArray(product.specifications) &&
                   product.specifications.map((spec, index) => {
@@ -975,6 +1089,7 @@ export default function ProductDetailsPage() {
                 <h2 className="text-[24px] sm:text-[26px] font-semibold text-gray-900 tracking-tight">
                   Recently Viewed
                 </h2>
+
                 <p className="mt-1 text-[14px] text-gray-500">
                   Products you viewed recently
                 </p>
@@ -1000,6 +1115,7 @@ function SpecificationRow({ label, value }) {
       <div className="px-5 py-3.5 bg-gray-50/80 text-[13.5px] text-gray-600 font-medium">
         {label}
       </div>
+
       <div className="px-5 py-3.5 text-[13.5px] font-medium text-gray-900 border-l border-gray-100 break-words">
         {value}
       </div>

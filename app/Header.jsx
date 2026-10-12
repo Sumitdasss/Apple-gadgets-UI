@@ -3,6 +3,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   ChevronDown,
   ChevronRight,
@@ -11,35 +12,51 @@ import {
   Sun,
   ShoppingBag,
   User,
+  UserCircle,
   Menu,
   X,
   TrendingUp,
+  LogOut,
+  Package,
+  Heart,
+  Settings,
 } from "lucide-react";
 import { useTheme } from "next-themes";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+
+import useStore from "./Store/store";
 
 const API_BASE = "https://apple-gadgets-ui-backend.vercel.app";
 
+
+
 const SEARCH_HISTORY_KEY = "apple_gadgets_search_history";
-import useStore from "./Store/store";
+
 export default function Header() {
+  const pathname = usePathname();
+
   // =====================================================
   // SEARCH
   // =====================================================
 
   const [search, setSearch] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
+
   const { cart } = useStore();
-  const totalItems = cart.length;
+
+  const totalItems = Array.isArray(cart)
+    ? cart.reduce((total, item) => total + Number(item.quantity || 1), 0)
+    : 0;
+
   const [allProducts, setAllProducts] = useState([]);
   const [searchResults, setSearchResults] = useState([]);
-
   const [productsLoading, setProductsLoading] = useState(false);
-
-  // =====================================================
-  // SEARCH HISTORY
-  // =====================================================
-
   const [searchHistory, setSearchHistory] = useState([]);
 
   // =====================================================
@@ -47,12 +64,10 @@ export default function Header() {
   // =====================================================
 
   const [isOpen, setIsOpen] = useState(false);
-
   const [categories, setCategories] = useState([]);
-
   const [categoriesLoading, setCategoriesLoading] = useState(true);
-
-  const [expandedMobileCategories, setExpandedMobileCategories] = useState({});
+  const [expandedMobileCategories, setExpandedMobileCategories] =
+    useState({});
 
   // =====================================================
   // MOBILE MENU
@@ -65,8 +80,15 @@ export default function Header() {
   // =====================================================
 
   const { theme, setTheme } = useTheme();
-
   const [mounted, setMounted] = useState(false);
+
+  // =====================================================
+  // ACCOUNT
+  // =====================================================
+
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [accountOpen, setAccountOpen] = useState(false);
 
   // =====================================================
   // REFS
@@ -74,9 +96,10 @@ export default function Header() {
 
   const desktopSearchRef = useRef(null);
   const mobileSearchRef = useRef(null);
+  const accountRef = useRef(null);
 
   // =====================================================
-  // MOUNT
+  // MOUNT + SEARCH HISTORY
   // =====================================================
 
   useEffect(() => {
@@ -98,65 +121,200 @@ export default function Header() {
   }, []);
 
   // =====================================================
-  // TRENDING SEARCH
+  // LOAD LOGGED-IN USER + INSTANT UPDATE AFTER LOGIN
+  // GET /api/users/me
   // =====================================================
 
-  const trendingSearches = useMemo(() => {
-    const defaultTrending = [
-      "iPhone 18 Pro Max",
-      "iPhone 18 Pro",
-      "Samsung Galaxy S25 Ultra",
-      "MacBook Pro M5",
-    ];
+  useEffect(() => {
+    let cancelled = false;
 
-    if (!Array.isArray(searchHistory)) {
-      return defaultTrending;
-    }
-
-    const sorted = [...searchHistory]
-      .filter(
-        (item) =>
-          item && typeof item.keyword === "string" && item.keyword.trim(),
-      )
-      .sort((a, b) => Number(b.count || 0) - Number(a.count || 0))
-      .map((item) => item.keyword.trim())
-      .filter(Boolean);
-
-    const unique = [];
-
-    for (const keyword of sorted) {
-      const exists = unique.some(
-        (item) => item.toLowerCase() === keyword.toLowerCase(),
-      );
-
-      if (!exists) {
-        unique.push(keyword);
+    const getSavedUser = () => {
+      try {
+        const saved = localStorage.getItem("user");
+        return saved ? JSON.parse(saved) : null;
+      } catch {
+        return null;
       }
-    }
+    };
 
-    const finalTrending = unique.slice(0, 6);
+    const loadLoggedInUser = async () => {
+      const token = localStorage.getItem("token");
 
-    if (finalTrending.length < 4) {
-      for (const item of defaultTrending) {
-        const exists = finalTrending.some(
-          (keyword) => keyword.toLowerCase() === item.toLowerCase(),
-        );
+      if (!token) {
+        if (!cancelled) {
+          setUser(null);
+          setAuthLoading(false);
+        }
+        return;
+      }
 
-        if (!exists) {
-          finalTrending.push(item);
+      // Age cached user dekhabe, jate "Login" flash na kore
+      const cachedUser = getSavedUser();
+
+      if (cachedUser && !cancelled) {
+        setUser(cachedUser);
+        setAuthLoading(false);
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/api/users/me`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+          cache: "no-store",
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || result.success === false) {
+          if (response.status === 401) {
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+
+            if (!cancelled) {
+              setUser(null);
+            }
+          } else if (!cancelled && !cachedUser) {
+            setUser(null);
+          }
+
+          return;
         }
 
-        if (finalTrending.length >= 4) {
-          break;
+        // API response-er alada alada structure samlabe
+        const loggedInUser =
+          result?.data?.user ??
+          result?.data?.data?.user ??
+          result?.data ??
+          result?.user;
+
+        if (!loggedInUser || typeof loggedInUser !== "object") {
+          console.error("User data paoa jayni:", result);
+          return;
+        }
+
+        if (!cancelled) {
+          setUser(loggedInUser);
+        }
+
+        localStorage.setItem("user", JSON.stringify(loggedInUser));
+      } catch (error) {
+        console.error("Account loading error:", error);
+
+        // API temporary off thakleo cached user thakle seta thakbe
+        if (!cancelled && !cachedUser) {
+          setUser(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setAuthLoading(false);
         }
       }
-    }
+    };
 
-    return finalTrending.slice(0, 6);
-  }, [searchHistory]);
+    // Login/Register page theke "auth-change" ashle
+    const handleAuthChange = () => {
+      const token = localStorage.getItem("token");
+      const cachedUser = getSavedUser();
+
+      if (token && cachedUser) {
+        // Sathe sathe user dekhabe
+        setUser(cachedUser);
+        setAuthLoading(false);
+      } else if (!token) {
+        // Logout hoyeche
+        setUser(null);
+        setAuthLoading(false);
+        return;
+      }
+
+      // Token ache kintu user nai hole API theke anbe
+      loadLoggedInUser();
+    };
+
+    // Onno tab theke token/user change hole
+    const handleStorageChange = (event) => {
+      if (
+        event.key === "token" ||
+        event.key === "user" ||
+        event.key === null
+      ) {
+        handleAuthChange();
+      }
+    };
+
+    // Tab-e phire ashle abar check
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        handleAuthChange();
+      }
+    };
+
+    loadLoggedInUser();
+
+    window.addEventListener("auth-change", handleAuthChange);
+    window.addEventListener("storage", handleStorageChange);
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("auth-change", handleAuthChange);
+      window.removeEventListener("storage", handleStorageChange);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, []);
 
   // =====================================================
-  // SAVE SEARCH HISTORY
+  // RE-SYNC USER ON EVERY ROUTE CHANGE
+  // Login page theke "/" e gele Header nijei notun user dhorbe,
+  // jodio login page "auth-change" event dispatch korte bhule jay.
+  // =====================================================
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      setUser(null);
+      setAuthLoading(false);
+      return;
+    }
+
+    try {
+      const saved = localStorage.getItem("user");
+      const cachedUser = saved ? JSON.parse(saved) : null;
+
+      if (cachedUser) {
+        setUser(cachedUser);
+        setAuthLoading(false);
+      } else {
+        // Token ache kintu user save hoyni, API theke anar jonno
+        window.dispatchEvent(new Event("auth-change"));
+      }
+    } catch {
+      window.dispatchEvent(new Event("auth-change"));
+    }
+  }, [pathname]);
+
+  // =====================================================
+  // LOGOUT
+  // =====================================================
+
+  const handleLogout = useCallback(() => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+
+    setUser(null);
+    setAccountOpen(false);
+
+    window.dispatchEvent(new Event("auth-change"));
+
+    window.location.href = "/Auth";
+  }, []);
+
+  // =====================================================
+  // SEARCH HISTORY SAVE
   // =====================================================
 
   const saveSearchHistory = useCallback((keyword) => {
@@ -166,15 +324,13 @@ export default function Header() {
 
     try {
       const saved = localStorage.getItem(SEARCH_HISTORY_KEY);
-
       const current = saved ? JSON.parse(saved) : [];
-
       const list = Array.isArray(current) ? current : [];
 
       const existingIndex = list.findIndex(
         (item) =>
           String(item?.keyword || "").toLowerCase() ===
-          cleanKeyword.toLowerCase(),
+          cleanKeyword.toLowerCase()
       );
 
       let updated = [...list];
@@ -198,7 +354,10 @@ export default function Header() {
         .sort((a, b) => Number(b.count || 0) - Number(a.count || 0))
         .slice(0, 30);
 
-      localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(updated));
+      localStorage.setItem(
+        SEARCH_HISTORY_KEY,
+        JSON.stringify(updated)
+      );
 
       setSearchHistory(updated);
     } catch (error) {
@@ -207,25 +366,66 @@ export default function Header() {
   }, []);
 
   // =====================================================
-  // LOAD CATEGORIES
-  //
-  // Backend:
-  // GET /category/tree
-  //
-  // Backend:
-  // Main
-  //   subCategories
-  //      childCategories
-  //         subChildCategories
-  //
-  // Frontend:
-  // Main
-  //   children
-  //      children
-  //         children
+  // TRENDING SEARCH
+  // =====================================================
+
+  const trendingSearches = useMemo(() => {
+    const defaultTrending = [
+      "iPhone 18 Pro Max",
+      "iPhone 18 Pro",
+      "Samsung Galaxy S25 Ultra",
+      "MacBook Pro M5",
+    ];
+
+    if (!Array.isArray(searchHistory)) {
+      return defaultTrending;
+    }
+
+    const sorted = [...searchHistory]
+      .filter(
+        (item) =>
+          item &&
+          typeof item.keyword === "string" &&
+          item.keyword.trim()
+      )
+      .sort((a, b) => Number(b.count || 0) - Number(a.count || 0))
+      .map((item) => item.keyword.trim())
+      .filter(Boolean);
+
+    const unique = [];
+
+    for (const keyword of sorted) {
+      const exists = unique.some(
+        (item) => item.toLowerCase() === keyword.toLowerCase()
+      );
+
+      if (!exists) unique.push(keyword);
+    }
+
+    const finalTrending = unique.slice(0, 6);
+
+    if (finalTrending.length < 4) {
+      for (const item of defaultTrending) {
+        const exists = finalTrending.some(
+          (keyword) => keyword.toLowerCase() === item.toLowerCase()
+        );
+
+        if (!exists) finalTrending.push(item);
+
+        if (finalTrending.length >= 4) break;
+      }
+    }
+
+    return finalTrending.slice(0, 6);
+  }, [searchHistory]);
+
+  // =====================================================
+  // LOAD CATEGORY TREE
   // =====================================================
 
   useEffect(() => {
+    let cancelled = false;
+
     const loadCategories = async () => {
       try {
         setCategoriesLoading(true);
@@ -235,17 +435,13 @@ export default function Header() {
           cache: "no-store",
         });
 
-        const contentType = response.headers.get("content-type") || "";
-
-        // ---------------------------------------------
-        // Prevent:
-        // Unexpected token '<'
-        // ---------------------------------------------
+        const contentType =
+          response.headers.get("content-type") || "";
 
         if (!contentType.includes("application/json")) {
-          const text = await response.text();
+          const responseText = await response.text();
 
-          console.error("Category API returned non-JSON:", text);
+          console.error("Category API returned non-JSON:", responseText);
 
           throw new Error(`Category API returned ${response.status}`);
         }
@@ -253,132 +449,105 @@ export default function Header() {
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data?.message || "Failed to load categories");
+          throw new Error(
+            data?.message || "Failed to load categories"
+          );
         }
 
-        // ---------------------------------------------
-        // Get categories
-        // ---------------------------------------------
-
-        const list = Array.isArray(data?.categories) ? data.categories : [];
-
-        // ---------------------------------------------
-        // Normalize SubChild
-        // ---------------------------------------------
-
-        const normalizeSubChild = (subChild) => {
-          return {
-            ...subChild,
-            children: [],
-          };
-        };
-
-        // ---------------------------------------------
-        // Normalize Child
-        // ---------------------------------------------
-
-        const normalizeChild = (child) => {
-          const subChildren = Array.isArray(child?.subChildCategories)
-            ? child.subChildCategories
+        const list = Array.isArray(data?.categories)
+          ? data.categories
+          : Array.isArray(data?.data)
+            ? data.data
             : [];
 
-          return {
-            ...child,
-
-            children: subChildren.map(normalizeSubChild),
-          };
-        };
-
-        // ---------------------------------------------
-        // Normalize Sub
-        // ---------------------------------------------
-
-        const normalizeSub = (sub) => {
-          const children = Array.isArray(sub?.childCategories)
-            ? sub.childCategories
-            : [];
-
-          return {
-            ...sub,
-
-            children: children.map(normalizeChild),
-          };
-        };
-
-        // ---------------------------------------------
-        // Normalize Main
-        // ---------------------------------------------
-
-        const normalized = list.map((main) => {
-          const subCategories = Array.isArray(main?.subCategories)
-            ? main.subCategories
-            : [];
-
-          return {
-            ...main,
-
-            children: subCategories.map(normalizeSub),
-          };
+        const normalizeSubChild = (item) => ({
+          ...item,
+          children: [],
         });
 
-        setCategories(normalized);
+        const normalizeChild = (item) => ({
+          ...item,
+          children: Array.isArray(item?.subChildCategories)
+            ? item.subChildCategories.map(normalizeSubChild)
+            : [],
+        });
+
+        const normalizeSub = (item) => ({
+          ...item,
+          children: Array.isArray(item?.childCategories)
+            ? item.childCategories.map(normalizeChild)
+            : [],
+        });
+
+        const normalized = list.map((item) => ({
+          ...item,
+          children: Array.isArray(item?.subCategories)
+            ? item.subCategories.map(normalizeSub)
+            : [],
+        }));
+
+        if (!cancelled) {
+          setCategories(normalized);
+        }
       } catch (error) {
         console.error("Header category loading error:", error);
 
-        setCategories([]);
+        if (!cancelled) {
+          setCategories([]);
+        }
       } finally {
-        setCategoriesLoading(false);
+        if (!cancelled) {
+          setCategoriesLoading(false);
+        }
       }
     };
 
     loadCategories();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // =====================================================
   // LOAD PRODUCTS
   // =====================================================
+
   useEffect(() => {
+    let cancelled = false;
+
     const loadProducts = async () => {
       try {
         setProductsLoading(true);
 
-        const url = `${API_BASE}/products/getALLproducts`;
+        const response = await fetch(
+          `${API_BASE}/products/getALLproducts`,
+          {
+            method: "GET",
+            cache: "no-store",
+          }
+        );
 
-        console.log("Loading products from:", url);
+        const contentType =
+          response.headers.get("content-type") || "";
 
-        const response = await fetch(url, {
-          method: "GET",
-          cache: "no-store",
-        });
+        if (!contentType.includes("application/json")) {
+          const responseText = await response.text();
 
-        const contentType = response.headers.get("content-type") || "";
-
-        let data;
-
-        if (contentType.includes("application/json")) {
-          data = await response.json();
-        } else {
-          const text = await response.text();
-
-          console.error("Product API returned non-JSON:", text);
+          console.error("Product API returned non-JSON:", responseText);
 
           throw new Error(`Product API returned ${response.status}`);
         }
 
-        console.log("Product API response:", data);
+        const data = await response.json();
 
         if (!response.ok) {
           throw new Error(
             data?.message ||
               data?.error ||
-              `Failed to get products (${response.status})`,
+              `Failed to get products (${response.status})`
           );
         }
-
-        // Backend response support:
-        // []
-        // { products: [] }
-        // { data: [] }
 
         const list = Array.isArray(data)
           ? data
@@ -388,21 +557,29 @@ export default function Header() {
               ? data.data
               : [];
 
-        console.log("Products loaded:", list.length);
-
-        setAllProducts(list);
-        setSearchResults(list.slice(0, 8));
+        if (!cancelled) {
+          setAllProducts(list);
+          setSearchResults(list.slice(0, 8));
+        }
       } catch (error) {
         console.error("Header product loading error:", error);
 
-        setAllProducts([]);
-        setSearchResults([]);
+        if (!cancelled) {
+          setAllProducts([]);
+          setSearchResults([]);
+        }
       } finally {
-        setProductsLoading(false);
+        if (!cancelled) {
+          setProductsLoading(false);
+        }
       }
     };
 
     loadProducts();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // =====================================================
@@ -410,9 +587,7 @@ export default function Header() {
   // =====================================================
 
   const makeSlug = useCallback((item) => {
-    if (item?.slug) {
-      return item.slug;
-    }
+    if (item?.slug) return item.slug;
 
     return String(item?.name || "")
       .toLowerCase()
@@ -428,14 +603,18 @@ export default function Header() {
 
   const getProductImage = useCallback((product) => {
     if (Array.isArray(product?.images) && product.images.length > 0) {
-      return product.images[0];
+      const firstImage = product.images[0];
+
+      return typeof firstImage === "string"
+        ? firstImage
+        : firstImage?.url || firstImage?.secure_url || "";
     }
 
-    if (product?.image) {
+    if (typeof product?.image === "string") {
       return product.image;
     }
 
-    return "";
+    return product?.image?.url || "";
   }, []);
 
   // =====================================================
@@ -453,7 +632,9 @@ export default function Header() {
         : null;
 
     const hasDiscount =
-      discountPrice !== null && discountPrice > 0 && discountPrice < price;
+      discountPrice !== null &&
+      discountPrice > 0 &&
+      discountPrice < price;
 
     return {
       price,
@@ -482,20 +663,20 @@ export default function Header() {
       const filtered = allProducts
         .filter((product) => {
           const name = String(product?.name || "").toLowerCase();
-
           const brand = String(product?.brand || "").toLowerCase();
-
           const sku = String(product?.sku || "").toLowerCase();
 
           const category = String(
-            product?.category?.name || product?.category || "",
+            product?.category?.name || product?.category || ""
           ).toLowerCase();
 
           const shortDescription = String(
-            product?.shortDescription || "",
+            product?.shortDescription || ""
           ).toLowerCase();
 
-          const description = String(product?.description || "").toLowerCase();
+          const description = String(
+            product?.description || ""
+          ).toLowerCase();
 
           return (
             name.includes(keyword) ||
@@ -510,7 +691,7 @@ export default function Header() {
 
       setSearchResults(filtered);
     },
-    [allProducts],
+    [allProducts]
   );
 
   // =====================================================
@@ -518,8 +699,8 @@ export default function Header() {
   // =====================================================
 
   const handleSearch = useCallback(
-    (e) => {
-      e.preventDefault();
+    (event) => {
+      event.preventDefault();
 
       const keyword = search.trim();
 
@@ -533,9 +714,10 @@ export default function Header() {
       setSearchFocused(false);
       setIsOpen(false);
 
-      window.location.href = `/search?q=${encodeURIComponent(keyword)}`;
+      window.location.href =
+        `/search?q=${encodeURIComponent(keyword)}`;
     },
-    [search, saveSearchHistory],
+    [search, saveSearchHistory]
   );
 
   // =====================================================
@@ -549,37 +731,61 @@ export default function Header() {
       if (!keyword) return;
 
       setSearch(keyword);
-
       saveSearchHistory(keyword);
-
       handleSearchChange(keyword);
-
       setSearchFocused(true);
     },
-    [handleSearchChange, saveSearchHistory],
+    [handleSearchChange, saveSearchHistory]
   );
 
   // =====================================================
-  // CLOSE SEARCH
+  // CLOSE HELPERS
   // =====================================================
 
   const closeSearch = useCallback(() => {
     setSearchFocused(false);
   }, []);
 
+  const closeMobileMenu = useCallback(() => {
+    setIsMobileMenuOpen(false);
+  }, []);
+
+  const closeAll = useCallback(() => {
+    setSearchFocused(false);
+    setIsOpen(false);
+    setIsMobileMenuOpen(false);
+    setAccountOpen(false);
+  }, []);
+
+  const toggleMobileCategory = useCallback((id) => {
+    setExpandedMobileCategories((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  }, []);
+
   // =====================================================
-  // OUTSIDE CLICK
+  // OUTSIDE CLICK + ESCAPE
   // =====================================================
 
   useEffect(() => {
     const handleOutsideClick = (event) => {
-      const desktopInside = desktopSearchRef.current?.contains(event.target);
+      const desktopInside =
+        desktopSearchRef.current?.contains(event.target);
 
-      const mobileInside = mobileSearchRef.current?.contains(event.target);
+      const mobileInside =
+        mobileSearchRef.current?.contains(event.target);
+
+      const accountInside =
+        accountRef.current?.contains(event.target);
 
       if (!desktopInside && !mobileInside) {
         setSearchFocused(false);
         setIsOpen(false);
+      }
+
+      if (!accountInside) {
+        setAccountOpen(false);
       }
     };
 
@@ -588,67 +794,37 @@ export default function Header() {
         setSearchFocused(false);
         setIsOpen(false);
         setIsMobileMenuOpen(false);
+        setAccountOpen(false);
       }
     };
 
     document.addEventListener("mousedown", handleOutsideClick);
-
     document.addEventListener("keydown", handleEscape);
 
     return () => {
       document.removeEventListener("mousedown", handleOutsideClick);
-
       document.removeEventListener("keydown", handleEscape);
     };
   }, []);
 
   // =====================================================
-  // MOBILE CATEGORY TOGGLE
-  // =====================================================
-
-  const toggleMobileCategory = (id) => {
-    setExpandedMobileCategories((prev) => ({
-      ...prev,
-      [id]: !prev[id],
-    }));
-  };
-
-  // =====================================================
-  // CLOSE MOBILE
-  // =====================================================
-
-  const closeMobileMenu = () => {
-    setIsMobileMenuOpen(false);
-  };
-
-  // =====================================================
-  // CLOSE EVERYTHING
-  // =====================================================
-
-  const closeAll = () => {
-    setSearchFocused(false);
-    setIsOpen(false);
-    setIsMobileMenuOpen(false);
-  };
-
-  // =====================================================
-  // RETURN
+  // RENDER
   // =====================================================
 
   return (
     <header className="sticky top-0 z-[9999] w-full border-b border-gray-200/80 bg-white/95 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95">
-      {/* =================================================
-          MAIN HEADER
-      ================================================= */}
+      {/* MAIN HEADER */}
 
       <div className="mx-auto max-w-[1440px] px-3 py-2.5 sm:px-4 lg:py-3">
         <div className="flex items-center justify-between gap-2 lg:gap-5">
-          {/* MOBILE MENU */}
+          {/* MOBILE MENU BUTTON */}
 
           <button
             type="button"
-            onClick={() => setIsMobileMenuOpen((prev) => !prev)}
-            aria-label="Toggle Menu"
+            onClick={() =>
+              setIsMobileMenuOpen((prev) => !prev)
+            }
+            aria-label="Toggle menu"
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-gray-800 transition hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-slate-800 lg:hidden"
           >
             {isMobileMenuOpen ? <X size={25} /> : <Menu size={25} />}
@@ -670,9 +846,7 @@ export default function Header() {
             />
           </Link>
 
-          {/* =================================================
-              DESKTOP SEARCH
-          ================================================= */}
+          {/* DESKTOP SEARCH */}
 
           <div
             ref={desktopSearchRef}
@@ -682,7 +856,7 @@ export default function Header() {
               onSubmit={handleSearch}
               className="flex h-[46px] w-full items-center rounded-full border border-gray-200/70 bg-gray-100/80 px-2 transition-all focus-within:border-[#f47421] focus-within:bg-white focus-within:shadow-md dark:border-slate-700/60 dark:bg-slate-800/80 dark:focus-within:border-[#f47421] dark:focus-within:bg-slate-800"
             >
-              {/* CATEGORY */}
+              {/* CATEGORY DROPDOWN */}
 
               <div className="relative shrink-0">
                 <button
@@ -695,12 +869,13 @@ export default function Header() {
                   <ChevronDown
                     size={15}
                     className={`transition-transform ${
-                      isOpen ? "rotate-180 text-[#f47421]" : "text-gray-500"
+                      isOpen
+                        ? "rotate-180 text-[#f47421]"
+                        : "text-gray-500"
                     }`}
                   />
                 </button>
 
-                {/* CATEGORY DROPDOWN */}
                 <div
                   className={`absolute left-0 top-[50px] z-[10000] w-[300px] rounded-2xl border border-gray-100 bg-white p-2 shadow-2xl transition-all duration-200 dark:border-slate-800 dark:bg-slate-900 ${
                     isOpen
@@ -724,9 +899,9 @@ export default function Header() {
                           prefetch={false}
                           href={`/category/${makeSlug(category)}`}
                           onClick={closeAll}
-                          className="flex items-center justify-between rounded-lg px-3 py-2.5 text-[14px] font-medium text-gray-700 transition hover:bg-orange-50 hover:text-[#f47421] dark:text-gray-200 dark:hover:bg-slate-800 dark:hover:text-[#f47421]"
+                          className="flex items-center justify-between rounded-lg px-3 py-2.5 text-[14px] font-medium text-gray-700 transition hover:bg-orange-50 hover:text-[#f47421] dark:text-gray-200 dark:hover:bg-slate-800"
                         >
-                          <span>{category.name}</span>
+                          {category.name}
                         </Link>
                       ))
                     )}
@@ -751,14 +926,14 @@ export default function Header() {
                       setSearchResults(allProducts.slice(0, 8));
                     }
                   }}
-                  onChange={(e) => handleSearchChange(e.target.value)}
+                  onChange={(event) =>
+                    handleSearchChange(event.target.value)
+                  }
                   placeholder="Search products..."
                   aria-label="Search products"
-                  className="w-full bg-transparent text-[14px] font-medium text-gray-900 outline-none placeholder:text-gray-400 dark:text-white dark:placeholder:text-gray-500"
+                  className="w-full bg-transparent text-[14px] font-medium text-gray-900 outline-none placeholder:text-gray-400 dark:text-white"
                 />
               </div>
-
-              {/* SEARCH BUTTON */}
 
               <button
                 type="submit"
@@ -767,8 +942,6 @@ export default function Header() {
                 Search
               </button>
             </form>
-
-            {/* SEARCH PANEL */}
 
             {searchFocused && (
               <SearchPanel
@@ -785,9 +958,7 @@ export default function Header() {
             )}
           </div>
 
-          {/* =================================================
-              RIGHT NAV
-          ================================================= */}
+          {/* RIGHT NAVIGATION */}
 
           <nav className="flex shrink-0 items-center gap-1.5 sm:gap-2.5 lg:gap-4 xl:gap-5">
             <Link
@@ -828,11 +999,17 @@ export default function Header() {
             {mounted && (
               <button
                 type="button"
-                aria-label="Toggle Theme"
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                aria-label="Toggle theme"
+                onClick={() =>
+                  setTheme(theme === "dark" ? "light" : "dark")
+                }
                 className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 text-gray-700 transition hover:border-[#f47421] hover:text-[#f47421] dark:border-slate-800 dark:text-gray-200 sm:h-10 sm:w-10"
               >
-                {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+                {theme === "dark" ? (
+                  <Sun size={18} />
+                ) : (
+                  <Moon size={18} />
+                )}
               </button>
             )}
 
@@ -851,24 +1028,146 @@ export default function Header() {
               </span>
             </Link>
 
-            {/* ACCOUNT */}
+            {/* ACCOUNT MENU */}
 
-            <Link
-              prefetch={false}
-              href="/account"
-              aria-label="Account"
-              className="hidden h-10 w-10 items-center justify-center rounded-full border border-gray-200 text-gray-700 transition hover:border-[#f47421] hover:text-[#f47421] dark:border-slate-800 dark:text-gray-200 sm:flex"
-            >
-              <User size={18} />
-            </Link>
+            <div ref={accountRef} className="relative">
+              {authLoading ? (
+                <div className="flex h-10 w-10 items-center justify-center">
+                  <User size={19} className="text-gray-400" />
+                </div>
+              ) : user ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setAccountOpen((prev) => !prev)
+                    }
+                    aria-label="Open account menu"
+                    aria-expanded={accountOpen}
+                    className="flex h-10 items-center gap-2 rounded-full border border-gray-200 px-2 transition hover:border-[#f47421] dark:border-slate-700 dark:text-white"
+                  >
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-100 text-[#f47421]">
+                      <UserCircle size={20} />
+                    </span>
+
+                    <span className="hidden max-w-[100px] truncate text-sm font-semibold sm:block">
+                      {user.name || "My Account"}
+                    </span>
+
+                    <ChevronDown
+                      size={15}
+                      className={`hidden transition-transform sm:block ${
+                        accountOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {accountOpen && (
+                    <div className="absolute right-0 top-12 z-[10001] w-[280px] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
+                      {/* USER INFORMATION */}
+
+                      <div className="border-b border-gray-100 bg-gray-50 p-4 dark:border-slate-800 dark:bg-slate-800/60">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-orange-100 text-[#f47421]">
+                            <UserCircle size={27} />
+                          </div>
+
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-bold text-gray-900 dark:text-white">
+                              {user.name || "Customer"}
+                            </p>
+
+                            <p className="mt-1 truncate text-xs text-gray-500 dark:text-gray-400">
+                              {user.email || ""}
+                            </p>
+                          </div>
+                        </div>
+
+                        {user.phone && (
+                          <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                            Phone: {user.phone}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* ACCOUNT LINKS */}
+
+                      <div className="p-2">
+                        <AccountLink
+                          href="/profile"
+                          icon={UserCircle}
+                          label="My Profile"
+                          onClick={closeAll}
+                        />
+
+                        <AccountLink
+                          href="/orders"
+                          icon={Package}
+                          label="My Orders"
+                          onClick={closeAll}
+                        />
+
+                        <AccountLink
+                          href="/wishlist"
+                          icon={Heart}
+                          label="My Wishlist"
+                          onClick={closeAll}
+                        />
+
+                        <AccountLink
+                          href="/cart"
+                          icon={ShoppingBag}
+                          label="My Cart"
+                          onClick={closeAll}
+                        />
+
+                        <AccountLink
+                          href="/settings"
+                          icon={Settings}
+                          label="Account Settings"
+                          onClick={closeAll}
+                        />
+                      </div>
+
+                      {/* LOGOUT */}
+
+                      <div className="border-t border-gray-100 p-2 dark:border-slate-800">
+                        <button
+                          type="button"
+                          onClick={handleLogout}
+                          className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-50 dark:hover:bg-red-950/30"
+                        >
+                          <LogOut size={18} />
+                          Logout
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <Link
+                  href="/Auth"
+                  prefetch={false}
+                  aria-label="Login or register"
+                  className="flex h-10 items-center gap-2 rounded-full border border-gray-200 px-3 text-gray-700 transition hover:border-[#f47421] hover:text-[#f47421] dark:border-slate-700 dark:text-gray-200"
+                >
+                  <User size={18} />
+
+                  <span className="hidden text-sm font-semibold sm:block">
+                    Login
+                  </span>
+                </Link>
+              )}
+            </div>
           </nav>
         </div>
 
-        {/* =================================================
-            MOBILE SEARCH
-        ================================================= */}
+        {/* MOBILE SEARCH */}
 
-        <div ref={mobileSearchRef} className="relative mt-2.5 lg:hidden">
+        <div
+          ref={mobileSearchRef}
+          className="relative mt-2.5 lg:hidden"
+        >
           <form
             onSubmit={handleSearch}
             className="flex h-[44px] w-full items-center rounded-full border border-gray-200 bg-white p-1 pl-4 shadow-sm dark:border-slate-700 dark:bg-slate-800"
@@ -885,13 +1184,17 @@ export default function Header() {
                   setSearchResults(allProducts.slice(0, 8));
                 }
               }}
-              onChange={(e) => handleSearchChange(e.target.value)}
+              onChange={(event) =>
+                handleSearchChange(event.target.value)
+              }
               placeholder="Search product, brand..."
-              className="w-full bg-transparent text-[13px] text-gray-900 outline-none placeholder:text-gray-400 dark:text-white dark:placeholder:text-gray-500"
+              aria-label="Search products"
+              className="w-full bg-transparent text-[13px] text-gray-900 outline-none placeholder:text-gray-400 dark:text-white"
             />
 
             <button
               type="submit"
+              aria-label="Search"
               className="flex h-9 w-11 shrink-0 items-center justify-center rounded-full bg-[#f47421] text-white transition hover:bg-[#e06211]"
             >
               <Search size={18} />
@@ -902,8 +1205,6 @@ export default function Header() {
 
           {searchFocused && (
             <div className="absolute left-1/2 top-[52px] z-[10000] w-[calc(100vw-24px)] -translate-x-1/2 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
-              {/* TRENDING */}
-
               <div className="border-b border-gray-100 p-4 dark:border-slate-800">
                 <div className="mb-3 flex items-center gap-2">
                   <TrendingUp size={17} className="text-[#f47421]" />
@@ -922,19 +1223,18 @@ export default function Header() {
                       className="flex items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1.5 text-[12px] text-gray-600 transition hover:border-[#f47421] hover:text-[#f47421] dark:border-slate-700 dark:text-gray-300"
                     >
                       <TrendingUp size={11} />
-
                       {item}
                     </button>
                   ))}
                 </div>
               </div>
 
-              {/* PRODUCTS */}
-
               <div className="p-4">
                 <div className="mb-4 flex items-center justify-between">
                   <h3 className="text-[16px] font-bold text-gray-900 dark:text-white">
-                    {search.trim() ? "Search Products" : "Popular Products"}
+                    {search.trim()
+                      ? "Search Products"
+                      : "Popular Products"}
                   </h3>
 
                   <button
@@ -983,16 +1283,18 @@ export default function Header() {
         </div>
       </div>
 
-      {/* =====================================================
-          DESKTOP CATEGORY BAR
-      ===================================================== */}
+      {/* DESKTOP CATEGORY BAR */}
 
       <nav className="hidden w-full border-t border-gray-100 bg-gray-50/70 dark:border-slate-800/80 dark:bg-slate-900/60 lg:block">
         <div className="mx-auto flex h-[48px] max-w-[1440px] items-center justify-center gap-5 px-4 xl:gap-8">
           {categoriesLoading ? (
-            <span className="text-sm text-gray-400">Loading categories...</span>
+            <span className="text-sm text-gray-400">
+              Loading categories...
+            </span>
           ) : categories.length === 0 ? (
-            <span className="text-sm text-gray-400">No categories</span>
+            <span className="text-sm text-gray-400">
+              No categories
+            </span>
           ) : (
             categories.map((category) => (
               <DesktopCategory
@@ -1005,9 +1307,7 @@ export default function Header() {
         </div>
       </nav>
 
-      {/* =====================================================
-          MOBILE MENU
-      ===================================================== */}
+      {/* MOBILE MENU */}
 
       {isMobileMenuOpen && (
         <div className="fixed inset-x-0 top-0 z-[9998] h-screen overflow-y-auto bg-white px-4 pb-8 pt-[120px] shadow-2xl dark:bg-slate-900 lg:hidden">
@@ -1026,51 +1326,83 @@ export default function Header() {
               <button
                 type="button"
                 onClick={closeMobileMenu}
+                aria-label="Close menu"
                 className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 text-gray-600 dark:border-slate-700 dark:text-gray-300"
               >
                 <X size={20} />
               </button>
             </div>
 
+            {/* MOBILE NAV LINKS */}
+
             <div className="mb-5 grid grid-cols-2 gap-2">
-              <Link
-                prefetch={false}
+              <MobileNavLink
                 href="/blog"
+                label="Blog"
                 onClick={closeMobileMenu}
-                className="rounded-xl border border-gray-200 px-4 py-3 text-sm font-semibold text-gray-700 dark:border-slate-700 dark:text-gray-200"
-              >
-                Blog
-              </Link>
+              />
 
-              <Link
-                prefetch={false}
+              <MobileNavLink
                 href="/offers"
+                label="🎁 Offers"
                 onClick={closeMobileMenu}
-                className="rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm font-semibold text-[#f47421] dark:border-orange-900/40 dark:bg-orange-900/20"
-              >
-                🎁 Offers
-              </Link>
+                highlighted
+              />
 
-              <Link
-                prefetch={false}
+              <MobileNavLink
                 href="/pre-order"
+                label="Pre-order"
                 onClick={closeMobileMenu}
-                className="rounded-xl border border-gray-200 px-4 py-3 text-sm font-semibold text-gray-700 dark:border-slate-700 dark:text-gray-200"
-              >
-                Pre-order
-              </Link>
+              />
 
-              <Link
-                prefetch={false}
+              <MobileNavLink
                 href="/compare"
+                label="⇄ Compare"
                 onClick={closeMobileMenu}
-                className="rounded-xl border border-gray-200 px-4 py-3 text-sm font-semibold text-gray-700 dark:border-slate-700 dark:text-gray-200"
-              >
-                ⇄ Compare
-              </Link>
+              />
+
+              {user ? (
+                <>
+                  <MobileNavLink
+                    href="/profile"
+                    label="My Profile"
+                    onClick={closeMobileMenu}
+                  />
+
+                  <MobileNavLink
+                    href="/orders"
+                    label="My Orders"
+                    onClick={closeMobileMenu}
+                  />
+
+                  <MobileNavLink
+                    href="/wishlist"
+                    label="My Wishlist"
+                    onClick={closeMobileMenu}
+                  />
+                </>
+              ) : (
+                <MobileNavLink
+                  href="/Auth"
+                  label="Login / Register"
+                  onClick={closeMobileMenu}
+                  highlighted
+                />
+              )}
             </div>
 
-            {/* MOBILE CATEGORIES */}
+            {user && (
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="mb-5 flex w-full items-center gap-3 rounded-xl border border-red-200 px-4 py-3 text-sm font-semibold text-red-600 dark:border-red-900"
+              >
+                <LogOut size={18} />
+                Logout
+              </button>
+            )}
+
+            {/* MOBILE CATEGORY TREE */}
 
             {categoriesLoading ? (
               <div className="py-8 text-center text-sm text-gray-400">
@@ -1083,7 +1415,8 @@ export default function Header() {
             ) : (
               <div className="space-y-2">
                 {categories.map((category) => {
-                  const expanded = expandedMobileCategories[category._id];
+                  const expanded =
+                    expandedMobileCategories[category._id];
 
                   return (
                     <div
@@ -1103,13 +1436,18 @@ export default function Header() {
                         {category.children?.length > 0 && (
                           <button
                             type="button"
-                            onClick={() => toggleMobileCategory(category._id)}
+                            onClick={() =>
+                              toggleMobileCategory(category._id)
+                            }
+                            aria-label={`Expand ${category.name}`}
                             className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-500 dark:bg-slate-800"
                           >
                             <ChevronDown
                               size={17}
                               className={`transition-transform ${
-                                expanded ? "rotate-180 text-[#f47421]" : ""
+                                expanded
+                                  ? "rotate-180 text-[#f47421]"
+                                  : ""
                               }`}
                             />
                           </button>
@@ -1138,50 +1476,53 @@ export default function Header() {
   );
 }
 
-// =========================================================
-// SEARCH CATEGORY ITEM
-// =========================================================
+// =====================================================
+// ACCOUNT LINK
+// =====================================================
 
-function SearchCategoryItem({ category, makeSlug, closeAll, level = 0 }) {
-  const hasChildren =
-    Array.isArray(category?.children) && category.children.length > 0;
-
+function AccountLink({ href, icon: Icon, label, onClick }) {
   return (
-    <div>
-      <Link
-        prefetch={false}
-        href={`/category/${makeSlug(category)}`}
-        onClick={closeAll}
-        className="flex items-center justify-between rounded-lg px-3 py-2.5 text-[14px] font-medium text-gray-700 transition hover:bg-orange-50 hover:text-[#f47421] dark:text-gray-200 dark:hover:bg-slate-800 dark:hover:text-[#f47421]"
-        style={{
-          paddingLeft: `${12 + level * 14}px`,
-        }}
-      >
-        <span>{category.name}</span>
-
-        {hasChildren && <ChevronRight size={14} className="shrink-0" />}
-      </Link>
-
-      {hasChildren && (
-        <div>
-          {category.children.map((child) => (
-            <SearchCategoryItem
-              key={child._id}
-              category={child}
-              makeSlug={makeSlug}
-              closeAll={closeAll}
-              level={level + 1}
-            />
-          ))}
-        </div>
-      )}
-    </div>
+    <Link
+      href={href}
+      prefetch={false}
+      onClick={onClick}
+      className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-gray-700 transition hover:bg-orange-50 hover:text-[#f47421] dark:text-gray-200 dark:hover:bg-slate-800"
+    >
+      <Icon size={18} />
+      {label}
+    </Link>
   );
 }
 
-// =========================================================
+// =====================================================
+// MOBILE NAV LINK
+// =====================================================
+
+function MobileNavLink({
+  href,
+  label,
+  onClick,
+  highlighted = false,
+}) {
+  return (
+    <Link
+      prefetch={false}
+      href={href}
+      onClick={onClick}
+      className={`rounded-xl border px-4 py-3 text-sm font-semibold ${
+        highlighted
+          ? "border-orange-200 bg-orange-50 text-[#f47421] dark:border-orange-900/40 dark:bg-orange-900/20"
+          : "border-gray-200 text-gray-700 dark:border-slate-700 dark:text-gray-200"
+      }`}
+    >
+      {label}
+    </Link>
+  );
+}
+
+// =====================================================
 // DESKTOP CATEGORY
-// =========================================================
+// =====================================================
 
 function DesktopCategory({ category, makeSlug }) {
   const hasChildren = category?.children?.length > 0;
@@ -1218,10 +1559,9 @@ function DesktopCategory({ category, makeSlug }) {
   );
 }
 
-// =========================================================
-// DESKTOP SUB CATEGORY
-// Recursive
-// =========================================================
+// =====================================================
+// DESKTOP SUBCATEGORY — RECURSIVE
+// =====================================================
 
 function DesktopSubCategory({ category, makeSlug }) {
   const hasChildren = category?.children?.length > 0;
@@ -1235,7 +1575,9 @@ function DesktopSubCategory({ category, makeSlug }) {
       >
         <span>{category.name}</span>
 
-        {hasChildren && <ChevronRight size={14} className="text-gray-400" />}
+        {hasChildren && (
+          <ChevronRight size={14} className="text-gray-400" />
+        )}
       </Link>
 
       {hasChildren && (
@@ -1253,10 +1595,9 @@ function DesktopSubCategory({ category, makeSlug }) {
   );
 }
 
-// =========================================================
-// MOBILE CATEGORY CHILDREN
-// Recursive
-// =========================================================
+// =====================================================
+// MOBILE CATEGORY CHILDREN — RECURSIVE
+// =====================================================
 
 function MobileCategoryChildren({
   items,
@@ -1274,11 +1615,13 @@ function MobileCategoryChildren({
     >
       {items.map((item) => {
         const expanded = expandedState[item._id];
-
         const hasChildren = item?.children?.length > 0;
 
         return (
-          <div key={item._id} className="rounded-lg bg-white dark:bg-slate-800">
+          <div
+            key={item._id}
+            className="rounded-lg bg-white dark:bg-slate-800"
+          >
             <div className="flex items-center justify-between px-3 py-2.5">
               <Link
                 prefetch={false}
@@ -1299,6 +1642,7 @@ function MobileCategoryChildren({
                 <button
                   type="button"
                   onClick={() => toggle(item._id)}
+                  aria-label={`Expand ${item.name}`}
                   className="flex h-7 w-7 items-center justify-center rounded-full text-gray-400"
                 >
                   <ChevronDown
@@ -1328,9 +1672,9 @@ function MobileCategoryChildren({
   );
 }
 
-// =========================================================
+// =====================================================
 // PRODUCT SEARCH CARD
-// =========================================================
+// =====================================================
 
 function ProductSearchCard({
   product,
@@ -1344,23 +1688,22 @@ function ProductSearchCard({
   const { price, finalPrice, hasDiscount, discountAmount } =
     getProductPrice(product);
 
-  const slug = makeSlug(product);
+  const slug = makeSlug(product) || product._id;
 
   return (
     <Link
       prefetch={false}
-      href={`/Product/${slug || product._id}`}
+      href={`/Product/${slug}`}
       onClick={onClick}
       className="group block"
     >
       <div className="h-full overflow-hidden rounded-xl border border-gray-200 bg-white p-2.5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-orange-200 hover:shadow-lg dark:border-slate-700 dark:bg-slate-800">
-        {/* IMAGE */}
-
         <div className="mb-2 flex h-[125px] items-center justify-center overflow-hidden rounded-lg bg-gray-50 dark:bg-slate-700">
           {image ? (
             <img
               src={image}
               alt={product.name || "Product"}
+              loading="lazy"
               className="h-full w-full object-contain p-2 transition-transform duration-300 group-hover:scale-105"
             />
           ) : (
@@ -1370,13 +1713,9 @@ function ProductSearchCard({
           )}
         </div>
 
-        {/* NAME */}
-
         <h4 className="line-clamp-2 min-h-[38px] text-[13px] font-semibold leading-[18px] text-gray-900 dark:text-white">
           {product.name}
         </h4>
-
-        {/* PRICE */}
 
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
           <span className="text-[14px] font-bold text-gray-900 dark:text-white">
@@ -1390,8 +1729,6 @@ function ProductSearchCard({
           )}
         </div>
 
-        {/* DISCOUNT */}
-
         {hasDiscount && (
           <span className="mt-1.5 inline-flex rounded-full bg-green-100 px-2 py-0.5 text-[9px] font-semibold text-green-600 dark:bg-green-900/30 dark:text-green-400">
             ৳ {discountAmount.toLocaleString()} OFF
@@ -1402,9 +1739,9 @@ function ProductSearchCard({
   );
 }
 
-// =========================================================
+// =====================================================
 // DESKTOP SEARCH PANEL
-// =========================================================
+// =====================================================
 
 function SearchPanel({
   search,
@@ -1439,7 +1776,10 @@ function SearchPanel({
                 onClick={() => onTrendingClick(item)}
                 className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-[13px] text-gray-600 transition hover:bg-orange-50 hover:text-[#f47421] dark:text-gray-300 dark:hover:bg-slate-800"
               >
-                <TrendingUp size={13} className="shrink-0 text-gray-400" />
+                <TrendingUp
+                  size={13}
+                  className="shrink-0 text-gray-400"
+                />
 
                 <span className="line-clamp-2">{item}</span>
               </button>
@@ -1453,7 +1793,9 @@ function SearchPanel({
           <div className="mb-5 flex items-center justify-between">
             <div>
               <h3 className="text-[18px] font-bold text-gray-900 dark:text-white">
-                {search.trim() ? "Search Products" : "Popular Products"}
+                {search.trim()
+                  ? "Search Products"
+                  : "Popular Products"}
               </h3>
 
               {search.trim() && (
@@ -1475,12 +1817,17 @@ function SearchPanel({
           <div className="max-h-[570px] overflow-y-auto pr-1">
             {productsLoading ? (
               <div className="flex min-h-[250px] items-center justify-center">
-                <p className="text-sm text-gray-400">Loading products...</p>
+                <p className="text-sm text-gray-400">
+                  Loading products...
+                </p>
               </div>
             ) : searchResults.length === 0 ? (
               <div className="flex min-h-[250px] items-center justify-center">
                 <div className="text-center">
-                  <Search size={34} className="mx-auto mb-3 text-gray-300" />
+                  <Search
+                    size={34}
+                    className="mx-auto mb-3 text-gray-300"
+                  />
 
                   <p className="text-sm font-medium text-gray-500">
                     No products found

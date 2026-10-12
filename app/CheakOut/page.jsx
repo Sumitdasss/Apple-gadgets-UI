@@ -1,3 +1,4 @@
+
 /* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
@@ -19,12 +20,45 @@ import {
   ChevronRight,
   Check,
   ChevronDown,
+  LoaderCircle,
 } from "lucide-react";
 
 import useStore from "../Store/store";
 import { BANGLADESH_GEO } from "../../Data/BangladeshLocation";
 
-const API_BASE = "https://apple-gadgets-ui-backend.vercel.app";
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://apple-gadgets-ui-backend.vercel.app";
+
+/* =========================================================
+   USER HELPERS
+========================================================= */
+
+const getSavedUser = () => {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const rawUser = localStorage.getItem("user");
+    return rawUser ? JSON.parse(rawUser) : null;
+  } catch {
+    return null;
+  }
+};
+
+const getUserField = (user, keys) => {
+  for (const key of keys) {
+    const value = user?.[key];
+
+    if (
+      (typeof value === "string" || typeof value === "number") &&
+      String(value).trim()
+    ) {
+      return String(value).trim();
+    }
+  }
+
+  return "";
+};
 
 /* =========================================================
    AREA SELECTOR
@@ -49,8 +83,8 @@ function AreaSelector({ value, onChange }) {
   }, [value]);
 
   useEffect(() => {
-    const handleOutside = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) {
+    const handleOutside = (event) => {
+      if (ref.current && !ref.current.contains(event.target)) {
         setOpen(false);
       }
     };
@@ -62,17 +96,19 @@ function AreaSelector({ value, onChange }) {
     };
   }, []);
 
-  const divisions = Object.keys(BANGLADESH_GEO);
+  const divisions = Object.keys(BANGLADESH_GEO || {});
 
-  const districts = division ? Object.keys(BANGLADESH_GEO[division] || {}) : [];
+  const districts = division
+    ? Object.keys(BANGLADESH_GEO?.[division] || {})
+    : [];
 
   const upazilas =
-    division && district ? BANGLADESH_GEO[division]?.[district] || [] : [];
+    division && district
+      ? BANGLADESH_GEO?.[division]?.[district] || []
+      : [];
 
   const selectUpazila = (upazila) => {
-    const fullValue = `${division} > ${district} > ${upazila}`;
-
-    onChange(fullValue);
+    onChange(`${division} > ${district} > ${upazila}`);
     setOpen(false);
   };
 
@@ -80,91 +116,88 @@ function AreaSelector({ value, onChange }) {
     <div ref={ref} className="relative">
       <button
         type="button"
-        onClick={() => setOpen((prev) => !prev)}
-        className="flex w-full items-center justify-between rounded-md border border-gray-300 bg-white px-3 py-2 text-left text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+        onClick={() => setOpen((previous) => !previous)}
+        className="flex w-full items-center justify-between gap-2 rounded-md border border-gray-300 bg-white px-3 py-2.5 text-left text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-white"
       >
         <span
           className={
             value
-              ? "text-gray-900 dark:text-white"
+              ? "break-words text-gray-900 dark:text-white"
               : "text-gray-400 dark:text-gray-500"
           }
         >
           {value || "Select delivery area"}
         </span>
 
-        <ChevronDown size={16} className="text-gray-400 dark:text-gray-500" />
+        <ChevronDown
+          size={16}
+          className="shrink-0 text-gray-400 dark:text-gray-500"
+        />
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-1 flex max-h-[320px] overflow-hidden rounded-lg border border-gray-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-900">
-          {/* DIVISION */}
-
-          <div className="w-40 overflow-y-auto border-r border-gray-200 dark:border-slate-700">
+        <div className="absolute left-0 top-full z-50 mt-1 flex max-h-[320px] max-w-[calc(100vw-48px)] overflow-hidden rounded-lg border border-gray-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-900">
+          <div className="w-32 shrink-0 overflow-y-auto border-r border-gray-200 sm:w-40 dark:border-slate-700">
             {divisions.map((item) => (
-              <div
+              <button
+                type="button"
                 key={item}
-                onMouseEnter={() => {
+                onClick={() => {
                   setDivision(item);
                   setDistrict("");
                 }}
-                className={`flex cursor-pointer items-center justify-between px-3 py-2.5 text-sm ${
+                className={`flex w-full items-center justify-between gap-1 px-3 py-2.5 text-left text-xs sm:text-sm ${
                   division === item
                     ? "bg-orange-50 text-orange-600 dark:bg-orange-900/20 dark:text-orange-400"
                     : "text-gray-800 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-slate-800"
                 }`}
               >
-                {item}
-
-                <ChevronRight size={14} />
-              </div>
+                <span>{item}</span>
+                <ChevronRight size={13} />
+              </button>
             ))}
           </div>
 
-          {/* DISTRICT */}
-
           {division && (
-            <div className="w-44 overflow-y-auto border-r border-gray-200 dark:border-slate-700">
+            <div className="w-32 shrink-0 overflow-y-auto border-r border-gray-200 sm:w-40 dark:border-slate-700">
               {districts.map((item) => (
-                <div
+                <button
+                  type="button"
                   key={item}
-                  onMouseEnter={() => setDistrict(item)}
-                  className={`flex cursor-pointer items-center justify-between px-3 py-2.5 text-sm ${
+                  onClick={() => setDistrict(item)}
+                  className={`flex w-full items-center justify-between gap-1 px-3 py-2.5 text-left text-xs sm:text-sm ${
                     district === item
                       ? "bg-orange-50 text-orange-600 dark:bg-orange-900/20 dark:text-orange-400"
                       : "text-gray-800 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-slate-800"
                   }`}
                 >
-                  {item}
-
-                  <ChevronRight size={14} />
-                </div>
+                  <span>{item}</span>
+                  <ChevronRight size={13} />
+                </button>
               ))}
             </div>
           )}
 
-          {/* UPAZILA */}
-
           {district && (
-            <div className="w-48 overflow-y-auto">
+            <div className="w-32 shrink-0 overflow-y-auto sm:w-40">
               {upazilas.map((item) => {
                 const selected =
                   value === `${division} > ${district} > ${item}`;
 
                 return (
-                  <div
+                  <button
+                    type="button"
                     key={item}
                     onClick={() => selectUpazila(item)}
-                    className={`flex cursor-pointer items-center justify-between px-3 py-2.5 text-sm ${
+                    className={`flex w-full items-center justify-between gap-1 px-3 py-2.5 text-left text-xs sm:text-sm ${
                       selected
                         ? "bg-orange-50 text-orange-600 dark:bg-orange-900/20 dark:text-orange-400"
                         : "text-gray-800 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-slate-800"
                     }`}
                   >
-                    {item}
-
-                    {selected && <Check size={14} />}
-                  </div>
+                    <span>{item}</span>
+                    {selected && <Check size={13} />}
+                  </button>
                 );
               })}
             </div>
@@ -176,12 +209,12 @@ function AreaSelector({ value, onChange }) {
 }
 
 /* =========================================================
-   MAIN CHECKOUT
+   MAIN CHECKOUT PAGE
 ========================================================= */
 
 export default function CheckoutPage() {
   const {
-    cart,
+    cart = [],
     increasePopulation,
     decreasePopulation,
     removeFromCart,
@@ -202,19 +235,128 @@ export default function CheckoutPage() {
   });
 
   const [selectedVariants, setSelectedVariants] = useState({});
-
   const [couponDiscount, setCouponDiscount] = useState(0);
-
+  const [appliedCoupon, setAppliedCoupon] = useState("");
   const [loading, setLoading] = useState(false);
+  const [userLoading, setUserLoading] = useState(true);
+  const [loggedInUser, setLoggedInUser] = useState(null);
+
+  /* =========================================================
+     LOAD USER AND AUTOFILL FORM
+  ========================================================= */
+
+  useEffect(() => {
+    let cancelled = false;
+const fillUserData = (user) => {
+  if (!user || typeof user !== "object" || cancelled) return;
+
+  setLoggedInUser(user);
+
+  const name = getUserField(user, [
+    "name",
+    "fullName",
+    "customerName",
+    "username",
+  ]);
+
+  const email = getUserField(user, ["email"]);
+
+  const phone = getUserField(user, [
+    "phone",
+    "phoneNumber",
+    "mobile",
+    "mobileNumber",
+  ]);
+
+  const address = getUserField(user, [
+    "address",
+    "deliveryAddress",
+    "fullAddress",
+    "shippingAddress",
+  ]);
+
+  const selectArea = getUserField(user, [
+    "selectArea",
+    "deliveryArea",
+    "area",
+  ]);
+
+  setFormData((previous) => ({
+    ...previous,
+    fullName: previous.fullName || name,
+    email: previous.email || email,
+    phone: previous.phone || phone,
+    address: previous.address || address,
+    selectArea: previous.selectArea || selectArea,
+  }));
+};
+    const loadUser = async () => {
+      // First use locally saved user data.
+      const savedUser = getSavedUser();
+
+      if (savedUser) {
+        fillUserData(savedUser);
+      }
+
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        if (!cancelled) setUserLoading(false);
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/api/users/me`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+          cache: "no-store",
+        });
+
+        const result = await response.json().catch(() => ({}));
+
+        if (!response.ok || result?.success === false) {
+          console.error(
+            "User profile request failed:",
+            result?.message || response.status,
+          );
+
+          // Do not clear saved data automatically if the API fails.
+          return;
+        }
+
+        const user =
+          result?.data?.user ??
+          result?.data?.data?.user ??
+          result?.data ??
+          result?.user;
+
+        if (user && typeof user === "object" && !cancelled) {
+          localStorage.setItem("user", JSON.stringify(user));
+          fillUserData(user);
+        }
+      } catch (error) {
+        console.error("Unable to load user profile:", error);
+      } finally {
+        if (!cancelled) setUserLoading(false);
+      }
+    };
+
+    loadUser();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   /* =========================================================
      HELPERS
   ========================================================= */
 
   const normalize = (value) => {
-    if (value === null || value === undefined) {
-      return "";
-    }
+    if (value === null || value === undefined) return "";
 
     if (typeof value === "string" || typeof value === "number") {
       return String(value).trim();
@@ -234,10 +376,6 @@ export default function CheckoutPage() {
     return "";
   };
 
-  /* =========================================================
-     PRODUCT ID
-  ========================================================= */
-
   const getProductId = (item) =>
     String(
       item?.productId ||
@@ -248,69 +386,49 @@ export default function CheckoutPage() {
         "",
     );
 
-  /* =========================================================
-     CART ID
-  ========================================================= */
-
   const getCartId = (item) =>
     item?.id || item?._id || item?.productId || item?.product?._id;
 
-  /* =========================================================
-     IMAGE
-  ========================================================= */
-
   const getImage = (item) => {
     if (Array.isArray(item?.images) && item.images.length) {
-      return item.images[0];
+      const firstImage = item.images[0];
+
+      return typeof firstImage === "string"
+        ? firstImage
+        : firstImage?.url || firstImage?.secure_url || "";
     }
 
-    return item?.image || "";
+    if (typeof item?.image === "string") return item.image;
+
+    return item?.image?.url || "";
   };
 
+  const getPrice = (item) =>
+    Number(item?.discountPrice ?? item?.price ?? 0);
+
   /* =========================================================
-     PRODUCT PRICE
+     VARIANTS
   ========================================================= */
 
-  const getPrice = (item) => Number(item?.discountPrice ?? item?.price ?? 0);
-
-  /* =========================================================
-     GET VARIANTS
-========================================================= */
-
   const getVariants = (item) => {
-    if (!Array.isArray(item?.variants)) {
-      return [];
-    }
+    if (!Array.isArray(item?.variants)) return [];
 
     return item.variants.map((variant, index) => ({
       ...variant,
-
-      // Variant array index
       _variantIndex: index,
-
-      // Variant values normalize
       color: normalize(variant?.color),
       ram: normalize(variant?.ram),
       storage: normalize(variant?.storage),
-
-      // Numbers
       price: Number(variant?.price ?? 0),
       stock: Number(variant?.stock ?? 0),
-
-      // SKU
       sku: normalize(variant?.sku),
-
-      // MongoDB Variant _id
       variantId: variant?._id ? String(variant._id) : "",
-
-      // Variant image
-      image: variant?.image || "",
+      image:
+        typeof variant?.image === "string"
+          ? variant.image
+          : variant?.image?.url || "",
     }));
   };
-
-  /* =========================================================
-     GET SELECTED VARIANT
-  ========================================================= */
 
   const getSelected = (item) => {
     const id = getProductId(item);
@@ -324,138 +442,86 @@ export default function CheckoutPage() {
     );
   };
 
-  /* =========================================================
-     GET VARIANT OPTIONS
-  ========================================================= */
-
   const getOptions = (item) => {
     const variants = getVariants(item);
-
     const selected = getSelected(item);
 
     if (!variants.length) {
-      return {
-        colors: [],
-        rams: [],
-        storages: [],
-      };
+      return { colors: [], rams: [], storages: [] };
     }
 
-    /* COLORS */
-
     const colors = [
-      ...new Set(variants.map((variant) => variant.color).filter(Boolean)),
+      ...new Set(variants.map((v) => v.color).filter(Boolean)),
     ];
-
-    /* FILTER COLOR */
 
     let filtered = variants;
 
     if (selected.color) {
-      filtered = filtered.filter((variant) => variant.color === selected.color);
+      filtered = filtered.filter((v) => v.color === selected.color);
     }
-
-    /* RAM */
 
     const rams = [
-      ...new Set(filtered.map((variant) => variant.ram).filter(Boolean)),
+      ...new Set(filtered.map((v) => v.ram).filter(Boolean)),
     ];
-
-    /* FILTER RAM */
 
     if (selected.ram) {
-      filtered = filtered.filter((variant) => variant.ram === selected.ram);
+      filtered = filtered.filter((v) => v.ram === selected.ram);
     }
 
-    /* STORAGE */
-
     const storages = [
-      ...new Set(filtered.map((variant) => variant.storage).filter(Boolean)),
+      ...new Set(filtered.map((v) => v.storage).filter(Boolean)),
     ];
 
-    return {
-      colors,
-      rams,
-      storages,
-    };
+    return { colors, rams, storages };
   };
 
   /* =========================================================
-     EXACT VARIANT STATUS
-========================================================= */
+     MATCH VARIANT AND CHECK STOCK
+  ========================================================= */
 
   const getVariantStatus = (item) => {
     const variants = getVariants(item);
-
     const selected = getSelected(item);
-
-    /* NORMAL PRODUCT */
 
     if (!variants.length) {
       return {
         hasVariant: false,
         complete: true,
         available: true,
-        stock: 0,
+        stock: Number(item?.stock ?? 0),
         variant: null,
-        missingFields: [],
         message: "",
       };
     }
 
-    /* CHECK REQUIRED FIELDS */
-
-    const hasColor = variants.some((variant) => Boolean(variant.color));
-
-    const hasRam = variants.some((variant) => Boolean(variant.ram));
-
-    const hasStorage = variants.some((variant) => Boolean(variant.storage));
+    const hasColor = variants.some((v) => Boolean(v.color));
+    const hasRam = variants.some((v) => Boolean(v.ram));
+    const hasStorage = variants.some((v) => Boolean(v.storage));
 
     const missingFields = [];
 
-    if (hasColor && !selected.color) {
-      missingFields.push("Color");
-    }
+    if (hasColor && !selected.color) missingFields.push("Color");
+    if (hasRam && !selected.ram) missingFields.push("RAM");
+    if (hasStorage && !selected.storage) missingFields.push("Storage");
 
-    if (hasRam && !selected.ram) {
-      missingFields.push("RAM");
-    }
-
-    if (hasStorage && !selected.storage) {
-      missingFields.push("Storage");
-    }
-
-    /* NOT COMPLETE */
-
-    if (missingFields.length > 0) {
+    if (missingFields.length) {
       return {
         hasVariant: true,
         complete: false,
         available: false,
         stock: 0,
         variant: null,
-        missingFields,
         message: `Please select ${missingFields.join(", ")}`,
       };
     }
 
-    /* =======================================================
-       EXACT COMBINATION
-    ======================================================= */
-
     const matchedVariant = variants.find((variant) => {
-      const colorMatch = hasColor ? variant.color === selected.color : true;
-
-      const ramMatch = hasRam ? variant.ram === selected.ram : true;
-
-      const storageMatch = hasStorage
-        ? variant.storage === selected.storage
-        : true;
-
-      return colorMatch && ramMatch && storageMatch;
+      return (
+        (!hasColor || variant.color === selected.color) &&
+        (!hasRam || variant.ram === selected.ram) &&
+        (!hasStorage || variant.storage === selected.storage)
+      );
     });
-
-    /* COMBINATION NOT FOUND */
 
     if (!matchedVariant) {
       return {
@@ -464,240 +530,171 @@ export default function CheckoutPage() {
         available: false,
         stock: 0,
         variant: null,
-        missingFields: [],
         message: "এই combination-এর variant available নেই।",
       };
     }
 
-    /* STOCK */
-
     const stock = Number(matchedVariant.stock || 0);
-
-    /* OUT OF STOCK */
-
-    if (stock <= 0) {
-      return {
-        hasVariant: true,
-        complete: true,
-        available: false,
-        stock: 0,
-        variant: matchedVariant,
-        missingFields: [],
-        message: "এই selected variant-এর stock শেষ।",
-      };
-    }
-
-    /* AVAILABLE */
 
     return {
       hasVariant: true,
       complete: true,
-      available: true,
+      available: stock > 0,
       stock,
       variant: matchedVariant,
-      missingFields: [],
-      message: "Variant available",
+      message:
+        stock > 0
+          ? "Variant available"
+          : "এই selected variant-এর stock শেষ।",
     };
   };
 
-  /* =========================================================
-     GET MATCHED VARIANT
-========================================================= */
-
-  const getMatchedVariant = (item) => {
-    const status = getVariantStatus(item);
-
-    return status.variant || null;
-  };
-
-  /* =========================================================
-     CHANGE VARIANT
-========================================================= */
+  const getMatchedVariant = (item) =>
+    getVariantStatus(item).variant || null;
 
   const changeVariant = (productId, field, value) => {
-    setSelectedVariants((prev) => ({
-      ...prev,
-
+    setSelectedVariants((previous) => ({
+      ...previous,
       [productId]: {
-        ...(prev[productId] || {}),
-
+        ...(previous[productId] || {}),
         [field]: value,
-
-        /* COLOR CHANGE */
-
-        ...(field === "color" && {
-          ram: "",
-          storage: "",
-        }),
-
-        /* RAM CHANGE */
-
-        ...(field === "ram" && {
-          storage: "",
-        }),
+        ...(field === "color" ? { ram: "", storage: "" } : {}),
+        ...(field === "ram" ? { storage: "" } : {}),
       },
     }));
   };
 
   /* =========================================================
-     INCREASE QUANTITY
-========================================================= */
+     QUANTITY
+  ========================================================= */
 
   const handleIncreaseQuantity = (item, cartId) => {
     const variants = getVariants(item);
 
-    /* NORMAL PRODUCT */
-
     if (!variants.length) {
+      const stock = Number(item?.stock ?? 0);
+      const quantity = Number(item?.quantity || 1);
+
+      if (stock > 0 && quantity >= stock) {
+        alert(`এই পণ্যের সর্বোচ্চ ${stock}টি available আছে।`);
+        return;
+      }
+
       increasePopulation(cartId);
       return;
     }
 
-    /* VARIANT STATUS */
+    const status = getVariantStatus(item);
 
-    const variantStatus = getVariantStatus(item);
-
-    /* FIELD NOT COMPLETE */
-
-    if (!variantStatus.complete) {
-      alert(variantStatus.message);
+    if (!status.complete || !status.variant) {
+      alert(status.message || "আগে variant নির্বাচন করুন।");
       return;
     }
 
-    /* VARIANT NOT FOUND */
+    const quantity = Number(item?.quantity || 1);
 
-    if (!variantStatus.variant) {
-      alert("এই selected combination-এর variant available নেই।");
+    if (!status.available || quantity >= status.stock) {
+      alert(`এই variant-এর সর্বোচ্চ ${status.stock}টি available আছে।`);
       return;
     }
-
-    const stock = Number(variantStatus.stock || 0);
-
-    const currentQuantity = Number(item?.quantity || 1);
-
-    /* STOCK 0 */
-
-    if (stock <= 0) {
-      alert("এই selected variant-এর stock শেষ।");
-      return;
-    }
-
-    /* MAX STOCK */
-
-    if (currentQuantity >= stock) {
-      alert(`এই variant-এর সর্বোচ্চ ${stock}টি available আছে।`);
-      return;
-    }
-
-    /* INCREASE */
 
     increasePopulation(cartId);
   };
 
   /* =========================================================
-     TOTAL ITEMS
-========================================================= */
+     TOTALS
+  ========================================================= */
 
-  const totalItems = useMemo(() => {
-    return cart.reduce((total, item) => total + Number(item?.quantity || 1), 0);
-  }, [cart]);
-
-  /* =========================================================
-     SUB TOTAL
-========================================================= */
+  const totalItems = useMemo(
+    () =>
+      cart.reduce(
+        (total, item) => total + Number(item?.quantity || 1),
+        0,
+      ),
+    [cart],
+  );
 
   const subTotal = useMemo(() => {
     return cart.reduce((total, item) => {
       const variant = getMatchedVariant(item);
-
       const price = variant
         ? Number(variant.price || 0) || getPrice(item)
         : getPrice(item);
 
-      const quantity = Number(item?.quantity || 1);
-
-      return total + price * quantity;
+      return total + price * Number(item?.quantity || 1);
     }, 0);
   }, [cart, selectedVariants]);
 
-  /* =========================================================
-     DELIVERY CHARGE
-========================================================= */
-
   const deliveryCharge = useMemo(() => {
-    if (formData.deliveryMethod === "shop_pickup") {
-      return 0;
-    }
+    if (formData.deliveryMethod === "shop_pickup") return 0;
+    if (!formData.selectArea) return 0;
 
-    if (!formData.selectArea) {
-      return 0;
-    }
-
+    // The selected area starts with the division name.
     return formData.selectArea.startsWith("Dhaka") ? 80 : 150;
   }, [formData.deliveryMethod, formData.selectArea]);
 
-  /* =========================================================
-     TOTAL
-========================================================= */
+  const totalAmount = Math.max(
+    0,
+    subTotal + deliveryCharge - couponDiscount,
+  );
 
-  const totalAmount = Math.max(0, subTotal + deliveryCharge - couponDiscount);
-
-  /* =========================================================
-     FORMAT PRICE
-========================================================= */
-
-  const formatPrice = (price) => Number(price || 0).toLocaleString("en-BD");
+  const formatPrice = (price) =>
+    Number(price || 0).toLocaleString("en-BD");
 
   /* =========================================================
      FORM CHANGE
-========================================================= */
+  ========================================================= */
 
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
+  const handleChange = (event) => {
+    const { name, value, type, checked } = event.target;
 
-    setFormData((prev) => ({
-      ...prev,
-
+    setFormData((previous) => ({
+      ...previous,
       [name]: type === "checkbox" ? checked : value,
     }));
+
+    if (name === "couponCode") {
+      setAppliedCoupon("");
+      setCouponDiscount(0);
+    }
   };
 
   /* =========================================================
      COUPON
-========================================================= */
+  ========================================================= */
 
   const applyCoupon = () => {
     const code = formData.couponCode.trim().toUpperCase();
 
     if (!code) {
       setCouponDiscount(0);
-
+      setAppliedCoupon("");
       alert("Please enter coupon code");
-
       return;
     }
 
     if (code === "SAVE500") {
-      setCouponDiscount(Math.min(500, subTotal));
+      const discount = Math.min(500, subTotal);
 
+      setCouponDiscount(discount);
+      setAppliedCoupon(code);
       alert("Coupon applied successfully!");
-
       return;
     }
 
     setCouponDiscount(0);
-
+    setAppliedCoupon("");
     alert("Invalid coupon code");
   };
 
   /* =========================================================
      SUBMIT ORDER
-========================================================= */
+  ========================================================= */
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
 
-    /* BASIC VALIDATION */
+    if (loading) return;
 
     if (!cart.length) {
       alert("Your cart is empty!");
@@ -724,75 +721,55 @@ export default function CheckoutPage() {
       return;
     }
 
-    if (!formData.address.trim()) {
+    if (
+      formData.deliveryMethod === "courier_service" &&
+      !formData.address.trim()
+    ) {
       alert("Please enter your delivery address.");
       return;
     }
 
-    /* =====================================================
-         CHECK EVERY PRODUCT
-      ===================================================== */
-
     for (const item of cart) {
       const variants = getVariants(item);
-
-      /* NORMAL PRODUCT */
-
-      if (!variants.length) {
-        continue;
-      }
-
-      const status = getVariantStatus(item);
-
-      /* FIELD MISSING */
-
-      if (!status.complete) {
-        alert(`${item.name}: ${status.message}`);
-        return;
-      }
-
-      /* VARIANT NOT FOUND */
-
-      if (!status.variant) {
-        alert(
-          `${item.name}: এই selected combination-এর variant available নেই।`,
-        );
-        return;
-      }
-
-      const variantStock = Number(status.stock || 0);
-
       const quantity = Number(item?.quantity || 1);
 
-      /* STOCK ZERO */
+      if (variants.length) {
+        const status = getVariantStatus(item);
 
-      if (variantStock <= 0) {
-        alert(`${item.name} এর selected variant-এর stock শেষ।`);
-        return;
-      }
+        if (!status.complete || !status.variant) {
+          alert(`${item.name || "Product"}: ${status.message}`);
+          return;
+        }
 
-      /* QUANTITY > STOCK */
+        if (!status.available) {
+          alert(`${item.name || "Product"}: selected variant-এর stock শেষ।`);
+          return;
+        }
 
-      if (quantity > variantStock) {
-        alert(
-          `${item.name} এর selected variant-এ মাত্র ${variantStock}টি available আছে।`,
-        );
-        return;
+        if (quantity > status.stock) {
+          alert(
+            `${item.name || "Product"} এর selected variant-এ মাত্র ${status.stock}টি available আছে।`,
+          );
+          return;
+        }
+      } else {
+        const stock = Number(item?.stock ?? 0);
+
+        if (stock > 0 && quantity > stock) {
+          alert(
+            `${item.name || "Product"} এর মাত্র ${stock}টি available আছে।`,
+          );
+          return;
+        }
       }
     }
 
     setLoading(true);
 
     try {
-      /* ===================================================
-           CREATE PRODUCTS PAYLOAD
-        =================================================== */
-
       const products = cart.map((item) => {
         const productId = getProductId(item);
-
         const variants = getVariants(item);
-
         const variant = variants.length ? getMatchedVariant(item) : null;
 
         const price = variant
@@ -803,120 +780,82 @@ export default function CheckoutPage() {
 
         return {
           productId,
-
           name: item?.name || "",
-
           image: variant?.image || getImage(item),
-
           price,
-
           quantity,
-
           subtotal: price * quantity,
-
           slug: item?.slug || "",
-
-          /* EXACT VARIANT */
-
           variant: variant
             ? {
                 color: variant.color || "",
-
                 ram: variant.ram || "",
-
                 storage: variant.storage || "",
-
                 sku: variant.sku || "",
-
                 variantId: variant.variantId || "",
-
                 variantPrice: Number(variant.price || 0),
-
                 variantStock: Number(variant.stock || 0),
               }
             : null,
         };
       });
 
-      /* ===================================================
-           ORDER PAYLOAD
-        =================================================== */
-
       const payload = {
         customerName: formData.fullName.trim(),
-
         email: formData.email.trim(),
-
         phone: formData.phone.trim(),
-
         selectArea: formData.selectArea,
-
-        deliveryAddress: formData.address.trim(),
-
+        deliveryAddress:
+          formData.deliveryMethod === "shop_pickup"
+            ? ""
+            : formData.address.trim(),
         note: formData.note.trim(),
-
         products,
-
         totalItems,
-
         subTotal,
-
         deliveryCharge,
-
         discountAmount: couponDiscount,
-
         totalAmount,
-
-        couponCode: formData.couponCode.trim().toUpperCase(),
-
+        couponCode: appliedCoupon || "",
         paymentMethod: formData.paymentMethod,
-
         deliveryMethod: formData.deliveryMethod,
-
         termsAgreed: formData.termsAgreed,
-
         orderSource: "website",
       };
 
       console.log("FINAL ORDER PAYLOAD:", payload);
 
-      /* ===================================================
-           API
-        =================================================== */
-
       const response = await fetch(`${API_BASE}/products/CreateOrder`, {
         method: "POST",
-
         headers: {
           "Content-Type": "application/json",
         },
-
         body: JSON.stringify(payload),
       });
 
-      const data = await response.json();
+      const result = await response.json().catch(() => ({}));
 
-      console.log("ORDER RESPONSE:", data);
+      console.log("ORDER RESPONSE:", result);
 
-      if (!response.ok) {
-        throw new Error(data?.message || "Order creation failed");
-      }
-
-      if (data?.success) {
-        clearCart();
-        alert(
-          `Order placed successfully!\nOrder ID: ${
-            data?.data?.orderId || data?.orderId || "Created"
-          }`,
+      if (!response.ok || result?.success === false) {
+        throw new Error(
+          result?.message || "Order creation failed. Please try again.",
         );
-
-        window.location.href = "/";
-      } else {
-        alert(data?.message || "Something went wrong!");
       }
+
+      clearCart();
+
+      const orderId =
+        result?.data?.orderId ||
+        result?.data?._id ||
+        result?.orderId ||
+        "Created";
+
+      alert(`Order placed successfully!\nOrder ID: ${orderId}`);
+
+      window.location.href = "/";
     } catch (error) {
       console.error("ORDER ERROR:", error);
-
       alert(error?.message || "Failed to place order!");
     } finally {
       setLoading(false);
@@ -925,14 +864,17 @@ export default function CheckoutPage() {
 
   /* =========================================================
      EMPTY CART
-========================================================= */
+  ========================================================= */
 
   if (!cart.length) {
     return (
       <main className="min-h-screen bg-gray-50 px-4 py-12 dark:bg-slate-950">
         <div className="mx-auto max-w-[1440px]">
           <div className="rounded-2xl border border-gray-100 bg-white px-6 py-16 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <ShoppingBag size={50} className="mx-auto mb-5 text-[#f47421]" />
+            <ShoppingBag
+              size={50}
+              className="mx-auto mb-5 text-[#f47421]"
+            />
 
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
               Your Cart is Empty
@@ -957,7 +899,7 @@ export default function CheckoutPage() {
 
   /* =========================================================
      PAGE
-========================================================= */
+  ========================================================= */
 
   return (
     <div className="min-h-screen bg-[#f8f9fa] px-4 py-8 text-gray-800 dark:bg-slate-950 dark:text-gray-100">
@@ -985,6 +927,22 @@ export default function CheckoutPage() {
           </div>
         </div>
 
+        {/* CUSTOMER PROFILE STATUS */}
+
+        {userLoading && (
+          <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white p-3 text-sm text-gray-500 dark:border-slate-800 dark:bg-slate-900 dark:text-gray-400">
+            <LoaderCircle size={17} className="animate-spin" />
+            Loading your account information...
+          </div>
+        )}
+
+        {!userLoading && loggedInUser && (
+          <div className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800 dark:border-green-900 dark:bg-green-900/20 dark:text-green-300">
+            <Check size={18} />
+            Your account information has been loaded. You can edit the fields below.
+          </div>
+        )}
+
         {/* NOTICE */}
 
         <div className="rounded-lg border border-[#fde2c4] bg-[#fef4e8] p-3 text-sm text-[#8c5211] dark:border-orange-800/50 dark:bg-orange-900/20 dark:text-orange-300">
@@ -1009,13 +967,9 @@ export default function CheckoutPage() {
           onSubmit={handleSubmit}
           className="grid grid-cols-1 gap-6 lg:grid-cols-12"
         >
-          {/* =================================================
-              LEFT
-          ================================================= */}
+          {/* LEFT: DELIVERY INFORMATION */}
 
           <div className="space-y-6 rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 lg:col-span-7">
-            {/* DELIVERY */}
-
             <div>
               <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
                 Delivery Information
@@ -1025,42 +979,55 @@ export default function CheckoutPage() {
                 {/* NAME */}
 
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label
+                    htmlFor="checkout-name"
+                    className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
                     Full Name *
                   </label>
 
                   <input
+                    id="checkout-name"
                     type="text"
                     name="fullName"
                     required
+                    autoComplete="name"
                     value={formData.fullName}
                     onChange={handleChange}
                     placeholder="Enter full name"
-                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:ring-1 focus:ring-orange-500 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
                   />
                 </div>
 
                 {/* EMAIL */}
 
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label
+                    htmlFor="checkout-email"
+                    className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
                     Email
                   </label>
 
                   <input
+                    id="checkout-email"
                     type="email"
                     name="email"
+                    autoComplete="email"
                     value={formData.email}
                     onChange={handleChange}
-                    placeholder="Enter Email"
-                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:ring-1 focus:ring-orange-500 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                    placeholder="Enter email"
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
                   />
                 </div>
 
                 {/* PHONE */}
 
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label
+                    htmlFor="checkout-phone"
+                    className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
                     Phone Number *
                   </label>
 
@@ -1070,13 +1037,15 @@ export default function CheckoutPage() {
                     </span>
 
                     <input
+                      id="checkout-phone"
                       type="tel"
                       name="phone"
                       required
+                      autoComplete="tel"
                       value={formData.phone}
                       onChange={handleChange}
                       placeholder="01XXXXXXXXX"
-                      className="w-full rounded-r-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                      className="w-full min-w-0 rounded-r-md border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
                     />
                   </div>
                 </div>
@@ -1091,8 +1060,8 @@ export default function CheckoutPage() {
                   <AreaSelector
                     value={formData.selectArea}
                     onChange={(value) =>
-                      setFormData((prev) => ({
-                        ...prev,
+                      setFormData((previous) => ({
+                        ...previous,
                         selectArea: value,
                       }))
                     }
@@ -1101,36 +1070,47 @@ export default function CheckoutPage() {
 
                 {/* ADDRESS */}
 
-                <div className="sm:col-span-2">
-                  <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Address *
-                  </label>
+                {formData.deliveryMethod !== "shop_pickup" && (
+                  <div className="sm:col-span-2">
+                    <label
+                      htmlFor="checkout-address"
+                      className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                    >
+                      Address *
+                    </label>
 
-                  <input
-                    type="text"
-                    name="address"
-                    required
-                    value={formData.address}
-                    onChange={handleChange}
-                    placeholder="House# 123, Road# 24"
-                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
-                  />
-                </div>
+                    <input
+                      id="checkout-address"
+                      type="text"
+                      name="address"
+                      required
+                      autoComplete="street-address"
+                      value={formData.address}
+                      onChange={handleChange}
+                      placeholder="House# 123, Road# 24"
+                      className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                    />
+                  </div>
+                )}
 
                 {/* NOTE */}
 
                 <div className="sm:col-span-2">
-                  <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label
+                    htmlFor="checkout-note"
+                    className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
                     Note
                   </label>
 
                   <textarea
+                    id="checkout-note"
                     name="note"
                     rows={3}
                     value={formData.note}
                     onChange={handleChange}
                     placeholder="Any special delivery instructions..."
-                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
                   />
                 </div>
               </div>
@@ -1162,7 +1142,6 @@ export default function CheckoutPage() {
                   },
                 ].map((item) => {
                   const Icon = item.icon;
-
                   const selected = formData.paymentMethod === item.id;
 
                   return (
@@ -1222,7 +1201,6 @@ export default function CheckoutPage() {
                   },
                 ].map((item) => {
                   const Icon = item.icon;
-
                   const selected = formData.deliveryMethod === item.id;
 
                   return (
@@ -1259,12 +1237,16 @@ export default function CheckoutPage() {
                   );
                 })}
               </div>
+
+              {formData.deliveryMethod === "shop_pickup" && (
+                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                  Shop pickup নির্বাচন করলে delivery charge প্রযোজ্য হবে না।
+                </p>
+              )}
             </div>
           </div>
 
-          {/* =================================================
-              RIGHT
-          ================================================= */}
+          {/* RIGHT: ORDER SUMMARY */}
 
           <div className="h-fit space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 lg:col-span-5">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -1276,30 +1258,21 @@ export default function CheckoutPage() {
             <div className="space-y-4">
               {cart.map((item, index) => {
                 const productId = getProductId(item);
-
                 const cartId = getCartId(item);
-
                 const variants = getVariants(item);
-
                 const selected = getSelected(item);
-
                 const options = getOptions(item);
-
-                const variantStatus = getVariantStatus(item);
-
-                const matchedVariant = variantStatus.variant;
+                const status = getVariantStatus(item);
+                const matchedVariant = status.variant;
 
                 const price = matchedVariant
                   ? Number(matchedVariant.price || 0) || getPrice(item)
                   : getPrice(item);
 
                 const quantity = Number(item?.quantity || 1);
-
                 const itemTotal = price * quantity;
-
                 const hasVariants = variants.length > 0;
-
-                const selectedVariantStock = Number(variantStatus.stock || 0);
+                const image = matchedVariant?.image || getImage(item);
 
                 return (
                   <div
@@ -1309,9 +1282,9 @@ export default function CheckoutPage() {
                     {/* IMAGE */}
 
                     <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-gray-200 bg-gray-50 dark:border-slate-700 dark:bg-slate-800">
-                      {matchedVariant?.image || getImage(item) ? (
+                      {image ? (
                         <img
-                          src={matchedVariant?.image || getImage(item)}
+                          src={image}
                           alt={item?.name || "Product"}
                           className="h-full w-full object-contain p-1"
                         />
@@ -1334,6 +1307,7 @@ export default function CheckoutPage() {
                         <button
                           type="button"
                           onClick={() => removeFromCart(cartId)}
+                          aria-label="Remove product"
                           className="text-gray-400 transition hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400"
                         >
                           <X size={16} />
@@ -1346,14 +1320,10 @@ export default function CheckoutPage() {
                         ৳ {formatPrice(price)}
                       </p>
 
-                      {/* =================================================
-                            VARIANTS
-                        ================================================= */}
+                      {/* VARIANT SELECTORS */}
 
                       {hasVariants && (
                         <div className="mt-3 space-y-2">
-                          {/* COLOR */}
-
                           {options.colors.length > 0 && (
                             <div>
                               <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">
@@ -1362,11 +1332,11 @@ export default function CheckoutPage() {
 
                               <select
                                 value={selected.color}
-                                onChange={(e) =>
+                                onChange={(event) =>
                                   changeVariant(
                                     productId,
                                     "color",
-                                    e.target.value,
+                                    event.target.value,
                                   )
                                 }
                                 className="w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
@@ -1382,8 +1352,6 @@ export default function CheckoutPage() {
                             </div>
                           )}
 
-                          {/* RAM */}
-
                           {options.rams.length > 0 && (
                             <div>
                               <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">
@@ -1395,11 +1363,11 @@ export default function CheckoutPage() {
                                 disabled={
                                   options.colors.length > 0 && !selected.color
                                 }
-                                onChange={(e) =>
+                                onChange={(event) =>
                                   changeVariant(
                                     productId,
                                     "ram",
-                                    e.target.value,
+                                    event.target.value,
                                   )
                                 }
                                 className="w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-900 disabled:bg-gray-100 dark:border-slate-600 dark:bg-slate-800 dark:text-white dark:disabled:bg-slate-700"
@@ -1419,8 +1387,6 @@ export default function CheckoutPage() {
                             </div>
                           )}
 
-                          {/* STORAGE */}
-
                           {options.storages.length > 0 && (
                             <div>
                               <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">
@@ -1434,11 +1400,11 @@ export default function CheckoutPage() {
                                     !selected.color) ||
                                   (options.rams.length > 0 && !selected.ram)
                                 }
-                                onChange={(e) =>
+                                onChange={(event) =>
                                   changeVariant(
                                     productId,
                                     "storage",
-                                    e.target.value,
+                                    event.target.value,
                                   )
                                 }
                                 className="w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-900 disabled:bg-gray-100 dark:border-slate-600 dark:bg-slate-800 dark:text-white dark:disabled:bg-slate-700"
@@ -1456,9 +1422,7 @@ export default function CheckoutPage() {
                         </div>
                       )}
 
-                      {/* =================================================
-                            SELECTED VARIANT
-                        ================================================= */}
+                      {/* SELECTED VARIANT */}
 
                       {(selected.color || selected.ram || selected.storage) && (
                         <div className="mt-2 rounded-md bg-orange-50 px-2 py-1.5 text-[11px] text-orange-700 dark:bg-orange-900/20 dark:text-orange-300">
@@ -1470,94 +1434,76 @@ export default function CheckoutPage() {
                         </div>
                       )}
 
-                      {/* SKU */}
-
                       {matchedVariant?.sku && (
                         <p className="mt-1 text-[10px] text-gray-400 dark:text-gray-500">
                           SKU: {matchedVariant.sku}
                         </p>
                       )}
 
-                      {/* =================================================
-                            VARIANT STATUS
-                        ================================================= */}
+                      {/* VARIANT STATUS */}
 
                       {hasVariants && (
                         <div className="mt-2">
-                          {/* NOT COMPLETE */}
-
-                          {!variantStatus.complete && (
+                          {!status.complete && (
                             <p className="rounded-md bg-gray-50 px-2 py-1.5 text-[11px] text-gray-500 dark:bg-slate-800 dark:text-gray-400">
-                              <b>{variantStatus.message}</b>
+                              <b>{status.message}</b>
                             </p>
                           )}
 
-                          {/* AVAILABLE */}
-
-                          {variantStatus.complete &&
-                            variantStatus.variant &&
-                            variantStatus.available && (
+                          {status.complete &&
+                            status.variant &&
+                            status.available && (
                               <p className="rounded-md bg-green-50 px-2 py-1.5 text-[11px] text-green-700 dark:bg-green-900/20 dark:text-green-400">
                                 <b>✓ Variant Available</b>
-
                                 <span className="ml-2">
-                                  Stock: {variantStatus.stock}
+                                  Stock: {status.stock}
                                 </span>
                               </p>
                             )}
 
-                          {/* COMBINATION NOT FOUND */}
-
-                          {variantStatus.complete && !variantStatus.variant && (
+                          {status.complete && !status.variant && (
                             <p className="rounded-md bg-red-50 px-2 py-1.5 text-[11px] text-red-600 dark:bg-red-900/20 dark:text-red-400">
-                              <b>✕ এই combination-এর variant available নেই।</b>
+                              <b>{status.message}</b>
                             </p>
                           )}
 
-                          {/* STOCK ZERO */}
-
-                          {variantStatus.complete &&
-                            variantStatus.variant &&
-                            !variantStatus.available && (
+                          {status.complete &&
+                            status.variant &&
+                            !status.available && (
                               <p className="rounded-md bg-red-50 px-2 py-1.5 text-[11px] text-red-600 dark:bg-red-900/20 dark:text-red-400">
-                                <b>✕ এই selected variant-এর stock শেষ।</b>
+                                <b>{status.message}</b>
                               </p>
                             )}
                         </div>
                       )}
 
-                      {/* =================================================
-                            QUANTITY
-                        ================================================= */}
+                      {/* QUANTITY */}
 
-                      <div className="mt-2 flex items-center justify-between">
+                      <div className="mt-2 flex items-center justify-between gap-2">
                         <div className="flex items-center rounded-full border border-gray-200 dark:border-slate-700">
-                          {/* MINUS */}
-
                           <button
                             type="button"
                             onClick={() => decreasePopulation(cartId)}
+                            aria-label="Decrease quantity"
                             className="flex h-7 w-7 items-center justify-center text-gray-700 dark:text-gray-300"
                           >
                             <Minus size={13} />
                           </button>
 
-                          {/* QUANTITY */}
-
                           <span className="w-7 text-center text-xs font-semibold text-gray-900 dark:text-white">
                             {quantity}
                           </span>
 
-                          {/* PLUS */}
-
                           <button
                             type="button"
-                            onClick={() => handleIncreaseQuantity(item, cartId)}
+                            onClick={() =>
+                              handleIncreaseQuantity(item, cartId)
+                            }
                             disabled={
                               hasVariants &&
-                              (!variantStatus.available ||
-                                selectedVariantStock <= quantity)
+                              (!status.available || status.stock <= quantity)
                             }
+                            aria-label="Increase quantity"
                             className="flex h-7 w-7 items-center justify-center text-gray-700 disabled:cursor-not-allowed disabled:opacity-40 dark:text-gray-300"
                           >
                             <Plus size={13} />
@@ -1574,23 +1520,25 @@ export default function CheckoutPage() {
               })}
             </div>
 
-            {/* =================================================
-                COUPON
-            ================================================= */}
+            {/* COUPON */}
 
             <div>
-              <label className="mb-1.5 block text-xs font-semibold text-gray-700 dark:text-gray-300">
+              <label
+                htmlFor="checkout-coupon"
+                className="mb-1.5 block text-xs font-semibold text-gray-700 dark:text-gray-300"
+              >
                 Apply Coupon
               </label>
 
               <div className="flex gap-2">
                 <input
+                  id="checkout-coupon"
                   type="text"
                   name="couponCode"
                   value={formData.couponCode}
                   onChange={handleChange}
                   placeholder="Coupon Code"
-                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-xs text-gray-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                  className="w-full min-w-0 rounded-md border border-gray-300 bg-white px-3 py-2 text-xs text-gray-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
                 />
 
                 <button
@@ -1601,20 +1549,23 @@ export default function CheckoutPage() {
                   Apply
                 </button>
               </div>
+
+              {appliedCoupon && (
+                <p className="mt-2 text-xs text-green-600 dark:text-green-400">
+                  {appliedCoupon} applied successfully.
+                </p>
+              )}
             </div>
 
-            {/* =================================================
-                PRICE
-            ================================================= */}
+            {/* PRICE BREAKDOWN */}
 
             <div className="space-y-3 border-y border-gray-200 py-4 text-sm text-gray-700 dark:border-slate-700 dark:text-gray-300">
-              <div className="flex justify-between">
+              <div className="flex justify-between gap-3">
                 <span>Sub Total ({totalItems} items)</span>
-
                 <b>৳ {formatPrice(subTotal)}</b>
               </div>
 
-              <div className="flex justify-between">
+              <div className="flex justify-between gap-3">
                 <span className="flex items-center gap-1">
                   Delivery
                   <Info size={13} className="text-orange-500" />
@@ -1623,9 +1574,8 @@ export default function CheckoutPage() {
                 <b>৳ {formatPrice(deliveryCharge)}</b>
               </div>
 
-              <div className="flex justify-between">
+              <div className="flex justify-between gap-3">
                 <span>Discount</span>
-
                 <b className="text-green-600 dark:text-green-400">
                   - ৳ {formatPrice(couponDiscount)}
                 </b>
@@ -1634,9 +1584,8 @@ export default function CheckoutPage() {
 
             {/* TOTAL */}
 
-            <div className="flex justify-between text-lg font-bold text-gray-900 dark:text-white">
+            <div className="flex justify-between gap-3 text-lg font-bold text-gray-900 dark:text-white">
               <span>Total Amount</span>
-
               <span>৳ {formatPrice(totalAmount)}</span>
             </div>
 
@@ -1645,7 +1594,7 @@ export default function CheckoutPage() {
             <div className="flex items-start gap-2">
               <input
                 type="checkbox"
-                id="terms"
+                id="checkout-terms"
                 name="termsAgreed"
                 checked={formData.termsAgreed}
                 onChange={handleChange}
@@ -1653,11 +1602,14 @@ export default function CheckoutPage() {
               />
 
               <label
-                htmlFor="terms"
+                htmlFor="checkout-terms"
                 className="text-xs text-gray-600 dark:text-gray-400"
               >
                 I have read & agree to the website{" "}
-                <a href="#" className="text-orange-500 underline">
+                <a
+                  href="/terms-and-conditions"
+                  className="text-orange-500 underline"
+                >
                   Terms and Conditions
                 </a>
               </label>
@@ -1667,10 +1619,19 @@ export default function CheckoutPage() {
 
             <button
               type="submit"
-              disabled={loading}
-              className="w-full rounded-lg bg-[#f47421] px-4 py-3 text-sm font-bold text-white shadow-md disabled:opacity-50"
+              disabled={loading || userLoading}
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#f47421] px-4 py-3 text-sm font-bold text-white shadow-md transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {loading ? "Placing Order..." : "Confirm & Place Order"}
+              {loading ? (
+                <>
+                  <LoaderCircle size={18} className="animate-spin" />
+                  Placing Order...
+                </>
+              ) : userLoading ? (
+                "Loading..."
+              ) : (
+                "Confirm & Place Order"
+              )}
             </button>
           </div>
         </form>

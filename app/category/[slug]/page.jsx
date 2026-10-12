@@ -3,7 +3,7 @@
 "use client";
 
 import React, { Suspense, useEffect, useMemo, useState } from "react";
-import { useParams, usePathname, useSearchParams } from "next/navigation";
+import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   ChevronDown,
@@ -643,6 +643,10 @@ function CategoryPageContent() {
     [pathname],
   );
 
+
+
+
+
   const formatBreadcrumb = (segment) => {
     try {
       return decodeURIComponent(segment)
@@ -670,6 +674,24 @@ function CategoryPageContent() {
   const [currentPage, setCurrentPage] = useState(1);
 
   const { addTocart } = useStore();
+
+const router = useRouter();
+
+const handleAddToCart = (product) => {
+  // Login token check
+  const token = localStorage.getItem("token");
+
+  if (!token) {
+    alert("Add to Cart করতে হলে আগে Login করুন!");
+
+    router.push("/Auth?redirect=" + encodeURIComponent(window.location.pathname));
+    return;
+  }
+
+
+  addTocart(product);
+};
+
 
   const isSectionOpen = (key) => !closedSections[key];
 
@@ -1565,7 +1587,7 @@ function CategoryPageContent() {
                             <button
                               type="button"
                               disabled={outOfStock}
-                              onClick={() => addTocart(product)}
+                              onClick={() => handleAddToCart(product)}
                               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200 text-gray-600 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-gray-300 sm:h-10 sm:w-10"
                               title="Add to cart"
                               aria-label={`Add ${product.name} to cart`}

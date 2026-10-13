@@ -18,7 +18,7 @@ import {
   Headphones,
 } from "lucide-react";
 
-const API_BASE = "https://apple-gadgets-ui-backend.vercel.app".replace(/\/+$/, "");
+const API_BASE = "https://apple-gadgets-ui-backend.vercel.app"
 
 const money = (value) =>
   `৳${Number(value || 0).toLocaleString("en-BD", {

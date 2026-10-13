@@ -1,3 +1,4 @@
+/* eslint-disable react/no-unescaped-entities */
 
 "use client";
 
@@ -5,22 +6,36 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 
 const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL || "https://apple-gadgets-ui-backend.vercel.app";
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://apple-gadgets-ui-backend.vercel.app"; // Backend API base URL
 
 const API = {
   register: `${API_BASE}/api/users/register`,
   login: `${API_BASE}/api/users/login`,
   getProfile: `${API_BASE}/api/users/me`,
+  verifyEmailOtp: `${API_BASE}/api/users/verify-email-otp`,
+  resendEmailOtp: `${API_BASE}/api/users/resend-email-otp`,
+  verifyLoginOtp: `${API_BASE}/api/users/verify-login-otp`,
 };
 
 export default function AuthPage() {
   const router = useRouter();
 
   const [isRegister, setIsRegister] = useState(false);
+  const [showOtp, setShowOtp] = useState(false);
+  const [otpType, setOtpType] = useState("email");
+
   const [loading, setLoading] = useState(false);
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
-  const [message, setMessage] = useState({ type: "", text: "" });
+
+  const [message, setMessage] = useState({
+    type: "",
+    text: "",
+  });
+
+  const [otp, setOtp] = useState("");
+  const [otpEmail, setOtpEmail] = useState("");
 
   const [loginData, setLoginData] = useState({
     email: "",
@@ -35,94 +50,194 @@ export default function AuthPage() {
     phone: "",
   });
 
+  const showMessage = (type, text) => {
+    setMessage({ type, text });
+  };
+
   const switchForm = (register) => {
     setIsRegister(register);
+    setShowOtp(false);
+    setOtp("");
     setMessage({ type: "", text: "" });
   };
 
+  const apiRequest = async (url, body, method = "POST", token = "") => {
+    const response = await fetch(url, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      ...(body ? { body: JSON.stringify(body) } : {}),
+    });
+
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok || result.success === false) {
+      throw new Error(result.message || "Something went wrong.");
+    }
+
+    return result;
+  };
+
+  // LOGIN: password যাচাইয়ের পর OTP পাঠাবে
   const handleLogin = async (e) => {
     e.preventDefault();
+
     setLoading(true);
     setMessage({ type: "", text: "" });
 
     try {
-      const response = await fetch(API.login, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(loginData),
+      const result = await apiRequest(API.login, {
+        email: loginData.email.trim().toLowerCase(),
+        password: loginData.password,
       });
 
-      const result = await response.json();
+      setOtpEmail(loginData.email.trim().toLowerCase());
+      setOtp("");
+      setOtpType("login");
+      setShowOtp(true);
 
-      if (!response.ok || !result.success) {
-        throw new Error(result.message || "Login failed");
-      }
-
-      const { token, user } = result.data;
-
-      localStorage.setItem("token", token);
-      localStorage.setItem("user", JSON.stringify(user));
-
-      setMessage({
-        type: "success",
-        text: result.message || "Login successful!",
-      });
-
-      router.push("/");
+      showMessage(
+        "success",
+        result.message || "Login OTP আপনার ইমেইলে পাঠানো হয়েছে।"
+      );
     } catch (error) {
-      setMessage({
-        type: "error",
-        text: error.message || "Something went wrong",
-      });
+      showMessage("error", error.message);
     } finally {
       setLoading(false);
     }
   };
 
-
+  // REGISTER: registration-এর পর Email OTP পাঠাবে
   const handleRegister = async (e) => {
     e.preventDefault();
+
     setLoading(true);
     setMessage({ type: "", text: "" });
 
     try {
-      const response = await fetch(API.register, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(registerData),
+      const result = await apiRequest(API.register, {
+        name: registerData.name.trim(),
+        email: registerData.email.trim().toLowerCase(),
+        password: registerData.password,
+        address: registerData.address.trim(),
+        phone: registerData.phone.trim(),
       });
 
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.message || "Registration failed");
-      }
-
       setLoginData({
-        email: registerData.email,
+        email: registerData.email.trim().toLowerCase(),
         password: "",
       });
 
-      setMessage({
-        type: "success",
-        text: "Account created successfully!",
-      });
+      setOtpEmail(registerData.email.trim().toLowerCase());
+      setOtp("");
+      setOtpType("email");
+      setShowOtp(true);
 
-      setTimeout(() => {
-        setIsRegister(false);
-        setMessage({
-          type: "success",
-          text: "Account created! Please log in.",
-        });
-      }, 700);
+      showMessage(
+        "success",
+        result.message || "Email OTP আপনার ইমেইলে পাঠানো হয়েছে।"
+      );
     } catch (error) {
-      setMessage({
-        type: "error",
-        text: error.message || "Something went wrong",
-      });
+      showMessage("error", error.message);
     } finally {
       setLoading(false);
     }
+  };
+
+  // OTP VERIFY
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+
+    if (!/^\d{6}$/.test(otp)) {
+      showMessage("error", "সঠিক ৬ সংখ্যার OTP লিখুন।");
+      return;
+    }
+
+    setLoading(true);
+    setMessage({ type: "", text: "" });
+
+    try {
+      const url =
+        otpType === "email"
+          ? API.verifyEmailOtp
+          : API.verifyLoginOtp;
+
+      const result = await apiRequest(url, {
+        email: otpEmail,
+        otp,
+      });
+
+      if (otpType === "email") {
+        setShowOtp(false);
+        setIsRegister(false);
+        setOtp("");
+
+        showMessage(
+          "success",
+          result.message ||
+            "Email verification সফল হয়েছে। এবার লগইন করুন।"
+        );
+      } else {
+        const data = result.data ?? result;
+
+        if (!data.token) {
+          throw new Error(
+            "Login response-এ token পাওয়া যায়নি। Backend response চেক করুন।"
+          );
+        }
+
+        localStorage.setItem("token", data.token);
+
+        if (data.user) {
+          localStorage.setItem("user", JSON.stringify(data.user));
+        }
+
+        showMessage("success", "Login successful!");
+        router.push("/");
+      }
+    } catch (error) {
+      showMessage("error", error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // শুধু Email verification OTP পুনরায় পাঠানো
+  const handleResendOtp = async () => {
+    if (otpType !== "email") {
+      showMessage(
+        "error",
+        "Login OTP পুনরায় পাঠানোর জন্য backend-এ আলাদা resend endpoint প্রয়োজন।"
+      );
+      return;
+    }
+
+    setLoading(true);
+    setMessage({ type: "", text: "" });
+
+    try {
+      const result = await apiRequest(API.resendEmailOtp, {
+        email: otpEmail,
+      });
+
+      setOtp("");
+      showMessage(
+        "success",
+        result.message || "নতুন OTP পাঠানো হয়েছে।"
+      );
+    } catch (error) {
+      showMessage("error", error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const backFromOtp = () => {
+    setShowOtp(false);
+    setOtp("");
+    setMessage({ type: "", text: "" });
   };
 
   return (
@@ -143,6 +258,10 @@ export default function AuthPage() {
         input,
         textarea {
           font: inherit;
+        }
+
+        button {
+          -webkit-tap-highlight-color: transparent;
         }
 
         .auth-page {
@@ -199,7 +318,10 @@ export default function AuthPage() {
           z-index: -1;
           pointer-events: none;
           opacity: 0.4;
-          background-image: radial-gradient(#b5b3d8 0.7px, transparent 0.7px);
+          background-image: radial-gradient(
+            #b5b3d8 0.7px,
+            transparent 0.7px
+          );
           background-size: 25px 25px;
           mask-image: linear-gradient(
             to bottom,
@@ -259,7 +381,6 @@ export default function AuthPage() {
         }
 
         .gradient-text {
-          color: #6959ed;
           background: linear-gradient(100deg, #7965fa, #37bfc1);
           -webkit-background-clip: text;
           background-clip: text;
@@ -353,7 +474,8 @@ export default function AuthPage() {
           height: 100%;
           position: relative;
           transform-style: preserve-3d;
-          transition: transform 0.85s cubic-bezier(0.2, 0.75, 0.25, 1);
+          transition: transform 0.85s
+            cubic-bezier(0.2, 0.75, 0.25, 1);
         }
 
         .flip-card.register-mode {
@@ -371,7 +493,7 @@ export default function AuthPage() {
           overflow-x: hidden;
           backface-visibility: hidden;
           -webkit-backface-visibility: hidden;
-          background: rgba(255, 255, 255, 0.92);
+          background: rgba(255, 255, 255, 0.94);
           border: 1px solid rgba(255, 255, 255, 0.95);
           box-shadow:
             0 30px 80px rgba(58, 48, 122, 0.13),
@@ -595,6 +717,39 @@ export default function AuthPage() {
           color: #aaa8bc;
         }
 
+        .otp-icon {
+          width: 66px;
+          height: 66px;
+          display: grid;
+          place-items: center;
+          margin: 24px auto;
+          border-radius: 22px;
+          color: #6959ed;
+          background: linear-gradient(135deg, #eeebff, #e3fbf8);
+          border: 1px solid #e1dcff;
+          font-size: 28px;
+          box-shadow: 0 10px 25px rgba(103, 85, 235, 0.1);
+        }
+
+        .otp-input {
+          text-align: center;
+          font-size: 26px !important;
+          font-weight: 800;
+          letter-spacing: 12px;
+          padding-left: 24px !important;
+        }
+
+        .otp-email {
+          color: #6355db;
+          font-weight: 700;
+          overflow-wrap: anywhere;
+        }
+
+        .back-link {
+          display: block;
+          margin: 20px auto 0;
+        }
+
         @keyframes enterLeft {
           from {
             opacity: 0;
@@ -688,6 +843,11 @@ export default function AuthPage() {
           .auth-form {
             gap: 15px;
           }
+
+          .otp-input {
+            letter-spacing: 8px;
+            padding-left: 16px !important;
+          }
         }
 
         @media (max-width: 360px) {
@@ -718,6 +878,7 @@ export default function AuthPage() {
       <div className="ambient-grid" />
 
       <section className="auth-layout">
+        {/* LEFT HERO SECTION */}
         <div className="auth-intro">
           <div className="brand-pill">
             <span className="brand-dot" />
@@ -759,113 +920,242 @@ export default function AuthPage() {
               <span>H</span>
               <span>P</span>
             </div>
+
             <span>Everything you need. One account.</span>
           </div>
         </div>
 
+        {/* RIGHT AUTH CARD */}
         <div className="card-scene">
-          <div className={`flip-card ${isRegister ? "register-mode" : ""}`}>
-            {/* LOGIN */}
+          <div
+            className={`flip-card ${
+              isRegister && !showOtp ? "register-mode" : ""
+            }`}
+          >
+            {/* LOGIN CARD */}
             <div className="card-face card-front">
               <div className="card-top">
                 <div className="mini-brand">
                   SHOP<span>SPACE.</span>
                 </div>
+
                 <div className="secure-badge">● Secure access</div>
               </div>
 
-              <h2 className="card-heading">Welcome back!</h2>
+              {showOtp ? (
+                <>
+                  <div className="otp-icon">✉</div>
 
-              <p className="card-description">
-                Sign in to discover new favorites and manage your orders.
-              </p>
+                  <h2 className="card-heading">
+                    {otpType === "email"
+                      ? "Verify your email"
+                      : "Login verification"}
+                  </h2>
 
-              {message.text && !isRegister && (
-                <div className={`message ${message.type}`} role="status">
-                  {message.text}
-                </div>
-              )}
+                  <p className="card-description">
+                    We sent a 6-digit verification code to
+                    <br />
+                    <span className="otp-email">{otpEmail}</span>
+                  </p>
 
-              <form className="auth-form" onSubmit={handleLogin}>
-                <div className="field">
-                  <label htmlFor="login-email">Email address</label>
-                  <input
-                    id="login-email"
-                    type="email"
-                    placeholder="you@example.com"
-                    autoComplete="email"
-                    required
-                    value={loginData.email}
-                    onChange={(e) =>
-                      setLoginData({ ...loginData, email: e.target.value })
-                    }
-                  />
-                </div>
+                  {message.text && (
+                    <div
+                      className={`message ${message.type}`}
+                      role="status"
+                    >
+                      {message.text}
+                    </div>
+                  )}
 
-                <div className="field">
-                  <label htmlFor="login-password">Password</label>
-                  <div className="input-wrap">
-                    <input
-                      id="login-password"
-                      className="password-input"
-                      type={showLoginPassword ? "text" : "password"}
-                      placeholder="Enter your password"
-                      autoComplete="current-password"
-                      required
-                      value={loginData.password}
-                      onChange={(e) =>
-                        setLoginData({
-                          ...loginData,
-                          password: e.target.value,
-                        })
-                      }
-                    />
+                  <form
+                    className="auth-form"
+                    onSubmit={handleVerifyOtp}
+                  >
+                    <div className="field">
+                      <label htmlFor="auth-otp">6-digit OTP</label>
+
+                      <input
+                        id="auth-otp"
+                        className="otp-input"
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        placeholder="000000"
+                        value={otp}
+                        onChange={(e) =>
+                          setOtp(
+                            e.target.value
+                              .replace(/\D/g, "")
+                              .slice(0, 6)
+                          )
+                        }
+                        maxLength={6}
+                        pattern="[0-9]{6}"
+                        required
+                      />
+                    </div>
+
+                    <button
+                      className="primary-button"
+                      type="submit"
+                      disabled={loading || otp.length !== 6}
+                    >
+                      {loading ? "Verifying..." : "Verify OTP →"}
+                    </button>
+                  </form>
+
+                  {otpType === "email" && (
+                    <p className="switch-text">
+                      Didn't receive the code?
+                      <button
+                        className="switch-button"
+                        type="button"
+                        onClick={handleResendOtp}
+                        disabled={loading}
+                      >
+                        Resend OTP
+                      </button>
+                    </p>
+                  )}
+
+                  <button
+                    className="switch-button back-link"
+                    type="button"
+                    onClick={backFromOtp}
+                    disabled={loading}
+                  >
+                    ← Back
+                  </button>
+
+                  <div className="card-footer">
+                    SHOPSPACE · SECURE VERIFICATION
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h2 className="card-heading">Welcome back!</h2>
+
+                  <p className="card-description">
+                    Sign in to discover new favorites and manage
+                    your orders.
+                  </p>
+
+                  {message.text && !isRegister && (
+                    <div
+                      className={`message ${message.type}`}
+                      role="status"
+                    >
+                      {message.text}
+                    </div>
+                  )}
+
+                  <form className="auth-form" onSubmit={handleLogin}>
+                    <div className="field">
+                      <label htmlFor="login-email">
+                        Email address
+                      </label>
+
+                      <input
+                        id="login-email"
+                        type="email"
+                        placeholder="you@example.com"
+                        autoComplete="email"
+                        required
+                        value={loginData.email}
+                        onChange={(e) =>
+                          setLoginData({
+                            ...loginData,
+                            email: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+
+                    <div className="field">
+                      <label htmlFor="login-password">
+                        Password
+                      </label>
+
+                      <div className="input-wrap">
+                        <input
+                          id="login-password"
+                          className="password-input"
+                          type={
+                            showLoginPassword ? "text" : "password"
+                          }
+                          placeholder="Enter your password"
+                          autoComplete="current-password"
+                          required
+                          value={loginData.password}
+                          onChange={(e) =>
+                            setLoginData({
+                              ...loginData,
+                              password: e.target.value,
+                            })
+                          }
+                        />
+
+                        <button
+                          type="button"
+                          className="password-toggle"
+                          onClick={() =>
+                            setShowLoginPassword(!showLoginPassword)
+                          }
+                        >
+                          {showLoginPassword ? "Hide" : "Show"}
+                        </button>
+                      </div>
+                    </div>
+
+                    <button
+                      className="primary-button"
+                      type="submit"
+                      disabled={loading}
+                    >
+                      {loading ? "Signing in..." : "Sign In →"}
+                    </button>
+                  </form>
+
+                  <p className="switch-text">
+                    New to Shopspace?
                     <button
                       type="button"
-                      className="password-toggle"
-                      onClick={() => setShowLoginPassword(!showLoginPassword)}
+                      className="switch-button"
+                      onClick={() => switchForm(true)}
                     >
-                      {showLoginPassword ? "Hide" : "Show"}
+                      Create an account
                     </button>
+                  </p>
+
+                  <div className="card-footer">
+                    SHOPSPACE · SHOP WITH CONFIDENCE
                   </div>
-                </div>
-
-                <button className="primary-button" type="submit" disabled={loading}>
-                  {loading ? "Signing in..." : "Sign In →"}
-                </button>
-              </form>
-
-              <p className="switch-text">
-                New to Shopspace?
-                <button
-                  type="button"
-                  className="switch-button"
-                  onClick={() => switchForm(true)}
-                >
-                  Create an account
-                </button>
-              </p>
-
-              <div className="card-footer">SHOPSPACE · SHOP WITH CONFIDENCE</div>
+                </>
+              )}
             </div>
 
-            {/* REGISTER */}
+            {/* REGISTER CARD */}
             <div className="card-face card-back">
               <div className="card-top">
                 <div className="mini-brand">
                   SHOP<span>SPACE.</span>
                 </div>
+
                 <div className="secure-badge">✦ Join us</div>
               </div>
 
               <h2 className="card-heading">Join Shopspace</h2>
 
               <p className="card-description">
-                Create your account and make every shopping experience easier.
+                Create your account and make every shopping
+                experience easier.
               </p>
 
-              {message.text && isRegister && (
-                <div className={`message ${message.type}`} role="status">
+              {message.text && isRegister && !showOtp && (
+                <div
+                  className={`message ${message.type}`}
+                  role="status"
+                >
                   {message.text}
                 </div>
               )}
@@ -873,6 +1163,7 @@ export default function AuthPage() {
               <form className="auth-form" onSubmit={handleRegister}>
                 <div className="field">
                   <label htmlFor="register-name">Full name</label>
+
                   <input
                     id="register-name"
                     type="text"
@@ -881,13 +1172,19 @@ export default function AuthPage() {
                     required
                     value={registerData.name}
                     onChange={(e) =>
-                      setRegisterData({ ...registerData, name: e.target.value })
+                      setRegisterData({
+                        ...registerData,
+                        name: e.target.value,
+                      })
                     }
                   />
                 </div>
 
                 <div className="field">
-                  <label htmlFor="register-email">Email address</label>
+                  <label htmlFor="register-email">
+                    Email address
+                  </label>
+
                   <input
                     id="register-email"
                     type="email"
@@ -896,13 +1193,19 @@ export default function AuthPage() {
                     required
                     value={registerData.email}
                     onChange={(e) =>
-                      setRegisterData({ ...registerData, email: e.target.value })
+                      setRegisterData({
+                        ...registerData,
+                        email: e.target.value,
+                      })
                     }
                   />
                 </div>
 
                 <div className="field">
-                  <label htmlFor="register-phone">Phone number</label>
+                  <label htmlFor="register-phone">
+                    Phone number
+                  </label>
+
                   <input
                     id="register-phone"
                     type="tel"
@@ -911,13 +1214,19 @@ export default function AuthPage() {
                     required
                     value={registerData.phone}
                     onChange={(e) =>
-                      setRegisterData({ ...registerData, phone: e.target.value })
+                      setRegisterData({
+                        ...registerData,
+                        phone: e.target.value,
+                      })
                     }
                   />
                 </div>
 
                 <div className="field">
-                  <label htmlFor="register-address">Delivery address</label>
+                  <label htmlFor="register-address">
+                    Delivery address
+                  </label>
+
                   <textarea
                     id="register-address"
                     placeholder="Enter your delivery address"
@@ -934,12 +1243,17 @@ export default function AuthPage() {
                 </div>
 
                 <div className="field">
-                  <label htmlFor="register-password">Password</label>
+                  <label htmlFor="register-password">
+                    Password
+                  </label>
+
                   <div className="input-wrap">
                     <input
                       id="register-password"
                       className="password-input"
-                      type={showRegisterPassword ? "text" : "password"}
+                      type={
+                        showRegisterPassword ? "text" : "password"
+                      }
                       placeholder="Create a password"
                       autoComplete="new-password"
                       minLength={6}
@@ -952,11 +1266,14 @@ export default function AuthPage() {
                         })
                       }
                     />
+
                     <button
                       type="button"
                       className="password-toggle"
                       onClick={() =>
-                        setShowRegisterPassword(!showRegisterPassword)
+                        setShowRegisterPassword(
+                          !showRegisterPassword
+                        )
                       }
                     >
                       {showRegisterPassword ? "Hide" : "Show"}
@@ -964,7 +1281,11 @@ export default function AuthPage() {
                   </div>
                 </div>
 
-                <button className="primary-button" type="submit" disabled={loading}>
+                <button
+                  className="primary-button"
+                  type="submit"
+                  disabled={loading}
+                >
                   {loading ? "Creating account..." : "Create Account →"}
                 </button>
               </form>
@@ -980,7 +1301,9 @@ export default function AuthPage() {
                 </button>
               </p>
 
-              <div className="card-footer">SHOPSPACE · YOUR NEXT FAVORITE</div>
+              <div className="card-footer">
+                SHOPSPACE · YOUR NEXT FAVORITE
+              </div>
             </div>
           </div>
         </div>

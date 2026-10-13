@@ -24,7 +24,9 @@ import {
 } from "lucide-react";
 
 import useStore from "../Store/store";
+
 import { BANGLADESH_GEO } from "../../Data/BangladeshLocation";
+import { useRouter } from "next/navigation";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ||
@@ -240,7 +242,7 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false);
   const [userLoading, setUserLoading] = useState(true);
   const [loggedInUser, setLoggedInUser] = useState(null);
-
+const router = useRouter();
   /* =========================================================
      LOAD USER AND AUTOFILL FORM
   ========================================================= */
@@ -623,6 +625,7 @@ const fillUserData = (user) => {
 
       return total + price * Number(item?.quantity || 1);
     }, 0);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cart, selectedVariants]);
 
   const deliveryCharge = useMemo(() => {
@@ -843,17 +846,21 @@ const fillUserData = (user) => {
         );
       }
 
-      clearCart();
+    
+clearCart();
 
-      const orderId =
-        result?.data?.orderId ||
-        result?.data?._id ||
-        result?.orderId ||
-        "Created";
+const orderId =
+  result?.data?.orderId ||
+  result?.data?._id ||
+  result?.orderId;
 
-      alert(`Order placed successfully!\nOrder ID: ${orderId}`);
+if (!orderId) {
+  throw new Error("Order created, but Order ID was not returned.");
+}
 
-      window.location.href = "/";
+// Redirect to the invoice page
+router.push(`/invoice/${encodeURIComponent(orderId)}`);
+
     } catch (error) {
       console.error("ORDER ERROR:", error);
       alert(error?.message || "Failed to place order!");

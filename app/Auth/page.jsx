@@ -219,14 +219,14 @@ const handleVerifyOtp = async (e) => {
 if (role === "admin") {
   // Redirect to separate React Admin Panel
   window.location.href =
-    "/Adminpanel";
+    "https://apple-gadgets-ui-adminpanel.vercel.app";
 } else if (
   role === "subadmin" ||
   role === "employee" ||
   role === "order_manager"
 ) {
   // Redirect to admin dashboard in Next.js storefront
-  router.replace("/admin");
+  router.replace("https://apple-gadgets-ui-adminpanel.vercel.app");
 } else if (role === "customer") {
   // Redirect customer to storefront home
   router.replace("/");

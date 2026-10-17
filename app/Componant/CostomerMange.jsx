@@ -1,4 +1,5 @@
 /* eslint-disable react-hooks/set-state-in-effect */
+
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
@@ -22,13 +23,63 @@ import {
   CheckCircle2,
   XCircle,
   BadgeCheck,
+  Save,
 } from "lucide-react";
 
-const API_BASE = (
-  "http://localhost:4000"
-).replace(/\/+$/, "");
-
+const API_BASE = "http://localhost:4000";
+const CUSTOMER_API = `${API_BASE}/api/customers`;
 const PAGE_SIZE = 10;
+
+const ROLE_OPTIONS = [
+  { value: "customer", label: "Customer" },
+  { value: "order_manager", label: "Order Manager" },
+  { value: "admin", label: "Admin" },
+];
+
+async function apiRequest(endpoint, options = {}) {
+  const response = await fetch(`${API_BASE}${endpoint}`, {
+    ...options,
+    headers: {
+      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...options.headers,
+    },
+    cache: "no-store",
+  });
+
+  const result = await response.json().catch(() => ({}));
+
+  if (!response.ok || result.success === false) {
+    throw new Error(
+      result.message || `Request failed (${response.status})`
+    );
+  }
+
+  return result;
+}
+
+function normalizeCustomerResponse(result) {
+  const payload = result?.data;
+
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.customers)) return payload.customers;
+  if (Array.isArray(payload?.data)) return payload.data;
+
+  return [];
+}
+
+function formatDate(date) {
+  if (!date) return "N/A";
+
+  const parsed = new Date(date);
+
+  if (Number.isNaN(parsed.getTime())) return "N/A";
+
+  return parsed.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
 
 export default function CustomerManagementPage() {
   const [customers, setCustomers] = useState([]);
@@ -41,66 +92,20 @@ export default function CustomerManagementPage() {
   const [status, setStatus] = useState("all");
   const [page, setPage] = useState(1);
 
-  const [total, setTotal] = useState(0);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
-
-  const apiRequest = async (endpoint, options = {}) => {
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      throw new Error("Please login as an administrator.");
-    }
-
-    const response = await fetch(`${API_BASE}/api/users/me`, {
-      ...options,
-      headers: {
-        Authorization: `Bearer ${token}`,
-        ...(options.body
-          ? { "Content-Type": "application/json" }
-          : {}),
-        ...options.headers,
-      },
-      cache: "no-store",
-    });
-
-    const result = await response.json().catch(() => ({}));
-
-    if (!response.ok || result.success === false) {
-      throw new Error(
-        result.message || "Request failed. Please try again."
-      );
-    }
-
-    return result;
-  };
 
   const fetchCustomers = useCallback(async () => {
     setLoading(true);
     setError("");
 
     try {
-      // Your exact route: GET /AllCustomers
       const result = await apiRequest("/api/customers/AllCustomers");
-
-      // Supports either { data: [...] } or { data: { customers: [...] } }
-      const payload = result.data;
-
-      const list = Array.isArray(payload)
-        ? payload
-        : Array.isArray(payload?.customers)
-          ? payload.customers
-          : Array.isArray(payload?.data)
-            ? payload.data
-            : [];
-
-      setCustomers(list);
-      setTotal(list.length);
+      setCustomers(normalizeCustomerResponse(result));
     } catch (err) {
       setError(err.message || "Unable to load customers.");
       setCustomers([]);
-      setTotal(0);
     } finally {
       setLoading(false);
     }
@@ -110,14 +115,19 @@ export default function CustomerManagementPage() {
     fetchCustomers();
   }, [fetchCustomers]);
 
-  // Client-side search, filter and pagination
+  const showMessage = (text) => {
+    setMessage(text);
+    setError("");
+  };
+
   const filteredCustomers = customers.filter((customer) => {
     const query = search.trim().toLowerCase();
 
     const matchesSearch =
       !query ||
-      [customer.name, customer.email, customer.phone]
-        .some((value) => String(value || "").toLowerCase().includes(query));
+      [customer.name, customer.email, customer.phone].some((value) =>
+        String(value || "").toLowerCase().includes(query)
+      );
 
     const matchesStatus =
       status === "all" ||
@@ -139,10 +149,10 @@ export default function CustomerManagementPage() {
     currentPage * PAGE_SIZE
   );
 
-  const showMessage = (text) => {
-    setMessage(text);
-    setError("");
-  };
+  // Keep pagination valid after filtering or deleting a customer.
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
 
   const handleView = async (customer) => {
     setSelectedCustomer(customer);
@@ -150,13 +160,17 @@ export default function CustomerManagementPage() {
     setError("");
 
     try {
-      // Your exact route: GET /getCustomer/:id
       const result = await apiRequest(
         `/api/customers/getCustomer/${customer._id}`
       );
 
-      const data = result.data?.customer || result.data;
-      setSelectedCustomer(data);
+      const details = result.data?.customer || result.data;
+
+      if (!details || !details._id) {
+        throw new Error("Customer details were not returned by the API.");
+      }
+
+      setSelectedCustomer(details);
     } catch (err) {
       setSelectedCustomer(null);
       setError(err.message || "Unable to load customer details.");
@@ -165,7 +179,10 @@ export default function CustomerManagementPage() {
     }
   };
 
+  // Change Active / Blocked.
   const handleStatusChange = async (customer) => {
+    if (!customer?._id || customer.role === "admin") return;
+
     const nextStatus = customer.isActive === false;
     const key = `status-${customer._id}`;
 
@@ -174,8 +191,6 @@ export default function CustomerManagementPage() {
     setMessage("");
 
     try {
-      // Your exact route: PATCH /updateCustomerStatus/:id
-      // Controller expects { isActive: boolean }
       const result = await apiRequest(
         `/api/customers/updateCustomerStatus/${customer._id}`,
         {
@@ -184,17 +199,22 @@ export default function CustomerManagementPage() {
         }
       );
 
+      const updated = result.data || {
+        ...customer,
+        isActive: nextStatus,
+      };
+
       setCustomers((previous) =>
         previous.map((item) =>
           item._id === customer._id
-            ? { ...item, isActive: nextStatus }
+            ? { ...item, ...updated, isActive: nextStatus }
             : item
         )
       );
 
       setSelectedCustomer((previous) =>
         previous?._id === customer._id
-          ? { ...previous, isActive: nextStatus }
+          ? { ...previous, ...updated, isActive: nextStatus }
           : previous
       );
 
@@ -211,16 +231,78 @@ export default function CustomerManagementPage() {
     }
   };
 
-  const handleDelete = async () => {
-    if (!deleteTarget) return;
+  // Change Customer / Order Manager / Admin.
+  const handleRoleChange = async (customer, nextRole) => {
+    if (!customer?._id || customer.role === "admin") return;
+    if (!ROLE_OPTIONS.some((option) => option.value === nextRole)) return;
+    if (nextRole === customer.role) return;
 
-    const customerId = deleteTarget._id;
-    setActionLoading(`delete-${customerId}`);
+    const previousRole = customer.role || "customer";
+    const key = `role-${customer._id}`;
+
+    setActionLoading(key);
     setError("");
     setMessage("");
 
     try {
-      // Your exact route: DELETE /deleteCustomer/:id
+      const result = await apiRequest(
+        `/api/customers/updateCustomerRole/${customer._id}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ role: nextRole }),
+        }
+      );
+
+      const updatedRole = result.data?.role || nextRole;
+
+      setCustomers((previous) =>
+        previous.map((item) =>
+          item._id === customer._id
+            ? { ...item, role: updatedRole }
+            : item
+        )
+      );
+
+      setSelectedCustomer((previous) =>
+        previous?._id === customer._id
+          ? { ...previous, role: updatedRole }
+          : previous
+      );
+
+      showMessage(
+        result.message ||
+          `Role updated to ${
+            ROLE_OPTIONS.find((item) => item.value === updatedRole)?.label ||
+            updatedRole
+          }.`
+      );
+    } catch (err) {
+      // The dropdown uses customer.role as its value, so it reverts on error.
+      setError(err.message || "Unable to update customer role.");
+
+      setCustomers((previous) =>
+        previous.map((item) =>
+          item._id === customer._id
+            ? { ...item, role: previousRole }
+            : item
+        )
+      );
+    } finally {
+      setActionLoading("");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+
+    const customerId = deleteTarget._id;
+    const key = `delete-${customerId}`;
+
+    setActionLoading(key);
+    setError("");
+    setMessage("");
+
+    try {
       const result = await apiRequest(
         `/api/customers/deleteCustomer/${customerId}`,
         { method: "DELETE" }
@@ -243,20 +325,6 @@ export default function CustomerManagementPage() {
     }
   };
 
-  const formatDate = (date) => {
-    if (!date) return "N/A";
-
-    const parsed = new Date(date);
-
-    if (Number.isNaN(parsed.getTime())) return "N/A";
-
-    return parsed.toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
-  };
-
   const clearFilters = () => {
     setSearch("");
     setStatus("all");
@@ -266,19 +334,16 @@ export default function CustomerManagementPage() {
   return (
     <main className="min-h-screen bg-slate-50 p-4 text-slate-900 sm:p-6 lg:p-8">
       <div className="mx-auto max-w-7xl space-y-6">
-        {/* Header */}
         <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div>
             <p className="mb-2 text-sm text-slate-500">
               Admin Dashboard / Customers
             </p>
-
             <h1 className="text-2xl font-bold sm:text-3xl">
               Customer Management
             </h1>
-
             <p className="mt-2 text-sm text-slate-500">
-              Manage customer accounts, view details and control access.
+              Manage customer accounts, roles and access.
             </p>
           </div>
 
@@ -296,7 +361,6 @@ export default function CustomerManagementPage() {
           </button>
         </header>
 
-        {/* Notifications */}
         {error && (
           <div
             role="alert"
@@ -333,20 +397,17 @@ export default function CustomerManagementPage() {
           </div>
         )}
 
-        {/* Statistics */}
         <div className="grid gap-4 sm:grid-cols-3">
           <StatCard
             title="Total Customers"
             value={customers.length}
             icon={<Users size={22} />}
           />
-
           <StatCard
             title="Active Customers"
             value={customers.filter((c) => c.isActive !== false).length}
             icon={<CheckCircle2 size={22} />}
           />
-
           <StatCard
             title="Blocked Customers"
             value={customers.filter((c) => c.isActive === false).length}
@@ -354,7 +415,6 @@ export default function CustomerManagementPage() {
           />
         </div>
 
-        {/* Search */}
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex flex-col gap-3 md:flex-row">
             <div className="relative flex-1">
@@ -362,7 +422,6 @@ export default function CustomerManagementPage() {
                 size={19}
                 className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
               />
-
               <input
                 type="search"
                 value={search}
@@ -381,8 +440,8 @@ export default function CustomerManagementPage() {
                 setStatus(event.target.value);
                 setPage(1);
               }}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-slate-500"
-              aria-label="Customer status filter"
+              className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm"
+              aria-label="Filter by status"
             >
               <option value="all">All Customers</option>
               <option value="active">Active</option>
@@ -403,10 +462,9 @@ export default function CustomerManagementPage() {
           </p>
         </section>
 
-        {/* Table */}
         <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] text-left text-sm">
+            <table className="w-full min-w-[1050px] text-left text-sm">
               <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wider text-slate-500">
                 <tr>
                   <th className="px-5 py-4">Customer</th>
@@ -451,16 +509,13 @@ export default function CustomerManagementPage() {
                               .charAt(0)
                               .toUpperCase()}
                           </div>
-
                           <div className="min-w-0">
                             <p className="font-semibold text-slate-800">
                               {customer.name || "Unnamed"}
                             </p>
-
                             <p className="mt-1 max-w-[260px] truncate text-xs text-slate-500">
                               {customer.email || "No email"}
                             </p>
-
                             {customer.isEmailVerified && (
                               <span className="mt-1 inline-flex items-center gap-1 text-xs text-emerald-600">
                                 <BadgeCheck size={13} />
@@ -476,12 +531,31 @@ export default function CustomerManagementPage() {
                       </td>
 
                       <td className="px-5 py-4">
-                        <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-medium capitalize">
-                          {(customer.role || "customer").replaceAll(
-                            "_",
-                            " "
-                          )}
-                        </span>
+                        <select
+                          value={customer.role || "customer"}
+                          onChange={(event) =>
+                            handleRoleChange(customer, event.target.value)
+                          }
+                          disabled={
+                            customer.role === "admin" ||
+                            actionLoading === `role-${customer._id}` ||
+                            actionLoading !== ""
+                          }
+                          aria-label={`Change role for ${customer.name || "customer"}`}
+                          className="max-w-[170px] rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium disabled:cursor-not-allowed disabled:bg-slate-100 disabled:opacity-60"
+                        >
+                          {ROLE_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                        {actionLoading === `role-${customer._id}` && (
+                          <LoaderCircle
+                            size={14}
+                            className="ml-2 inline animate-spin"
+                          />
+                        )}
                       </td>
 
                       <td className="px-5 py-4">
@@ -509,9 +583,7 @@ export default function CustomerManagementPage() {
                                     ? "Unblock customer"
                                     : "Block customer"
                                 }
-                                disabled={
-                                  actionLoading === `status-${customer._id}`
-                                }
+                                disabled={actionLoading !== ""}
                                 onClick={() => handleStatusChange(customer)}
                               >
                                 {actionLoading === `status-${customer._id}` ? (
@@ -529,6 +601,7 @@ export default function CustomerManagementPage() {
                               <ActionButton
                                 title="Delete customer"
                                 danger
+                                disabled={actionLoading !== ""}
                                 onClick={() => setDeleteTarget(customer)}
                               >
                                 <Trash2 size={16} />
@@ -544,7 +617,6 @@ export default function CustomerManagementPage() {
             </table>
           </div>
 
-          {/* Pagination */}
           <div className="flex flex-col items-center justify-between gap-3 border-t border-slate-200 px-5 py-4 sm:flex-row">
             <p className="text-xs text-slate-500">
               Showing{" "}
@@ -561,9 +633,7 @@ export default function CustomerManagementPage() {
               <button
                 type="button"
                 disabled={currentPage <= 1}
-                onClick={() =>
-                  setPage((previous) => Math.max(1, previous - 1))
-                }
+                onClick={() => setPage((previous) => Math.max(1, previous - 1))}
                 className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-slate-50 disabled:opacity-40"
               >
                 <ChevronLeft size={16} />
@@ -578,9 +648,7 @@ export default function CustomerManagementPage() {
                 type="button"
                 disabled={currentPage >= totalPages}
                 onClick={() =>
-                  setPage((previous) =>
-                    Math.min(totalPages, previous + 1)
-                  )
+                  setPage((previous) => Math.min(totalPages, previous + 1))
                 }
                 className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-slate-50 disabled:opacity-40"
               >
@@ -592,7 +660,7 @@ export default function CustomerManagementPage() {
         </section>
       </div>
 
-      {/* Details Modal */}
+      {/* Customer Details Modal */}
       {selectedCustomer && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4"
@@ -610,17 +678,13 @@ export default function CustomerManagementPage() {
           >
             <div className="flex items-center justify-between border-b border-slate-200 p-5">
               <div>
-                <h2
-                  id="customer-details-title"
-                  className="text-lg font-bold"
-                >
+                <h2 id="customer-details-title" className="text-lg font-bold">
                   Customer Details
                 </h2>
                 <p className="mt-1 text-xs text-slate-500">
                   Complete account information
                 </p>
               </div>
-
               <button
                 type="button"
                 onClick={() => setSelectedCustomer(null)}
@@ -633,10 +697,7 @@ export default function CustomerManagementPage() {
 
             {detailsLoading ? (
               <div className="p-12 text-center">
-                <LoaderCircle
-                  size={28}
-                  className="mx-auto animate-spin"
-                />
+                <LoaderCircle size={28} className="mx-auto animate-spin" />
                 <p className="mt-3 text-sm text-slate-500">
                   Loading details...
                 </p>
@@ -650,15 +711,13 @@ export default function CustomerManagementPage() {
                         .charAt(0)
                         .toUpperCase()}
                     </div>
-
                     <div className="min-w-0">
                       <h3 className="text-xl font-bold">
-                        {selectedCustomer.name}
+                        {selectedCustomer.name || "Unnamed"}
                       </h3>
                       <p className="mt-1 break-all text-sm text-slate-500">
-                        {selectedCustomer.email}
+                        {selectedCustomer.email || "No email"}
                       </p>
-
                       <div className="mt-2 flex flex-wrap gap-2">
                         <StatusBadge
                           active={selectedCustomer.isActive !== false}
@@ -678,51 +737,77 @@ export default function CustomerManagementPage() {
                       label="Full Name"
                       value={selectedCustomer.name}
                     />
-
                     <DetailRow
                       icon={<Mail size={18} />}
                       label="Email Address"
                       value={selectedCustomer.email}
                     />
-
                     <DetailRow
                       icon={<Phone size={18} />}
                       label="Phone Number"
                       value={selectedCustomer.phone}
                     />
-
                     <DetailRow
                       icon={<MapPin size={18} />}
                       label="Address"
                       value={selectedCustomer.address || "Not provided"}
                     />
-
                     <DetailRow
                       icon={<Users size={18} />}
                       label="Role"
-                      value={selectedCustomer.role?.replaceAll("_", " ")}
-                      capitalize
+                      value={
+                        ROLE_OPTIONS.find(
+                          (item) => item.value === selectedCustomer.role
+                        )?.label || selectedCustomer.role || "Customer"
+                      }
                     />
-
                     <DetailRow
                       icon={<CalendarDays size={18} />}
                       label="Registered"
                       value={formatDate(selectedCustomer.createdAt)}
                     />
-
                     <DetailRow
                       icon={<CalendarDays size={18} />}
                       label="Last Updated"
                       value={formatDate(selectedCustomer.updatedAt)}
                     />
                   </div>
+
+                  {selectedCustomer.role !== "admin" && (
+                    <div className="mt-6 border-t border-slate-100 pt-5">
+                      <label
+                        htmlFor="details-role"
+                        className="mb-2 block text-sm font-semibold"
+                      >
+                        Change Role
+                      </label>
+                      <select
+                        id="details-role"
+                        value={selectedCustomer.role || "customer"}
+                        onChange={(event) =>
+                          handleRoleChange(
+                            selectedCustomer,
+                            event.target.value
+                          )
+                        }
+                        disabled={actionLoading !== ""}
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm disabled:opacity-50"
+                      >
+                        {ROLE_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
 
                 {selectedCustomer.role !== "admin" && (
                   <div className="flex flex-col gap-3 border-t border-slate-200 p-5 sm:flex-row">
                     <button
                       type="button"
-                      disabled={!!actionLoading}
+                      disabled={actionLoading !== ""}
                       onClick={() => handleStatusChange(selectedCustomer)}
                       className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold hover:bg-slate-50 disabled:opacity-50"
                     >
@@ -741,7 +826,7 @@ export default function CustomerManagementPage() {
 
                     <button
                       type="button"
-                      disabled={!!actionLoading}
+                      disabled={actionLoading !== ""}
                       onClick={() => setDeleteTarget(selectedCustomer)}
                       className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
                     >
@@ -772,11 +857,10 @@ export default function CustomerManagementPage() {
             <h2 id="delete-customer-title" className="text-lg font-bold">
               Delete Customer?
             </h2>
-
             <p className="mt-2 text-sm leading-6 text-slate-500">
               Permanently delete{" "}
               <strong className="text-slate-800">
-                {deleteTarget.name}
+                {deleteTarget.name || "this customer"}
               </strong>
               ? This action cannot be undone.
             </p>
@@ -784,22 +868,26 @@ export default function CustomerManagementPage() {
             <div className="mt-6 flex gap-3">
               <button
                 type="button"
-                disabled={!!actionLoading}
+                disabled={actionLoading !== ""}
                 onClick={() => setDeleteTarget(null)}
                 className="flex-1 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold hover:bg-slate-50 disabled:opacity-50"
               >
                 Cancel
               </button>
-
               <button
                 type="button"
-                disabled={!!actionLoading}
+                disabled={actionLoading !== ""}
                 onClick={handleDelete}
                 className="flex-1 rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
               >
-                {actionLoading === `delete-${deleteTarget._id}`
-                  ? "Deleting..."
-                  : "Yes, Delete"}
+                {actionLoading === `delete-${deleteTarget._id}` ? (
+                  <span className="inline-flex items-center gap-2">
+                    <LoaderCircle size={16} className="animate-spin" />
+                    Deleting...
+                  </span>
+                ) : (
+                  "Yes, Delete"
+                )}
               </button>
             </div>
           </section>
@@ -856,7 +944,7 @@ function ActionButton({
       aria-label={title}
       onClick={onClick}
       disabled={disabled}
-      className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border transition disabled:opacity-50 ${
+      className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border transition disabled:cursor-not-allowed disabled:opacity-50 ${
         danger
           ? "border-red-100 text-red-600 hover:bg-red-50"
           : "border-slate-200 text-slate-600 hover:bg-slate-100"
@@ -867,18 +955,13 @@ function ActionButton({
   );
 }
 
-function DetailRow({ icon, label, value, capitalize = false }) {
+function DetailRow({ icon, label, value }) {
   return (
     <div className="flex items-start gap-3">
       <div className="mt-0.5 text-slate-400">{icon}</div>
-
       <div className="min-w-0 flex-1">
         <p className="text-xs text-slate-500">{label}</p>
-        <p
-          className={`mt-1 break-words text-sm font-medium capitalize text-slate-800 ${
-            capitalize ? "" : "normal-case"
-          }`}
-        >
+        <p className="mt-1 break-words text-sm font-medium text-slate-800">
           {value || "Not provided"}
         </p>
       </div>

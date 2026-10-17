@@ -219,7 +219,7 @@ const handleVerifyOtp = async (e) => {
 if (role === "admin") {
   // Redirect to separate React Admin Panel
   window.location.href =
-    "https://apple-gadgets-ui-adminpanel.vercel.app";
+    "/Adminpanel";
 } else if (
   role === "subadmin" ||
   role === "employee" ||

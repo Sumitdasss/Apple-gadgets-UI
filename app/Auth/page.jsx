@@ -147,62 +147,106 @@ export default function AuthPage() {
   };
 
   // OTP VERIFY
-  const handleVerifyOtp = async (e) => {
-    e.preventDefault();
+  
+const handleVerifyOtp = async (e) => {
+  e.preventDefault();
 
-    if (!/^\d{6}$/.test(otp)) {
-      showMessage("error", "সঠিক ৬ সংখ্যার OTP লিখুন।");
+  if (!/^\d{6}$/.test(otp)) {
+    showMessage("error", "সঠিক ৬ সংখ্যার OTP লিখুন।");
+    return;
+  }
+
+  setLoading(true);
+  setMessage({ type: "", text: "" });
+
+  try {
+    const url =
+      otpType === "email"
+        ? API.verifyEmailOtp
+        : API.verifyLoginOtp;
+
+    const result = await apiRequest(url, {
+      email: otpEmail,
+      otp,
+    });
+
+    // =========================
+    // EMAIL OTP VERIFICATION
+    // =========================
+    if (otpType === "email") {
+      setShowOtp(false);
+      setIsRegister(false);
+      setOtp("");
+
+      showMessage(
+        "success",
+        result.message ||
+          "Email verification সফল হয়েছে। এবার লগইন করুন।"
+      );
+
       return;
     }
 
-    setLoading(true);
-    setMessage({ type: "", text: "" });
+    // =========================
+    // LOGIN OTP VERIFICATION
+    // =========================
+    const data = result.data ?? result;
 
-    try {
-      const url =
-        otpType === "email"
-          ? API.verifyEmailOtp
-          : API.verifyLoginOtp;
-
-      const result = await apiRequest(url, {
-        email: otpEmail,
-        otp,
-      });
-
-      if (otpType === "email") {
-        setShowOtp(false);
-        setIsRegister(false);
-        setOtp("");
-
-        showMessage(
-          "success",
-          result.message ||
-            "Email verification সফল হয়েছে। এবার লগইন করুন।"
-        );
-      } else {
-        const data = result.data ?? result;
-
-        if (!data.token) {
-          throw new Error(
-            "Login response-এ token পাওয়া যায়নি। Backend response চেক করুন।"
-          );
-        }
-
-        localStorage.setItem("token", data.token);
-
-        if (data.user) {
-          localStorage.setItem("user", JSON.stringify(data.user));
-        }
-
-        showMessage("success", "Login successful!");
-        router.push("/");
-      }
-    } catch (error) {
-      showMessage("error", error.message);
-    } finally {
-      setLoading(false);
+    if (!data.token) {
+      throw new Error(
+        "Login response-এ token পাওয়া যায়নি। Backend response চেক করুন।"
+      );
     }
-  };
+
+    if (!data.user) {
+      throw new Error(
+        "Login response-এ user পাওয়া যায়নি। Backend response চেক করুন।"
+      );
+    }
+
+    // Save token and user
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("user", JSON.stringify(data.user));
+
+    showMessage("success", "Login successful!");
+
+    // =========================
+    // ROLE-BASED REDIRECT
+    // =========================
+    const role = data.user.role;
+
+   
+if (role === "admin") {
+  // Redirect to separate React Admin Panel
+  window.location.href =
+    "https://apple-gadgets-ui-adminpanel.vercel.app";
+} else if (
+  role === "subadmin" ||
+  role === "employee" ||
+  role === "order_manager"
+) {
+  // Redirect to admin dashboard in Next.js storefront
+  router.replace("/admin");
+} else if (role === "customer") {
+  // Redirect customer to storefront home
+  router.replace("/");
+} else {
+  // Unknown role: don't grant dashboard access
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+
+  throw new Error(
+    "আপনার account role সঠিক নয়। Admin-এর সঙ্গে যোগাযোগ করুন।"
+  );
+}
+
+  } catch (error) {
+    showMessage("error", error.message);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   // শুধু Email verification OTP পুনরায় পাঠানো
   const handleResendOtp = async () => {

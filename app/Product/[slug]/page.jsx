@@ -773,6 +773,43 @@ export default function ProductDetailsPage() {
               </span>
             </div>
 
+
+            
+{/* Key Features - Show only when database has features */}
+{Array.isArray(product.keyFeatures) &&
+  product.keyFeatures.filter(
+    (feature) =>
+      typeof feature === "string" && feature.trim() !== ""
+  ).length > 0 && (
+    <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-4 sm:p-5">
+      <h3 className="text-sm font-semibold text-gray-900 mb-3">
+        Key Features
+      </h3>
+
+      <ul className="space-y-2">
+        {product.keyFeatures
+          .filter(
+            (feature) =>
+              typeof feature === "string" &&
+              feature.trim() !== ""
+          )
+          .map((feature, index) => (
+            <li
+              key={`${feature}-${index}`}
+              className="flex items-start gap-2.5 text-sm text-gray-600"
+            >
+              <Check
+                size={16}
+                className="mt-0.5 shrink-0 text-emerald-600"
+              />
+              <span>{feature}</span>
+            </li>
+          ))}
+      </ul>
+    </div>
+  )}
+
+
             {/* Color Selection */}
             {colors.length > 0 && (
               <div className="mt-8">

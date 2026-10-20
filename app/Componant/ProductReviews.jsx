@@ -291,12 +291,7 @@ function WriteReviewModal({
   5000,
   "success"
 );
-showReviewToast(
-  "Failed to submit review!",
-  5000,
-  "error"
-);
-    } catch (submitError) {
+  } catch (submitError) {
       setError(
         submitError?.message ||
           "Failed to submit review. Please try again."

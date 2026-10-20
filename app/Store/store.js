@@ -1,7 +1,6 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import toast from "react-hot-toast";
 
 const normalize = (value) => {
   if (value === null || value === undefined) return "";
@@ -95,7 +94,7 @@ const getCartKey = (product) => {
   const ram = getRam(product);
   const storage = getStorage(product);
 
-  // Variant থাকলে variantId সবচেয়ে reliable
+  // Variant থাকলে variantId ব্যবহার করবে
   if (variantId) {
     return `${productId}__variant__${variantId}`;
   }
@@ -128,8 +127,6 @@ const useStore = create(
         set((state) => ({
           users: [...state.users, newUser],
         }));
-
-        toast.success("Account created successfully!");
       },
 
       // =================================================
@@ -149,14 +146,10 @@ const useStore = create(
           if (foundUser) {
             success = true;
 
-            toast.success("Login successful!");
-
             return {
               user: foundUser,
             };
           }
-
-          toast.error("Invalid email or password!");
 
           return {
             user: null,
@@ -166,13 +159,14 @@ const useStore = create(
         return success;
       },
 
-clearCart: () =>
-  set(() => {
-    return {
-      cart: [],
-    };
-  }),
+      // =================================================
+      // CLEAR CART
+      // =================================================
 
+      clearCart: () =>
+        set(() => ({
+          cart: [],
+        })),
 
       // =================================================
       // LOGOUT
@@ -182,8 +176,6 @@ clearCart: () =>
         set({
           user: null,
         });
-
-        toast.success("Logout successfully!");
       },
 
       // =================================================
@@ -197,8 +189,6 @@ clearCart: () =>
           cart: [],
           wishlist: [],
         });
-
-        toast.success("Account deleted successfully!");
       },
 
       // =================================================
@@ -235,13 +225,8 @@ clearCart: () =>
             );
 
             if (currentQuantity >= stock) {
-              toast.error("Not enough stock");
               return state;
             }
-
-            toast.success(
-              `${product.name} quantity increased`
-            );
 
             return {
               cart: state.cart.map((item) =>
@@ -263,7 +248,6 @@ clearCart: () =>
             ...product,
 
             id: productId,
-
             productId,
 
             quantity: 1,
@@ -284,10 +268,6 @@ clearCart: () =>
                 }
               : null,
           };
-
-          toast.success(
-            `${product.name} added to cart`
-          );
 
           return {
             cart: [
@@ -311,10 +291,6 @@ clearCart: () =>
           );
 
           if (exist) {
-            toast.error(
-              `${product.name} removed from wishlist`
-            );
-
             return {
               wishlist: state.wishlist.filter(
                 (item) =>
@@ -322,10 +298,6 @@ clearCart: () =>
               ),
             };
           }
-
-          toast.success(
-            `${product.name} added to wishlist`
-          );
 
           return {
             wishlist: [
@@ -365,21 +337,15 @@ clearCart: () =>
           );
 
           if (currentQuantity >= stock) {
-            toast.error("Not enough stock");
             return state;
           }
-
-          toast.success(
-            `${product.name} quantity increased`
-          );
 
           return {
             cart: state.cart.map((item) =>
               getCartKey(item) === getCartKey(product)
                 ? {
                     ...item,
-                    quantity:
-                      currentQuantity + 1,
+                    quantity: currentQuantity + 1,
                   }
                 : item
             ),
@@ -391,27 +357,13 @@ clearCart: () =>
       // =================================================
 
       removeFromCart: (cartKeyOrId) =>
-        set((state) => {
-          const product = state.cart.find(
+        set((state) => ({
+          cart: state.cart.filter(
             (item) =>
-              getCartKey(item) === cartKeyOrId ||
-              getProductId(item) === cartKeyOrId
-          );
-
-          if (product) {
-            toast.error(
-              `${product.name} removed from cart`
-            );
-          }
-
-          return {
-            cart: state.cart.filter(
-              (item) =>
-                getCartKey(item) !== cartKeyOrId &&
-                getProductId(item) !== cartKeyOrId
-            ),
-          };
-        }),
+              getCartKey(item) !== cartKeyOrId &&
+              getProductId(item) !== cartKeyOrId
+          ),
+        })),
 
       // =================================================
       // DECREASE QUANTITY
@@ -434,40 +386,29 @@ clearCart: () =>
           );
 
           // =============================================
-          // QUANTITY = 1
-          // REMOVE
+          // QUANTITY = 1: REMOVE ITEM
           // =============================================
 
           if (quantity <= 1) {
-            toast.error(
-              `${product.name} removed from cart`
-            );
-
             return {
               cart: state.cart.filter(
                 (item) =>
                   getCartKey(item) !==
-                    getCartKey(product)
+                  getCartKey(product)
               ),
             };
           }
 
           // =============================================
-          // DECREASE
+          // DECREASE QUANTITY
           // =============================================
-
-          toast.success(
-            `${product.name} quantity decreased`
-          );
 
           return {
             cart: state.cart.map((item) =>
-              getCartKey(item) ===
-              getCartKey(product)
+              getCartKey(item) === getCartKey(product)
                 ? {
                     ...item,
-                    quantity:
-                      quantity - 1,
+                    quantity: quantity - 1,
                   }
                 : item
             ),
@@ -486,4 +427,3 @@ clearCart: () =>
 );
 
 export default useStore;
-

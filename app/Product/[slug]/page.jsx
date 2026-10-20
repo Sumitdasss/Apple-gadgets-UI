@@ -6,6 +6,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Inter } from "next/font/google";
+import DOMPurify from "isomorphic-dompurify";
 import {
   ChevronRight,
   Minus,
@@ -21,6 +22,7 @@ import {
 
 import RecentlyViewed from "../../Componant/RecentlyViewed";
 import useStore from "../../Store/store.js";
+import ProductReviews from "../../Componant/ProductReviews.jsx";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -652,7 +654,6 @@ export default function ProductDetailsPage() {
 
       <section className="max-w-[1280px] mx-auto px-4 sm:px-6 pt-6 pb-24">
         <div className="grid grid-cols-1 lg:grid-cols-[480px_1fr] xl:grid-cols-[520px_1fr] gap-8 lg:gap-12">
-          
           {/* ===================== IMAGE GALLERY ===================== */}
           <div className="space-y-4">
             <div className="relative aspect-square w-full rounded-3xl bg-white border border-gray-100 shadow-sm flex items-center justify-center overflow-hidden group">
@@ -773,42 +774,39 @@ export default function ProductDetailsPage() {
               </span>
             </div>
 
+            {/* Key Features */}
+            {Array.isArray(product.keyFeatures) &&
+              product.keyFeatures.filter(
+                (feature) =>
+                  typeof feature === "string" && feature.trim() !== ""
+              ).length > 0 && (
+                <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-4 sm:p-5">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3">
+                    Key Features
+                  </h3>
 
-            
-{/* Key Features - Show only when database has features */}
-{Array.isArray(product.keyFeatures) &&
-  product.keyFeatures.filter(
-    (feature) =>
-      typeof feature === "string" && feature.trim() !== ""
-  ).length > 0 && (
-    <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-4 sm:p-5">
-      <h3 className="text-sm font-semibold text-gray-900 mb-3">
-        Key Features
-      </h3>
-
-      <ul className="space-y-2">
-        {product.keyFeatures
-          .filter(
-            (feature) =>
-              typeof feature === "string" &&
-              feature.trim() !== ""
-          )
-          .map((feature, index) => (
-            <li
-              key={`${feature}-${index}`}
-              className="flex items-start gap-2.5 text-sm text-gray-600"
-            >
-              <Check
-                size={16}
-                className="mt-0.5 shrink-0 text-emerald-600"
-              />
-              <span>{feature}</span>
-            </li>
-          ))}
-      </ul>
-    </div>
-  )}
-
+                  <ul className="space-y-2">
+                    {product.keyFeatures
+                      .filter(
+                        (feature) =>
+                          typeof feature === "string" &&
+                          feature.trim() !== ""
+                      )
+                      .map((feature, index) => (
+                        <li
+                          key={`${feature}-${index}`}
+                          className="flex items-start gap-2.5 text-sm text-gray-600"
+                        >
+                          <Check
+                            size={16}
+                            className="mt-0.5 shrink-0 text-emerald-600"
+                          />
+                          <span>{feature}</span>
+                        </li>
+                      ))}
+                  </ul>
+                </div>
+              )}
 
             {/* Color Selection */}
             {colors.length > 0 && (
@@ -1106,8 +1104,102 @@ export default function ProductDetailsPage() {
             </aside>
           </div>
         </section>
+
+        {/* ===================== PRODUCT DESCRIPTION SECTIONS ===================== */}
+        <ProductDescriptionSections
+          sections={
+            product.descriptionSections ||
+            product.sections ||
+            product.description ||
+            []
+          }
+        />
+
+          <ProductReviews product={product} />
       </section>
     </main>
+  );
+}
+
+// =====================================================
+// PRODUCT DESCRIPTION SECTIONS
+// =====================================================
+function ProductDescriptionSections({ sections }) {
+  if (!Array.isArray(sections) || sections.length === 0) {
+    return null;
+  }
+
+  const validSections = sections.filter(
+    (section) =>
+      section &&
+      (section.title?.trim() ||
+        section.description?.trim() ||
+        section.image?.trim())
+  );
+
+  if (validSections.length === 0) return null;
+
+  return (
+    <section className="mt-12 sm:mt-16">
+      <div className="mb-6">
+        <h2 className="text-2xl font-semibold text-gray-900">
+          Product Description
+        </h2>
+        <p className="mt-2 text-sm text-gray-500">
+          Explore detailed information about this product.
+        </p>
+      </div>
+
+      <div className="space-y-6">
+        {validSections.map((section, index) => {
+          const safeDescription = DOMPurify.sanitize(
+            section.description || "",
+            {
+              ADD_ATTR: ["target"],
+            }
+          );
+
+          return (
+            <article
+              key={section._id || `${section.title}-${index}`}
+              className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm"
+            >
+              {section.title && (
+                <h3 className="border-b border-gray-100 px-5 py-4 text-lg font-semibold text-gray-900 sm:px-7">
+                  {section.title}
+                </h3>
+              )}
+
+              <div
+                className={`grid grid-cols-1 ${
+                  section.image ? "md:grid-cols-2" : "grid-cols-1"
+                } gap-5 p-5 sm:p-7`}
+              >
+                {section.image && (
+                  <div className="flex items-center justify-center">
+                    <img
+                      src={section.image}
+                      alt={section.title || "Product description"}
+                      loading="lazy"
+                      className="h-auto max-h-[420px] w-full rounded-xl object-contain"
+                    />
+                  </div>
+                )}
+
+                {section.description && (
+                  <div
+                    className="product-description-content min-w-0 text-sm leading-7 text-gray-700"
+                    dangerouslySetInnerHTML={{
+                      __html: safeDescription,
+                    }}
+                  />
+                )}
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 

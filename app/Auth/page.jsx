@@ -4,7 +4,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-
+import { showReviewToast } from "../Componant/SavedToast.jsx";
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ||
   "https://apple-gadgets-ui-backend.vercel.app"; // Backend API base URL
@@ -51,8 +51,16 @@ export default function AuthPage() {
   });
 
   const showMessage = (type, text) => {
-    setMessage({ type, text });
-  };
+  setMessage({ type, text });
+
+  if (!text) return;
+
+  showReviewToast(
+    text,
+    8000,
+    type === "error" ? "error" : "success"
+  );
+};
 
   const switchForm = (register) => {
     setIsRegister(register);

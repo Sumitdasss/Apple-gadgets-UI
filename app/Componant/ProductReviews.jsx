@@ -9,7 +9,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
-
+import { showReviewToast } from "../Componant/SavedToast.jsx";
 import { createPortal } from "react-dom";
 
 import {
@@ -286,6 +286,16 @@ function WriteReviewModal({
 
       await onSubmitted?.();
       onClose();
+      showReviewToast(
+  "Review submitted successfully!",
+  5000,
+  "success"
+);
+showReviewToast(
+  "Failed to submit review!",
+  5000,
+  "error"
+);
     } catch (submitError) {
       setError(
         submitError?.message ||

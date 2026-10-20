@@ -4,7 +4,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-
+import { showReviewToast } from "../Componant/SavedToast.jsx";
 import {
   ArrowLeft,
   Truck,
@@ -857,7 +857,11 @@ const orderId =
 if (!orderId) {
   throw new Error("Order created, but Order ID was not returned.");
 }
-
+showReviewToast(
+  "Order placed successfully!",
+  8000,
+  "success"
+);
 // Redirect to the invoice page
 router.push(`/invoice/${encodeURIComponent(orderId)}`);
 

@@ -3,7 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Header from "./Header";
 import Providers from "./Provider";
-
+import { Toaster } from "react-hot-toast";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -32,6 +32,22 @@ export default function RootLayout({
         <Providers>
           <Header />
           {children}
+         <Toaster
+  position="top-center"
+  toastOptions={{
+    duration: Infinity,
+    style: {
+      padding: 0,
+      background: "transparent",
+      boxShadow: "none",
+      border: "none",
+    },
+  }}
+  containerStyle={{
+    top: 20,
+    zIndex: 999999,
+  }}
+/>
         </Providers>
       </body>
     </html>

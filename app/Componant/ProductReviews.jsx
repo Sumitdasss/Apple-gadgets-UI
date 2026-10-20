@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 
 const API_BASE =
-  "http://localhost:4000";
+  "https://apple-gadgets-ui-backend.vercel.app"; // বা তোমার live URL
 
 const RATING_LABELS = {
   1: "Poor",

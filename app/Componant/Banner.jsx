@@ -1,11 +1,12 @@
 "use client";
 
-import Image from "next/image";
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+
 import { Swiper, SwiperSlide } from "swiper/react";
 import {
   Autoplay,
   Pagination,
-  Navigation,
   EffectCreative,
 } from "swiper/modules";
 
@@ -21,36 +22,9 @@ import {
 
 import "swiper/css";
 import "swiper/css/pagination";
-import "swiper/css/navigation";
 import "swiper/css/effect-creative";
 
-const items = [
-  {
-    image:
-      "https://www.applegadgetsbd.com/_next/image?url=https%3A%2F%2Fadminapi.applegadgetsbd.com%2Fstorage%2Fmedia%2Flarge%2FPre-order-18-Pro-Series-slider-6042.jpg&w=1920&q=100",
-    alt: "iPhone",
-  },
-  {
-    image:
-      "https://www.applegadgetsbd.com/_next/image?url=https%3A%2F%2Fadminapi.applegadgetsbd.com%2Fstorage%2Fmedia%2Flarge%2FCity-%26-EBL-0-slider-6299.png&w=1920&q=100",
-    alt: "iPhone",
-  },
-  {
-    image:
-      "https://www.applegadgetsbd.com/_next/image?url=https%3A%2F%2Fadminapi.applegadgetsbd.com%2Fstorage%2Fmedia%2Flarge%2FSamsung-s26-Ultra-top-slider1-4089.jpg&w=1920&q=100",
-    alt: "Samsung Galaxy",
-  },
-  {
-    image:
-      "https://www.applegadgetsbd.com/_next/image?url=https%3A%2F%2Fadminapi.applegadgetsbd.com%2Fstorage%2Fmedia%2Flarge%2FMac-Mini-M6-%26-Mac-Mini-M5-Pro---Top-Slider21-4090.jpg&w=1920&q=100",
-    alt: "Mac Mini",
-  },
-  {
-    image:
-      "https://www.applegadgetsbd.com/_next/image?url=https%3A%2F%2Fadminapi.applegadgetsbd.com%2Fstorage%2Fmedia%2Flarge%2FMacbook-Air-M5---Top-Slider1-3139.png&w=1920&q=100",
-    alt: "MacBook Air",
-  },
-];
+const API_URL = "https://apple-gadgets-ui-backend.vercel.app";
 
 const services = [
   {
@@ -81,61 +55,186 @@ const services = [
 ];
 
 export default function Banner() {
+  const [banners, setBanners] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  // Only keep a ref – no extra state for the instance
+  const swiperRef = useRef(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function fetchBanners() {
+      try {
+        setLoading(true);
+        setError("");
+
+        const response = await fetch(
+          `${API_URL}/api/landing-pages/published/banners`,
+          {
+            cache: "no-store",
+            signal: controller.signal,
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`Banner API error: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        if (!result.success || !Array.isArray(result.data)) {
+          throw new Error("Invalid banner API response");
+        }
+
+        setBanners(result.data);
+      } catch (err) {
+        if (err.name !== "AbortError") {
+          console.error("Banner fetch error:", err);
+          setError(err.message || "Failed to load banners");
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    fetchBanners();
+
+    return () => controller.abort();
+  }, []);
+
+  const handleSwiper = (swiper) => {
+    swiperRef.current = swiper;
+  };
+
+  const handlePrevious = () => {
+    const swiper = swiperRef.current;
+    if (swiper && !swiper.destroyed) {
+      swiper.slidePrev();
+    }
+  };
+
+  const handleNext = () => {
+    const swiper = swiperRef.current;
+    if (swiper && !swiper.destroyed) {
+      swiper.slideNext();
+    }
+  };
+
+  const renderBannerImage = (banner, altText) => {
+    if (!banner?.image) {
+      return (
+        <div className="flex h-full w-full items-center justify-center bg-gray-100 text-sm text-gray-400">
+          Image not available
+        </div>
+      );
+    }
+
+    return (
+      <img
+        src={banner.image}
+        alt={banner.alt || altText}
+        draggable="false"
+        className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-[1.02]"
+        onError={(event) => {
+          event.currentTarget.style.visibility = "hidden";
+        }}
+        onLoad={(event) => {
+          event.currentTarget.style.visibility = "visible";
+        }}
+      />
+    );
+  };
+
+  const renderBannerLink = (banner, altText) => {
+    const image = renderBannerImage(banner, altText);
+
+    if (banner?.link) {
+      return (
+        <Link
+          href={banner.link}
+          aria-label={banner.alt || altText}
+          className="group absolute inset-0 block"
+        >
+          {image}
+        </Link>
+      );
+    }
+
+    return <div className="group absolute inset-0">{image}</div>;
+  };
+
+  if (loading) {
+    return (
+      <main className="w-full bg-white">
+        <section className="w-full px-3 py-3 sm:px-4 sm:py-5 md:px-5 lg:px-6 xl:px-8">
+          <div className="mx-auto grid max-w-[1440px] grid-cols-1 gap-3 lg:grid-cols-[minmax(0,3fr)_minmax(260px,1.08fr)] lg:gap-5">
+            <div className="aspect-[16/9] animate-pulse rounded-xl bg-gray-200 sm:rounded-2xl lg:h-[430px] lg:aspect-auto" />
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-1 lg:gap-5">
+              <div className="aspect-[16/9] animate-pulse rounded-xl bg-gray-200 lg:h-[205px] lg:aspect-auto" />
+              <div className="aspect-[16/9] animate-pulse rounded-xl bg-gray-200 lg:h-[205px] lg:aspect-auto" />
+            </div>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <p className="px-4 py-6 text-center text-sm text-red-600">{error}</p>
+    );
+  }
+
+  if (banners.length === 0) {
+    return null;
+  }
+
+  const mainBanners = banners;
+  const rightBanners = banners.slice(1, 3);
+  const canSlide = mainBanners.length > 1;
+
   return (
-    <main className=" w-full bg-white">
+    <main className="w-full bg-white">
       <section className="w-full px-3 py-3 sm:px-4 sm:py-5 md:px-5 lg:px-6 xl:px-8">
         <div className="mx-auto w-full max-w-[1440px]">
-          {/* ================= HERO AREA ================= */}
-          <div
-            className="
-              grid
-              grid-cols-1
-              gap-3
-              sm:gap-4
-              lg:grid-cols-[minmax(0,3fr)_minmax(260px,1.08fr)]
-              lg:gap-5
-              xl:grid-cols-[minmax(0,3fr)_minmax(300px,1.15fr)]
-            "
-          >
-            {/* ================= MAIN SLIDER ================= */}
-            <div
-              className="
-                group
-                relative
-                aspect-[16/9]
-                w-full
-                overflow-hidden
-                rounded-xl
-
-                sm:rounded-2xl
-
-                lg:aspect-auto
-                lg:h-[430px]
-
-                xl:h-[500px]
-
-                2xl:h-[540px]
-              "
-            >
+          {/* HERO AREA */}
+          <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(260px,1.08fr)] lg:gap-5 xl:grid-cols-[minmax(0,3fr)_minmax(300px,1.15fr)]">
+            {/* MAIN SLIDER */}
+            <div className="group relative aspect-[16/9] w-full overflow-hidden rounded-xl bg-gray-100 sm:rounded-2xl lg:h-[430px] lg:aspect-auto xl:h-[500px] 2xl:h-[540px]">
               <Swiper
-                modules={[Autoplay, Pagination, Navigation, EffectCreative]}
+                key={mainBanners.map((banner) => banner._id).join("-")}
+                modules={[Autoplay, Pagination, EffectCreative]}
+                onSwiper={handleSwiper}
+                onBeforeDestroy={(swiper) => {
+                  if (swiperRef.current === swiper) {
+                    swiperRef.current = null;
+                  }
+                }}
                 effect="creative"
-                grabCursor
-                loop
+                grabCursor={canSlide}
+                loop={canSlide}
                 speed={700}
-                autoplay={{
-                  delay: 4000,
-                  disableOnInteraction: false,
-                  pauseOnMouseEnter: true,
-                }}
-                pagination={{
-                  clickable: true,
-                  dynamicBullets: true,
-                }}
-                navigation={{
-                  nextEl: ".banner-next",
-                  prevEl: ".banner-prev",
-                }}
+                autoplay={
+                  canSlide
+                    ? {
+                        delay: 4000,
+                        disableOnInteraction: false,
+                        pauseOnMouseEnter: true,
+                      }
+                    : false
+                }
+                pagination={
+                  canSlide
+                    ? {
+                        clickable: true,
+                        dynamicBullets: true,
+                      }
+                    : false
+                }
                 creativeEffect={{
                   prev: {
                     shadow: true,
@@ -144,205 +243,74 @@ export default function Banner() {
                     opacity: 0.5,
                   },
                   next: {
-                    shadow: true,
                     translate: ["100%", 0, 0],
                   },
                 }}
                 className="h-full w-full"
               >
-                {items.map((item, index) => (
+                {mainBanners.map((banner, index) => (
                   <SwiperSlide
-                    key={index}
-                    className="relative h-full w-full overflow-hidden rounded-xl sm:rounded-2xl"
+                    key={banner._id || `${banner.pageSlug}-${index}`}
+                    className="relative h-full w-full overflow-hidden"
                   >
-                    <img
-                      src={item.image}
-                      alt={item.alt}
-                      className="object-cover object-center"
-                    />
+                    {renderBannerLink(
+                      banner,
+                      `Promotional banner ${index + 1}`
+                    )}
                   </SwiperSlide>
                 ))}
               </Swiper>
 
-              {/* ================= PREVIOUS BUTTON ================= */}
-              <button
-                type="button"
-                className="
-                  banner-prev
-                  absolute
-                  left-2
-                  top-1/2
-                  z-[50]
-                  flex
-                  h-8
-                  w-8
-                  -translate-y-1/2
-                  cursor-pointer
-                  items-center
-                  justify-center
-                  rounded-full
-                  bg-black/40
-                  text-white
-                  backdrop-blur-md
-                  transition-all
-                  duration-300
-                  hover:bg-black/70
-                  hover:scale-110
-                  active:scale-95
+              {/* PREVIOUS BUTTON */}
+              {canSlide && (
+                <button
+                  type="button"
+                  onClick={handlePrevious}
+                  className="absolute left-2 top-1/2 z-30 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white shadow-lg backdrop-blur-md transition hover:scale-110 hover:bg-black/75 active:scale-95 sm:left-3 sm:h-10 sm:w-10 lg:left-4 lg:h-12 lg:w-12"
+                  aria-label="Previous banner"
+                >
+                  <ChevronLeft className="h-5 w-5 lg:h-6 lg:w-6" />
+                </button>
+              )}
 
-                  sm:left-3
-                  sm:h-10
-                  sm:w-10
-
-                  md:h-11
-                  md:w-11
-
-                  lg:left-4
-                  lg:h-12
-                  lg:w-12
-                "
-                aria-label="Previous slide"
-              >
-                <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6" />
-              </button>
-
-              {/* ================= NEXT BUTTON ================= */}
-              <button
-                type="button"
-                className="
-                  banner-next
-                  absolute
-                  right-2
-                  top-1/2
-                  z-[50]
-                  flex
-                  h-8
-                  w-8
-                  -translate-y-1/2
-                  cursor-pointer
-                  items-center
-                  justify-center
-                  rounded-full
-                  bg-black/40
-                  text-white
-                  backdrop-blur-md
-                  transition-all
-                  duration-300
-                  hover:bg-black/70
-                  hover:scale-110
-                  active:scale-95
-
-                  sm:right-3
-                  sm:h-10
-                  sm:w-10
-
-                  md:h-11
-                  md:w-11
-
-                  lg:right-4
-                  lg:h-12
-                  lg:w-12
-                "
-                aria-label="Next slide"
-              >
-                <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6" />
-              </button>
+              {/* NEXT BUTTON */}
+              {canSlide && (
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  className="absolute right-2 top-1/2 z-30 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white shadow-lg backdrop-blur-md transition hover:scale-110 hover:bg-black/75 active:scale-95 sm:right-3 sm:h-10 sm:w-10 lg:right-4 lg:h-12 lg:w-12"
+                  aria-label="Next banner"
+                >
+                  <ChevronRight className="h-5 w-5 lg:h-6 lg:w-6" />
+                </button>
+              )}
             </div>
 
-            {/* ================= RIGHT BANNERS ================= */}
-            <div
-              className="
-                grid
-                grid-cols-2
-                gap-3
+            {/* RIGHT BANNERS */}
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-1 lg:gap-5">
+              {rightBanners.map((banner, index) => (
+                <div
+                  key={banner._id || `right-banner-${index}`}
+                  className="group relative aspect-[16/9] w-full overflow-hidden rounded-xl bg-gray-100 sm:rounded-2xl lg:aspect-auto lg:h-[calc((430px-20px)/2)] xl:h-[calc((500px-20px)/2)] 2xl:h-[calc((540px-20px)/2)]"
+                >
+                  {renderBannerLink(
+                    banner,
+                    banner.alt || `Side banner ${index + 1}`
+                  )}
+                </div>
+              ))}
 
-                lg:grid-cols-1
-                lg:gap-5
-              "
-            >
-              {/* MacBook Banner */}
-              <div
-                className="
-                  relative
-                  aspect-[16/9]
-                  w-full
-                  overflow-hidden
-                  rounded-xl
-                  bg-gray-100
-
-                  sm:rounded-2xl
-
-                  lg:aspect-auto
-                  lg:h-[calc((430px-20px)/2)]
-
-                  xl:h-[calc((500px-20px)/2)]
-
-                  2xl:h-[calc((540px-20px)/2)]
-                "
-              >
-                <img
-                  src="https://www.applegadgetsbd.com/_next/image?url=https%3A%2F%2Fadminapi.applegadgetsbd.com%2Fstorage%2Fmedia%2Flarge%2FMackbook-neo-banner-2216.png&w=640&q=75"
-                  alt="MacBook Neo"
-                  className="
-                    object-cover
-                    transition-transform
-                    duration-500
-                    hover:scale-[1.03]
-                  "
-                />
-              </div>
-
-              {/* AirPods Banner */}
-              <div
-                className="
-                  relative
-                  aspect-[16/9]
-                  w-full
-                  overflow-hidden
-                  rounded-xl
-                  bg-black
-
-                  sm:rounded-2xl
-
-                  lg:aspect-auto
-                  lg:h-[calc((430px-20px)/2)]
-
-                  xl:h-[calc((500px-20px)/2)]
-
-                  2xl:h-[calc((540px-20px)/2)]
-                "
-              >
-                <img
-                  src="https://www.applegadgetsbd.com/_next/image?url=https%3A%2F%2Fadminapi.applegadgetsbd.com%2Fstorage%2Fmedia%2Flarge%2FAirPods-Pro-(2nd-generation)-USB%E2%80%90C-price-update-6041.png&w=640&q=75"
-                  alt="AirPods Pro"
-                  className="
-                    object-cover
-                    transition-transform
-                    duration-500
-                    hover:scale-[1.03]
-                  "
-                />
-              </div>
+              {rightBanners.length === 0 && (
+                <>
+                  <div className="aspect-[16/9] rounded-xl bg-gray-50 lg:hidden" />
+                  <div className="aspect-[16/9] rounded-xl bg-gray-50 lg:hidden" />
+                </>
+              )}
             </div>
           </div>
 
-          {/* ================= SERVICE BAR ================= */}
-          <div
-            className="
-              mt-4
-              overflow-hidden
-              rounded-xl
-              border
-              border-gray-200
-              bg-white
-              shadow-sm
-
-              sm:mt-5
-              sm:rounded-2xl
-
-              lg:mt-6
-            "
-          >
+          {/* SERVICE BAR */}
+          <div className="mt-4 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm sm:mt-5 sm:rounded-2xl lg:mt-6">
             <div className="hidden md:grid md:grid-cols-3 lg:grid-cols-5">
               {services.map((service, index) => {
                 const Icon = service.icon;
@@ -350,63 +318,17 @@ export default function Banner() {
                 return (
                   <div
                     key={service.title}
-                    className={`
-                      flex
-                      min-h-[72px]
-                      items-center
-                      justify-center
-                      gap-2
-                      px-2
-                      py-3
-
-                      sm:min-h-[80px]
-                      sm:gap-2.5
-                      sm:px-3
-
-                      md:min-h-[84px]
-                      md:gap-3
-                      md:px-4
-
-                      lg:min-h-[88px]
-
-                      ${
-                        index !== services.length - 1
-                          ? "border-b border-gray-100 sm:border-b-0 sm:border-r"
-                          : ""
-                      }
-                    `}
+                    className={`flex min-h-[72px] items-center justify-center gap-2 px-2 py-3 sm:min-h-[80px] sm:gap-2.5 sm:px-3 md:min-h-[84px] md:gap-3 md:px-4 lg:min-h-[88px] ${
+                      index !== services.length - 1
+                        ? "border-gray-100 lg:border-r"
+                        : ""
+                    }`}
                   >
                     <Icon
                       strokeWidth={1.6}
-                      className={`
-                        shrink-0
-                        ${service.color}
-
-                        h-6
-                        w-6
-
-                        sm:h-7
-                        sm:w-7
-
-                        md:h-8
-                        md:w-8
-                      `}
+                      className={`h-6 w-6 shrink-0 sm:h-7 sm:w-7 md:h-8 md:w-8 ${service.color}`}
                     />
-
-                    <span
-                      className="
-                        max-w-[130px]
-                        text-center
-                        text-[11px]
-                        font-medium
-                        leading-tight
-                        text-gray-700
-
-                        sm:text-xs
-
-                        md:text-sm
-                      "
-                    >
+                    <span className="max-w-[130px] text-center text-[11px] font-medium leading-tight text-gray-700 sm:text-xs md:text-sm">
                       {service.title}
                     </span>
                   </div>
@@ -416,6 +338,21 @@ export default function Banner() {
           </div>
         </div>
       </section>
+
+      {/* SWIPER STYLES */}
+      <style jsx global>{`
+        .swiper-pagination-bullet {
+          background: #fff;
+          opacity: 0.7;
+        }
+        .swiper-pagination-bullet-active {
+          background: #fff;
+          opacity: 1;
+        }
+        .swiper-pagination {
+          z-index: 10;
+        }
+      `}</style>
     </main>
   );
 }

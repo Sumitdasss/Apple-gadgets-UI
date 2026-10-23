@@ -184,3 +184,66 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+
+:root {
+  --font-heading: var(--font-jakarta), sans-serif;
+  --font-body: var(--font-manrope), sans-serif;
+
+  --brand-accent: #ed762e;
+  --brand-accent-hover: #d9611c;
+
+  --text-primary: #172238;
+  --text-secondary: #59677d;
+  --text-muted: #8995a7;
+
+  --surface-main: #ffffff;
+  --surface-soft: #f5f7fb;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading);
+  letter-spacing: -0.035em;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  color: #ffffff;
+  background: #ed762e;
+}
+
+.dark {
+  --text-primary: #f1f5fb;
+  --text-secondary: #bac5d5;
+  --text-muted: #8491a5;
+
+  --surface-main: #09090b;
+  --surface-soft: #12141a;
+}

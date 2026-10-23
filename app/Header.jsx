@@ -1,5 +1,5 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
 import Link from "next/link";
@@ -20,6 +20,12 @@ import {
   Package,
   Heart,
   Settings,
+  Sparkles,
+  Truck,
+  ArrowUpRight,
+  ShieldCheck,
+  Clock3,
+  SearchX,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import {
@@ -33,98 +39,111 @@ import {
 import useStore from "./Store/store";
 
 const API_BASE = "https://apple-gadgets-ui-backend.vercel.app";
-
-
-
 const SEARCH_HISTORY_KEY = "apple_gadgets_search_history";
+
+const DEFAULT_TRENDING = [
+  "iPhone 18 Pro Max",
+  "iPhone 18 Pro",
+  "Samsung Galaxy S25 Ultra",
+  "MacBook Pro M5",
+];
+
+const LOGO_URL =
+  "https://www.applegadgetsbd.com/_next/image?url=https%3A%2F%2Fadminapi.applegadgetsbd.com%2Fstorage%2Fmedia%2Flarge%2Flogo-3717.png&w=1920&q=100";
+
+const C = {
+  primary: "#18263D",
+  secondary: "#52627A",
+  muted: "#8290A5",
+  accent: "#E96B32",
+  accentHover: "#CF5421",
+};
+
+const money = (value) =>
+  Number(value || 0).toLocaleString("en-BD");
 
 export default function Header() {
   const pathname = usePathname();
-
-  // =====================================================
-  // SEARCH
-  // =====================================================
+  const { cart } = useStore();
+  const { theme, setTheme } = useTheme();
 
   const [search, setSearch] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
-
-  const { cart } = useStore();
-
-  const totalItems = Array.isArray(cart)
-    ? cart.reduce((total, item) => total + Number(item.quantity || 1), 0)
-    : 0;
-
   const [allProducts, setAllProducts] = useState([]);
   const [searchResults, setSearchResults] = useState([]);
   const [productsLoading, setProductsLoading] = useState(false);
   const [searchHistory, setSearchHistory] = useState([]);
 
-  // =====================================================
-  // CATEGORY
-  // =====================================================
-
-  const [isOpen, setIsOpen] = useState(false);
   const [categories, setCategories] = useState([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [categoryMenuOpen, setCategoryMenuOpen] = useState(false);
   const [expandedMobileCategories, setExpandedMobileCategories] =
     useState({});
 
-  // =====================================================
-  // MOBILE MENU
-  // =====================================================
-
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  // =====================================================
-  // THEME
-  // =====================================================
-
-  const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-
-  // =====================================================
-  // ACCOUNT
-  // =====================================================
 
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [accountOpen, setAccountOpen] = useState(false);
 
-  // =====================================================
-  // REFS
-  // =====================================================
-
   const desktopSearchRef = useRef(null);
   const mobileSearchRef = useRef(null);
   const accountRef = useRef(null);
 
-  // =====================================================
-  // MOUNT + SEARCH HISTORY
-  // =====================================================
+  const totalItems = Array.isArray(cart)
+    ? cart.reduce(
+        (total, item) => total + Number(item.quantity || 1),
+        0,
+      )
+    : 0;
 
+  const closeSearch = useCallback(() => {
+    setSearchFocused(false);
+    setCategoryMenuOpen(false);
+  }, []);
+
+  const closeMobileMenu = useCallback(() => {
+    setIsMobileMenuOpen(false);
+  }, []);
+
+  const closeAll = useCallback(() => {
+    setSearchFocused(false);
+    setCategoryMenuOpen(false);
+    setIsMobileMenuOpen(false);
+    setAccountOpen(false);
+  }, []);
+
+  // Mount and search history
   useEffect(() => {
     setMounted(true);
 
     try {
       const saved = localStorage.getItem(SEARCH_HISTORY_KEY);
-
-      if (saved) {
-        const parsed = JSON.parse(saved);
-
-        if (Array.isArray(parsed)) {
-          setSearchHistory(parsed);
-        }
-      }
+      const parsed = saved ? JSON.parse(saved) : [];
+      if (Array.isArray(parsed)) setSearchHistory(parsed);
     } catch (error) {
       console.error("Search history loading error:", error);
     }
   }, []);
 
-  // =====================================================
-  // LOAD LOGGED-IN USER + INSTANT UPDATE AFTER LOGIN
-  // GET /api/users/me
-  // =====================================================
+  // Prevent background scrolling while the mobile menu is open
+  useEffect(() => {
+    if (!isMobileMenuOpen) return;
 
+    const previousOverflow = document.body.style.overflow;
+    const previousOverscroll = document.body.style.overscrollBehavior;
+
+    document.body.style.overflow = "hidden";
+    document.body.style.overscrollBehavior = "none";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.body.style.overscrollBehavior = previousOverscroll;
+    };
+  }, [isMobileMenuOpen]);
+
+  // Authentication
   useEffect(() => {
     let cancelled = false;
 
@@ -148,7 +167,6 @@ export default function Header() {
         return;
       }
 
-      // Age cached user dekhabe, jate "Login" flash na kore
       const cachedUser = getSavedUser();
 
       if (cachedUser && !cancelled) {
@@ -158,7 +176,6 @@ export default function Header() {
 
       try {
         const response = await fetch(`${API_BASE}/api/users/me`, {
-          method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,
             Accept: "application/json",
@@ -172,69 +189,47 @@ export default function Header() {
           if (response.status === 401) {
             localStorage.removeItem("token");
             localStorage.removeItem("user");
-
-            if (!cancelled) {
-              setUser(null);
-            }
+            if (!cancelled) setUser(null);
           } else if (!cancelled && !cachedUser) {
             setUser(null);
           }
-
           return;
         }
 
-        // API response-er alada alada structure samlabe
         const loggedInUser =
           result?.data?.user ??
           result?.data?.data?.user ??
           result?.data ??
           result?.user;
 
-        if (!loggedInUser || typeof loggedInUser !== "object") {
-          console.error("User data paoa jayni:", result);
-          return;
-        }
+        if (!loggedInUser || typeof loggedInUser !== "object") return;
 
-        if (!cancelled) {
-          setUser(loggedInUser);
-        }
-
+        if (!cancelled) setUser(loggedInUser);
         localStorage.setItem("user", JSON.stringify(loggedInUser));
       } catch (error) {
         console.error("Account loading error:", error);
-
-        // API temporary off thakleo cached user thakle seta thakbe
-        if (!cancelled && !cachedUser) {
-          setUser(null);
-        }
+        if (!cancelled && !cachedUser) setUser(null);
       } finally {
-        if (!cancelled) {
-          setAuthLoading(false);
-        }
+        if (!cancelled) setAuthLoading(false);
       }
     };
 
-    // Login/Register page theke "auth-change" ashle
     const handleAuthChange = () => {
       const token = localStorage.getItem("token");
       const cachedUser = getSavedUser();
 
       if (token && cachedUser) {
-        // Sathe sathe user dekhabe
         setUser(cachedUser);
         setAuthLoading(false);
       } else if (!token) {
-        // Logout hoyeche
         setUser(null);
         setAuthLoading(false);
         return;
       }
 
-      // Token ache kintu user nai hole API theke anbe
       loadLoggedInUser();
     };
 
-    // Onno tab theke token/user change hole
     const handleStorageChange = (event) => {
       if (
         event.key === "token" ||
@@ -245,7 +240,6 @@ export default function Header() {
       }
     };
 
-    // Tab-e phire ashle abar check
     const handleVisibility = () => {
       if (document.visibilityState === "visible") {
         handleAuthChange();
@@ -266,12 +260,6 @@ export default function Header() {
     };
   }, []);
 
-  // =====================================================
-  // RE-SYNC USER ON EVERY ROUTE CHANGE
-  // Login page theke "/" e gele Header nijei notun user dhorbe,
-  // jodio login page "auth-change" event dispatch korte bhule jay.
-  // =====================================================
-
   useEffect(() => {
     const token = localStorage.getItem("token");
 
@@ -289,7 +277,6 @@ export default function Header() {
         setUser(cachedUser);
         setAuthLoading(false);
       } else {
-        // Token ache kintu user save hoyni, API theke anar jonno
         window.dispatchEvent(new Event("auth-change"));
       }
     } catch {
@@ -297,40 +284,32 @@ export default function Header() {
     }
   }, [pathname]);
 
-  // =====================================================
-  // LOGOUT
-  // =====================================================
-
   const handleLogout = useCallback(() => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
 
     setUser(null);
     setAccountOpen(false);
+    setIsMobileMenuOpen(false);
 
     window.dispatchEvent(new Event("auth-change"));
-
     window.location.href = "/Auth";
   }, []);
 
-  // =====================================================
-  // SEARCH HISTORY SAVE
-  // =====================================================
-
+  // Search history
   const saveSearchHistory = useCallback((keyword) => {
     const cleanKeyword = String(keyword || "").trim();
-
     if (!cleanKeyword) return;
 
     try {
       const saved = localStorage.getItem(SEARCH_HISTORY_KEY);
-      const current = saved ? JSON.parse(saved) : [];
-      const list = Array.isArray(current) ? current : [];
+      const parsed = saved ? JSON.parse(saved) : [];
+      const list = Array.isArray(parsed) ? parsed : [];
 
       const existingIndex = list.findIndex(
         (item) =>
           String(item?.keyword || "").toLowerCase() ===
-          cleanKeyword.toLowerCase()
+          cleanKeyword.toLowerCase(),
       );
 
       let updated = [...list];
@@ -354,75 +333,35 @@ export default function Header() {
         .sort((a, b) => Number(b.count || 0) - Number(a.count || 0))
         .slice(0, 30);
 
-      localStorage.setItem(
-        SEARCH_HISTORY_KEY,
-        JSON.stringify(updated)
-      );
-
+      localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(updated));
       setSearchHistory(updated);
     } catch (error) {
       console.error("Search history save error:", error);
     }
   }, []);
 
-  // =====================================================
-  // TRENDING SEARCH
-  // =====================================================
-
   const trendingSearches = useMemo(() => {
-    const defaultTrending = [
-      "iPhone 18 Pro Max",
-      "iPhone 18 Pro",
-      "Samsung Galaxy S25 Ultra",
-      "MacBook Pro M5",
-    ];
-
-    if (!Array.isArray(searchHistory)) {
-      return defaultTrending;
-    }
-
-    const sorted = [...searchHistory]
-      .filter(
-        (item) =>
-          item &&
-          typeof item.keyword === "string" &&
-          item.keyword.trim()
-      )
+    const sorted = searchHistory
+      .filter((item) => item?.keyword?.trim())
       .sort((a, b) => Number(b.count || 0) - Number(a.count || 0))
-      .map((item) => item.keyword.trim())
-      .filter(Boolean);
+      .map((item) => item.keyword.trim());
 
     const unique = [];
 
-    for (const keyword of sorted) {
-      const exists = unique.some(
-        (item) => item.toLowerCase() === keyword.toLowerCase()
-      );
-
-      if (!exists) unique.push(keyword);
-    }
-
-    const finalTrending = unique.slice(0, 6);
-
-    if (finalTrending.length < 4) {
-      for (const item of defaultTrending) {
-        const exists = finalTrending.some(
-          (keyword) => keyword.toLowerCase() === item.toLowerCase()
-        );
-
-        if (!exists) finalTrending.push(item);
-
-        if (finalTrending.length >= 4) break;
+    for (const keyword of [...sorted, ...DEFAULT_TRENDING]) {
+      if (
+        !unique.some(
+          (item) => item.toLowerCase() === keyword.toLowerCase(),
+        )
+      ) {
+        unique.push(keyword);
       }
     }
 
-    return finalTrending.slice(0, 6);
+    return unique.slice(0, 6);
   }, [searchHistory]);
 
-  // =====================================================
-  // LOAD CATEGORY TREE
-  // =====================================================
-
+  // Categories
   useEffect(() => {
     let cancelled = false;
 
@@ -431,27 +370,21 @@ export default function Header() {
         setCategoriesLoading(true);
 
         const response = await fetch(`${API_BASE}/category/tree`, {
-          method: "GET",
           cache: "no-store",
         });
 
-        const contentType =
-          response.headers.get("content-type") || "";
+        const contentType = response.headers.get("content-type") || "";
 
         if (!contentType.includes("application/json")) {
-          const responseText = await response.text();
-
-          console.error("Category API returned non-JSON:", responseText);
-
-          throw new Error(`Category API returned ${response.status}`);
+          throw new Error(
+            `Category API returned non-JSON (${response.status})`,
+          );
         }
 
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(
-            data?.message || "Failed to load categories"
-          );
+          throw new Error(data?.message || "Failed to load categories");
         }
 
         const list = Array.isArray(data?.categories)
@@ -486,19 +419,12 @@ export default function Header() {
             : [],
         }));
 
-        if (!cancelled) {
-          setCategories(normalized);
-        }
+        if (!cancelled) setCategories(normalized);
       } catch (error) {
         console.error("Header category loading error:", error);
-
-        if (!cancelled) {
-          setCategories([]);
-        }
+        if (!cancelled) setCategories([]);
       } finally {
-        if (!cancelled) {
-          setCategoriesLoading(false);
-        }
+        if (!cancelled) setCategoriesLoading(false);
       }
     };
 
@@ -509,10 +435,7 @@ export default function Header() {
     };
   }, []);
 
-  // =====================================================
-  // LOAD PRODUCTS
-  // =====================================================
-
+  // Products
   useEffect(() => {
     let cancelled = false;
 
@@ -522,30 +445,22 @@ export default function Header() {
 
         const response = await fetch(
           `${API_BASE}/products/getALLproducts`,
-          {
-            method: "GET",
-            cache: "no-store",
-          }
+          { cache: "no-store" },
         );
 
-        const contentType =
-          response.headers.get("content-type") || "";
+        const contentType = response.headers.get("content-type") || "";
 
         if (!contentType.includes("application/json")) {
-          const responseText = await response.text();
-
-          console.error("Product API returned non-JSON:", responseText);
-
-          throw new Error(`Product API returned ${response.status}`);
+          throw new Error(
+            `Product API returned non-JSON (${response.status})`,
+          );
         }
 
         const data = await response.json();
 
         if (!response.ok) {
           throw new Error(
-            data?.message ||
-              data?.error ||
-              `Failed to get products (${response.status})`
+            data?.message || `Failed to get products (${response.status})`,
           );
         }
 
@@ -569,9 +484,7 @@ export default function Header() {
           setSearchResults([]);
         }
       } finally {
-        if (!cancelled) {
-          setProductsLoading(false);
-        }
+        if (!cancelled) setProductsLoading(false);
       }
     };
 
@@ -582,10 +495,7 @@ export default function Header() {
     };
   }, []);
 
-  // =====================================================
-  // SLUG
-  // =====================================================
-
+  // Product helpers
   const makeSlug = useCallback((item) => {
     if (item?.slug) return item.slug;
 
@@ -597,10 +507,6 @@ export default function Header() {
       .replace(/-+/g, "-");
   }, []);
 
-  // =====================================================
-  // PRODUCT IMAGE
-  // =====================================================
-
   const getProductImage = useCallback((product) => {
     if (Array.isArray(product?.images) && product.images.length > 0) {
       const firstImage = product.images[0];
@@ -610,16 +516,9 @@ export default function Header() {
         : firstImage?.url || firstImage?.secure_url || "";
     }
 
-    if (typeof product?.image === "string") {
-      return product.image;
-    }
-
+    if (typeof product?.image === "string") return product.image;
     return product?.image?.url || "";
   }, []);
-
-  // =====================================================
-  // PRODUCT PRICE
-  // =====================================================
 
   const getProductPrice = useCallback((product) => {
     const price = Number(product?.price || 0);
@@ -645,10 +544,6 @@ export default function Header() {
     };
   }, []);
 
-  // =====================================================
-  // SEARCH CHANGE
-  // =====================================================
-
   const handleSearchChange = useCallback(
     (value) => {
       setSearch(value);
@@ -665,17 +560,14 @@ export default function Header() {
           const name = String(product?.name || "").toLowerCase();
           const brand = String(product?.brand || "").toLowerCase();
           const sku = String(product?.sku || "").toLowerCase();
-
           const category = String(
-            product?.category?.name || product?.category || ""
+            product?.category?.name || product?.category || "",
           ).toLowerCase();
-
           const shortDescription = String(
-            product?.shortDescription || ""
+            product?.shortDescription || "",
           ).toLowerCase();
-
           const description = String(
-            product?.description || ""
+            product?.description || "",
           ).toLowerCase();
 
           return (
@@ -691,12 +583,8 @@ export default function Header() {
 
       setSearchResults(filtered);
     },
-    [allProducts]
+    [allProducts],
   );
-
-  // =====================================================
-  // SEARCH SUBMIT
-  // =====================================================
 
   const handleSearch = useCallback(
     (event) => {
@@ -710,52 +598,24 @@ export default function Header() {
       }
 
       saveSearchHistory(keyword);
+      closeAll();
 
-      setSearchFocused(false);
-      setIsOpen(false);
-
-      window.location.href =
-        `/search?q=${encodeURIComponent(keyword)}`;
+      window.location.href = `/search?q=${encodeURIComponent(keyword)}`;
     },
-    [search, saveSearchHistory]
+    [search, saveSearchHistory, closeAll],
   );
-
-  // =====================================================
-  // TRENDING SEARCH CLICK
-  // =====================================================
 
   const handleTrendingSearch = useCallback(
     (value) => {
       const keyword = String(value || "").trim();
-
       if (!keyword) return;
 
       setSearch(keyword);
-      saveSearchHistory(keyword);
       handleSearchChange(keyword);
       setSearchFocused(true);
     },
-    [handleSearchChange, saveSearchHistory]
+    [handleSearchChange],
   );
-
-  // =====================================================
-  // CLOSE HELPERS
-  // =====================================================
-
-  const closeSearch = useCallback(() => {
-    setSearchFocused(false);
-  }, []);
-
-  const closeMobileMenu = useCallback(() => {
-    setIsMobileMenuOpen(false);
-  }, []);
-
-  const closeAll = useCallback(() => {
-    setSearchFocused(false);
-    setIsOpen(false);
-    setIsMobileMenuOpen(false);
-    setAccountOpen(false);
-  }, []);
 
   const toggleMobileCategory = useCallback((id) => {
     setExpandedMobileCategories((prev) => ({
@@ -764,24 +624,25 @@ export default function Header() {
     }));
   }, []);
 
-  // =====================================================
-  // OUTSIDE CLICK + ESCAPE
-  // =====================================================
+  // Outside click and Escape
 
+  // Outside click and Escape
   useEffect(() => {
     const handleOutsideClick = (event) => {
+      const target = event.target;
+
       const desktopInside =
-        desktopSearchRef.current?.contains(event.target);
+        desktopSearchRef.current?.contains(target) ?? false;
 
       const mobileInside =
-        mobileSearchRef.current?.contains(event.target);
+        mobileSearchRef.current?.contains(target) ?? false;
 
       const accountInside =
-        accountRef.current?.contains(event.target);
+        accountRef.current?.contains(target) ?? false;
 
       if (!desktopInside && !mobileInside) {
         setSearchFocused(false);
-        setIsOpen(false);
+        setCategoryMenuOpen(false);
       }
 
       if (!accountInside) {
@@ -792,7 +653,7 @@ export default function Header() {
     const handleEscape = (event) => {
       if (event.key === "Escape") {
         setSearchFocused(false);
-        setIsOpen(false);
+        setCategoryMenuOpen(false);
         setIsMobileMenuOpen(false);
         setAccountOpen(false);
       }
@@ -807,464 +668,441 @@ export default function Header() {
     };
   }, []);
 
-  // =====================================================
-  // RENDER
-  // =====================================================
 
   return (
-    <header className="sticky top-0 z-[9999] w-full border-b border-gray-200/80 bg-white/95 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95">
-      {/* MAIN HEADER */}
+    <header className="sticky top-0 z-[9990] w-full font-[family-name:var(--font-manrope)] text-[13px] font-medium text-[#18263D] antialiased dark:text-[#EDF2FA]">
+      {/* Announcement bar */}
+      <div className="relative overflow-hidden bg-[#101828] text-white">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(233,107,50,0.2),transparent_50%)]" />
 
-      <div className="mx-auto max-w-[1440px] px-3 py-2.5 sm:px-4 lg:py-3">
-        <div className="flex items-center justify-between gap-2 lg:gap-5">
-          {/* MOBILE MENU BUTTON */}
-
-          <button
-            type="button"
-            onClick={() =>
-              setIsMobileMenuOpen((prev) => !prev)
-            }
-            aria-label="Toggle menu"
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-gray-800 transition hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-slate-800 lg:hidden"
-          >
-            {isMobileMenuOpen ? <X size={25} /> : <Menu size={25} />}
-          </button>
-
-          {/* LOGO */}
+        <div className="relative mx-auto flex min-h-[34px] max-w-[1600px] items-center justify-center gap-2 px-3 text-center text-[10px] font-semibold tracking-wide sm:text-xs">
+          <Sparkles size={13} className="shrink-0 text-orange-300" />
+          <span>Your favourite tech, delivered with care.</span>
 
           <Link
+            href="/offers"
             prefetch={false}
-            href="/"
-            aria-label="Homepage"
-            onClick={closeAll}
-            className="flex shrink-0 items-center"
+            className="inline-flex shrink-0 items-center gap-1 font-extrabold text-[#FFB58C] transition hover:text-white"
           >
-            <img
-              src="https://www.applegadgetsbd.com/_next/image?url=https%3A%2F%2Fadminapi.applegadgetsbd.com%2Fstorage%2Fmedia%2Flarge%2Flogo-3717.png&w=1920&q=100"
-              alt="AppleGadgets"
-              className="h-auto w-[105px] object-contain sm:w-[135px] lg:w-[175px] xl:w-[190px]"
-            />
+            Explore offers
+            <ArrowUpRight size={12} />
           </Link>
+        </div>
+      </div>
 
-          {/* DESKTOP SEARCH */}
-
-          <div
-            ref={desktopSearchRef}
-            className="relative hidden min-w-0 flex-1 lg:flex lg:max-w-[600px]"
-          >
-            <form
-              onSubmit={handleSearch}
-              className="flex h-[46px] w-full items-center rounded-full border border-gray-200/70 bg-gray-100/80 px-2 transition-all focus-within:border-[#f47421] focus-within:bg-white focus-within:shadow-md dark:border-slate-700/60 dark:bg-slate-800/80 dark:focus-within:border-[#f47421] dark:focus-within:bg-slate-800"
+      {/* Main header */}
+      <div className="border-b border-slate-200/80 bg-white/95 shadow-[0_8px_30px_rgba(15,23,42,0.045)] backdrop-blur-2xl dark:border-white/[0.08] dark:bg-[#09090b]/95">
+        <div className="mx-auto max-w-[1600px] px-3 sm:px-6 xl:px-10">
+          <div className="flex min-h-[76px] items-center gap-3 sm:gap-5 xl:gap-8">
+            <button
+              type="button"
+              onClick={() => setIsMobileMenuOpen((prev) => !prev)}
+              aria-label="Toggle menu"
+              aria-expanded={isMobileMenuOpen}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white transition hover:border-orange-300 hover:bg-orange-50 hover:text-[#CF5421] dark:border-white/10 dark:bg-white/[0.04] dark:hover:bg-orange-500/10 lg:hidden"
             >
-              {/* CATEGORY DROPDOWN */}
+              {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
 
-              <div className="relative shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setIsOpen((prev) => !prev)}
-                  className="group flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-semibold text-gray-700 transition hover:text-[#f47421] dark:text-gray-200"
-                >
-                  <span>Category</span>
-
-                  <ChevronDown
-                    size={15}
-                    className={`transition-transform ${
-                      isOpen
-                        ? "rotate-180 text-[#f47421]"
-                        : "text-gray-500"
-                    }`}
-                  />
-                </button>
-
-                <div
-                  className={`absolute left-0 top-[50px] z-[10000] w-[300px] rounded-2xl border border-gray-100 bg-white p-2 shadow-2xl transition-all duration-200 dark:border-slate-800 dark:bg-slate-900 ${
-                    isOpen
-                      ? "visible translate-y-0 opacity-100"
-                      : "invisible -translate-y-2 opacity-0"
-                  }`}
-                >
-                  <div className="max-h-[420px] overflow-y-auto rounded-xl p-1">
-                    {categoriesLoading ? (
-                      <div className="px-3 py-4 text-sm text-gray-400">
-                        Loading categories...
-                      </div>
-                    ) : categories.length === 0 ? (
-                      <div className="px-3 py-4 text-sm text-gray-400">
-                        No categories found
-                      </div>
-                    ) : (
-                      categories.map((category) => (
-                        <Link
-                          key={category._id}
-                          prefetch={false}
-                          href={`/category/${makeSlug(category)}`}
-                          onClick={closeAll}
-                          className="flex items-center justify-between rounded-lg px-3 py-2.5 text-[14px] font-medium text-gray-700 transition hover:bg-orange-50 hover:text-[#f47421] dark:text-gray-200 dark:hover:bg-slate-800"
-                        >
-                          {category.name}
-                        </Link>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="h-5 w-px shrink-0 bg-gray-300 dark:bg-slate-700" />
-
-              {/* SEARCH INPUT */}
-
-              <div className="flex min-w-0 flex-1 items-center gap-2.5 px-3">
-                <Search size={18} className="shrink-0 text-gray-400" />
-
-                <input
-                  type="search"
-                  value={search}
-                  onFocus={() => {
-                    setSearchFocused(true);
-
-                    if (!search.trim()) {
-                      setSearchResults(allProducts.slice(0, 8));
-                    }
-                  }}
-                  onChange={(event) =>
-                    handleSearchChange(event.target.value)
-                  }
-                  placeholder="Search products..."
-                  aria-label="Search products"
-                  className="w-full bg-transparent text-[14px] font-medium text-gray-900 outline-none placeholder:text-gray-400 dark:text-white"
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="flex shrink-0 items-center justify-center rounded-full bg-[#f47421] px-5 py-2 text-[13px] font-semibold text-white transition hover:bg-[#e06211] active:scale-95"
-              >
-                Search
-              </button>
-            </form>
-
-            {searchFocused && (
-              <SearchPanel
-                search={search}
-                searchResults={searchResults}
-                productsLoading={productsLoading}
-                trendingSearches={trendingSearches}
-                onTrendingClick={handleTrendingSearch}
-                onClose={closeSearch}
-                getProductImage={getProductImage}
-                getProductPrice={getProductPrice}
-                makeSlug={makeSlug}
+            <Link
+              prefetch={false}
+              href="/"
+              onClick={closeAll}
+              aria-label="Apple Gadgets homepage"
+              className="flex shrink-0 items-center"
+            >
+              <img
+                src={LOGO_URL}
+                alt="Apple Gadgets"
+                className="h-auto w-[100px] object-contain sm:w-[135px] xl:w-[165px]"
               />
-            )}
-          </div>
-
-          {/* RIGHT NAVIGATION */}
-
-          <nav className="flex shrink-0 items-center gap-1.5 sm:gap-2.5 lg:gap-4 xl:gap-5">
-            <Link
-              prefetch={false}
-              href="/blog"
-              className="hidden text-[14px] font-medium text-gray-700 transition hover:text-[#f47421] dark:text-gray-200 lg:block"
-            >
-              Blog
             </Link>
 
-            <Link
-              prefetch={false}
-              href="/pre-order"
-              className="hidden text-[14px] font-medium text-gray-700 transition hover:text-[#f47421] dark:text-gray-200 lg:block"
+            {/* Desktop search */}
+            <div
+              ref={desktopSearchRef}
+              className="relative hidden min-w-0 flex-1 lg:block"
             >
-              Pre-order
-            </Link>
-
-            <Link
-              prefetch={false}
-              href="/offers"
-              className="hidden items-center gap-1 text-[14px] font-semibold text-[#f47421] lg:flex"
-            >
-              <span>🎁</span>
-              <span>Offers</span>
-            </Link>
-
-            <Link
-              prefetch={false}
-              href="/compare"
-              className="hidden text-[14px] font-medium text-gray-700 transition hover:text-[#f47421] dark:text-gray-200 lg:block"
-            >
-              ⇄ Compare
-            </Link>
-
-            {/* THEME */}
-
-            {mounted && (
-              <button
-                type="button"
-                aria-label="Toggle theme"
-                onClick={() =>
-                  setTheme(theme === "dark" ? "light" : "dark")
-                }
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 text-gray-700 transition hover:border-[#f47421] hover:text-[#f47421] dark:border-slate-800 dark:text-gray-200 sm:h-10 sm:w-10"
+              <form
+                onSubmit={handleSearch}
+                className="group flex h-[50px] items-center rounded-2xl border border-slate-200 bg-[#F5F7FB] p-1 transition-all duration-200 focus-within:border-orange-300 focus-within:bg-white focus-within:shadow-[0_0_0_4px_rgba(233,107,50,0.08)] dark:border-white/10 dark:bg-white/[0.045] dark:focus-within:bg-[#111113]"
               >
-                {theme === "dark" ? (
-                  <Sun size={18} />
-                ) : (
-                  <Moon size={18} />
-                )}
-              </button>
-            )}
-
-            {/* CART */}
-
-            <Link
-              prefetch={false}
-              href="/cart"
-              aria-label="Cart"
-              className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gray-300 text-gray-800 transition hover:border-[#f47421] hover:text-[#f47421] dark:border-slate-700 dark:text-gray-200 sm:h-10 sm:w-10"
-            >
-              <ShoppingBag size={18} />
-
-              <span className="absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#f47421] px-1 text-[10px] font-bold text-white">
-                {totalItems}
-              </span>
-            </Link>
-
-            {/* ACCOUNT MENU */}
-
-            <div ref={accountRef} className="relative">
-              {authLoading ? (
-                <div className="flex h-10 w-10 items-center justify-center">
-                  <User size={19} className="text-gray-400" />
-                </div>
-              ) : user ? (
-                <>
+                <div className="relative h-full shrink-0">
                   <button
                     type="button"
-                    onClick={() =>
-                      setAccountOpen((prev) => !prev)
-                    }
-                    aria-label="Open account menu"
-                    aria-expanded={accountOpen}
-                    className="flex h-10 items-center gap-2 rounded-full border border-gray-200 px-2 transition hover:border-[#f47421] dark:border-slate-700 dark:text-white"
+                    onClick={() => {
+                      setCategoryMenuOpen((prev) => !prev);
+                      setSearchFocused(false);
+                    }}
+                    aria-expanded={categoryMenuOpen}
+                    className="flex h-full items-center gap-2 rounded-xl px-3 text-[12px] font-bold text-[#52627A] transition hover:bg-white hover:text-[#CF5421] dark:text-[#C0CADA] dark:hover:bg-white/5 sm:px-4"
                   >
-                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-100 text-[#f47421]">
-                      <UserCircle size={20} />
-                    </span>
-
-                    <span className="hidden max-w-[100px] truncate text-sm font-semibold sm:block">
-                      {user.name || "My Account"}
-                    </span>
-
+                    <span className="hidden xl:inline">All</span>
+                    Categories
                     <ChevronDown
-                      size={15}
-                      className={`hidden transition-transform sm:block ${
-                        accountOpen ? "rotate-180" : ""
+                      size={14}
+                      className={`transition-transform ${
+                        categoryMenuOpen
+                          ? "rotate-180 text-[#E96B32]"
+                          : ""
                       }`}
                     />
                   </button>
 
-                  {accountOpen && (
-                    <div className="absolute right-0 top-12 z-[10001] w-[280px] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
-                      {/* USER INFORMATION */}
+                  {categoryMenuOpen && (
+                    <div className="absolute left-0 top-[57px] z-[10001] w-[300px] overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_20px_60px_rgba(15,23,42,0.16)] dark:border-white/10 dark:bg-[#111113]">
+                      <div className="rounded-xl bg-[#F5F7FB] px-3 py-3 dark:bg-white/[0.04]">
+                        <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[#E96B32]">
+                          Discover
+                        </p>
+                        <p className="mt-1 text-sm font-extrabold">
+                          Shop by category
+                        </p>
+                      </div>
 
-                      <div className="border-b border-gray-100 bg-gray-50 p-4 dark:border-slate-800 dark:bg-slate-800/60">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-orange-100 text-[#f47421]">
-                            <UserCircle size={27} />
-                          </div>
-
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-bold text-gray-900 dark:text-white">
-                              {user.name || "Customer"}
-                            </p>
-
-                            <p className="mt-1 truncate text-xs text-gray-500 dark:text-gray-400">
-                              {user.email || ""}
-                            </p>
-                          </div>
-                        </div>
-
-                        {user.phone && (
-                          <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
-                            Phone: {user.phone}
-                          </p>
+                      <div className="mt-2 max-h-[350px] overflow-y-auto">
+                        {categoriesLoading ? (
+                          <SearchMessage>Loading categories...</SearchMessage>
+                        ) : categories.length === 0 ? (
+                          <SearchMessage>No categories found</SearchMessage>
+                        ) : (
+                          categories.map((category) => (
+                            <Link
+                              key={category._id}
+                              prefetch={false}
+                              href={`/category/${makeSlug(category)}`}
+                              onClick={closeAll}
+                              className="group flex items-center justify-between rounded-xl px-3 py-3 text-[13px] font-semibold transition hover:bg-orange-50 hover:text-[#CF5421] dark:hover:bg-orange-500/10"
+                            >
+                              <span>{category.name}</span>
+                              <ChevronRight
+                                size={15}
+                                className="text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-[#E96B32]"
+                              />
+                            </Link>
+                          ))
                         )}
-                      </div>
-
-                      {/* ACCOUNT LINKS */}
-
-                      <div className="p-2">
-                        <AccountLink
-                          href="/profile"
-                          icon={UserCircle}
-                          label="My Profile"
-                          onClick={closeAll}
-                        />
-
-                        <AccountLink
-                          href="/orders"
-                          icon={Package}
-                          label="My Orders"
-                          onClick={closeAll}
-                        />
-
-                        <AccountLink
-                          href="/wishlist"
-                          icon={Heart}
-                          label="My Wishlist"
-                          onClick={closeAll}
-                        />
-
-                        <AccountLink
-                          href="/cart"
-                          icon={ShoppingBag}
-                          label="My Cart"
-                          onClick={closeAll}
-                        />
-
-                        <AccountLink
-                          href="/settings"
-                          icon={Settings}
-                          label="Account Settings"
-                          onClick={closeAll}
-                        />
-                      </div>
-
-                      {/* LOGOUT */}
-
-                      <div className="border-t border-gray-100 p-2 dark:border-slate-800">
-                        <button
-                          type="button"
-                          onClick={handleLogout}
-                          className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-50 dark:hover:bg-red-950/30"
-                        >
-                          <LogOut size={18} />
-                          Logout
-                        </button>
                       </div>
                     </div>
                   )}
-                </>
-              ) : (
-                <Link
-                  href="/Auth"
-                  prefetch={false}
-                  aria-label="Login or register"
-                  className="flex h-10 items-center gap-2 rounded-full border border-gray-200 px-3 text-gray-700 transition hover:border-[#f47421] hover:text-[#f47421] dark:border-slate-700 dark:text-gray-200"
-                >
-                  <User size={18} />
+                </div>
 
-                  <span className="hidden text-sm font-semibold sm:block">
-                    Login
-                  </span>
-                </Link>
+                <div className="mx-1 h-6 w-px bg-slate-200 dark:bg-white/10" />
+
+                <div className="flex min-w-0 flex-1 items-center gap-2 px-3">
+                  <Search
+                    size={18}
+                    className="shrink-0 text-[#8290A5] transition group-focus-within:text-[#E96B32]"
+                  />
+
+                  <input
+                    type="search"
+                    value={search}
+                    onFocus={() => {
+                      setSearchFocused(true);
+                      setCategoryMenuOpen(false);
+                    }}
+                    onChange={(event) =>
+                      handleSearchChange(event.target.value)
+                    }
+                    placeholder="Search products, brands and more..."
+                    aria-label="Search products"
+                    className="w-full min-w-0 bg-transparent text-[13px] font-medium text-[#283952] outline-none placeholder:text-[#8290A5] dark:text-[#EDF2FA] dark:placeholder:text-[#8E9BB0]"
+                  />
+
+                  {search && (
+                    <button
+                      type="button"
+                      onClick={() => handleSearchChange("")}
+                      aria-label="Clear search"
+                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-white/10"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+
+                <button
+                  type="submit"
+                  className="flex h-[40px] shrink-0 items-center gap-2 rounded-xl bg-[#E96B32] px-4 text-[12px] font-extrabold text-white shadow-sm shadow-orange-500/20 transition hover:bg-[#CF5421] active:scale-[0.98] xl:px-5"
+                >
+                  <Search size={15} />
+                  <span>Search</span>
+                </button>
+              </form>
+
+              {searchFocused && (
+                <SearchPanel
+                  search={search}
+                  searchResults={searchResults}
+                  productsLoading={productsLoading}
+                  trendingSearches={trendingSearches}
+                  onTrendingClick={handleTrendingSearch}
+                  onClose={closeSearch}
+                  getProductImage={getProductImage}
+                  getProductPrice={getProductPrice}
+                  makeSlug={makeSlug}
+                />
               )}
             </div>
-          </nav>
-        </div>
 
-        {/* MOBILE SEARCH */}
+            {/* Header actions */}
+            <nav className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3 xl:gap-4">
+              <Link
+                prefetch={false}
+                href="/blog"
+                className="hidden text-[13px] font-semibold text-[#52627A] transition hover:text-[#CF5421] dark:text-[#C0CADA] xl:block"
+              >
+                Journal
+              </Link>
 
-        <div
-          ref={mobileSearchRef}
-          className="relative mt-2.5 lg:hidden"
-        >
-          <form
-            onSubmit={handleSearch}
-            className="flex h-[44px] w-full items-center rounded-full border border-gray-200 bg-white p-1 pl-4 shadow-sm dark:border-slate-700 dark:bg-slate-800"
-          >
-            <Search size={17} className="mr-2 shrink-0 text-gray-400" />
+              <Link
+                prefetch={false}
+                href="/pre-order"
+                className="hidden text-[13px] font-semibold text-[#52627A] transition hover:text-[#CF5421] dark:text-[#C0CADA] xl:block"
+              >
+                Pre-order
+              </Link>
 
-            <input
-              type="search"
-              value={search}
-              onFocus={() => {
-                setSearchFocused(true);
+              <Link
+                prefetch={false}
+                href="/offers"
+                className="hidden h-10 items-center gap-1.5 rounded-xl border border-orange-200 bg-orange-50 px-3 text-[12px] font-extrabold text-[#CF5421] transition hover:border-orange-300 hover:bg-orange-100 dark:border-orange-400/20 dark:bg-orange-400/10 dark:text-[#FFB58C] dark:hover:bg-orange-400/15 sm:flex"
+              >
+                <Sparkles size={15} />
+                Offers
+              </Link>
 
-                if (!search.trim()) {
-                  setSearchResults(allProducts.slice(0, 8));
-                }
-              }}
-              onChange={(event) =>
-                handleSearchChange(event.target.value)
-              }
-              placeholder="Search product, brand..."
-              aria-label="Search products"
-              className="w-full bg-transparent text-[13px] text-gray-900 outline-none placeholder:text-gray-400 dark:text-white"
-            />
+              <Link
+                prefetch={false}
+                href="/compare"
+                aria-label="Compare products"
+                title="Compare products"
+                className="hidden h-10 w-10 items-center justify-center rounded-xl border border-transparent text-[#52627A] transition hover:border-slate-200 hover:bg-slate-50 hover:text-[#CF5421] dark:text-[#C0CADA] dark:hover:border-white/10 dark:hover:bg-white/5 md:flex"
+              >
+                <span className="text-xl leading-none">⇄</span>
+              </Link>
 
-            <button
-              type="submit"
-              aria-label="Search"
-              className="flex h-9 w-11 shrink-0 items-center justify-center rounded-full bg-[#f47421] text-white transition hover:bg-[#e06211]"
-            >
-              <Search size={18} />
-            </button>
-          </form>
+              {mounted && (
+                <button
+                  type="button"
+                  aria-label="Toggle theme"
+                  title={
+                    theme === "dark"
+                      ? "Switch to light mode"
+                      : "Switch to dark mode"
+                  }
+                  onClick={() =>
+                    setTheme(theme === "dark" ? "light" : "dark")
+                  }
+                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-[#52627A] transition hover:border-orange-200 hover:bg-orange-50 hover:text-[#CF5421] dark:border-white/10 dark:bg-white/[0.04] dark:text-[#C0CADA] dark:hover:bg-orange-500/10"
+                >
+                  {theme === "dark" ? <Sun size={17} /> : <Moon size={17} />}
+                </button>
+              )}
 
-          {/* MOBILE SEARCH PANEL */}
+              {/* Cart */}
+              <Link
+                prefetch={false}
+                href="/cart"
+                aria-label={`Shopping bag, ${totalItems} items`}
+                title="Shopping bag"
+                className="group relative flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white transition hover:border-orange-200 hover:bg-orange-50 dark:border-white/10 dark:bg-white/[0.04] dark:hover:bg-orange-500/10"
+              >
+                <ShoppingBag
+                  size={19}
+                  className="text-[#40516B] transition group-hover:text-[#E96B32] dark:text-white"
+                />
+                <span className="absolute -right-1.5 -top-1.5 flex h-[19px] min-w-[19px] items-center justify-center rounded-full border-2 border-white bg-[#E96B32] px-1 text-[9px] font-extrabold text-white dark:border-[#09090b]">
+                  {totalItems > 99 ? "99+" : totalItems}
+                </span>
+              </Link>
 
-          {searchFocused && (
-            <div className="absolute left-1/2 top-[52px] z-[10000] w-[calc(100vw-24px)] -translate-x-1/2 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
-              <div className="border-b border-gray-100 p-4 dark:border-slate-800">
-                <div className="mb-3 flex items-center gap-2">
-                  <TrendingUp size={17} className="text-[#f47421]" />
-
-                  <h3 className="text-[15px] font-bold text-gray-900 dark:text-white">
-                    Trending Search
-                  </h3>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  {trendingSearches.map((item, index) => (
+              {/* Account */}
+              <div ref={accountRef} className="relative">
+                {authLoading ? (
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 dark:border-white/10">
+                    <User size={18} className="text-slate-400" />
+                  </div>
+                ) : user ? (
+                  <>
                     <button
-                      key={`${item}-${index}`}
                       type="button"
-                      onClick={() => handleTrendingSearch(item)}
-                      className="flex items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1.5 text-[12px] text-gray-600 transition hover:border-[#f47421] hover:text-[#f47421] dark:border-slate-700 dark:text-gray-300"
+                      onClick={() => setAccountOpen((prev) => !prev)}
+                      aria-expanded={accountOpen}
+                      className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white p-1 transition hover:border-orange-200 hover:bg-orange-50/50 dark:border-white/10 dark:bg-white/[0.04] dark:hover:bg-orange-500/10 sm:pr-3"
                     >
-                      <TrendingUp size={11} />
-                      {item}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="p-4">
-                <div className="mb-4 flex items-center justify-between">
-                  <h3 className="text-[16px] font-bold text-gray-900 dark:text-white">
-                    {search.trim()
-                      ? "Search Products"
-                      : "Popular Products"}
-                  </h3>
-
-                  <button
-                    type="button"
-                    onClick={closeSearch}
-                    className="text-xs text-gray-400 hover:text-[#f47421]"
-                  >
-                    Close
-                  </button>
-                </div>
-
-                <div className="max-h-[55vh] overflow-y-auto">
-                  {productsLoading ? (
-                    <div className="py-16 text-center text-sm text-gray-400">
-                      Loading products...
-                    </div>
-                  ) : searchResults.length === 0 ? (
-                    <div className="py-16 text-center">
-                      <Search
-                        size={30}
-                        className="mx-auto mb-3 text-gray-300"
+                      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-orange-100 to-orange-200 text-[#CF5421] dark:from-orange-500/20 dark:to-orange-400/10 dark:text-[#FFB58C]">
+                        <UserCircle size={19} />
+                      </span>
+                      <span className="hidden max-w-[100px] text-left sm:block">
+                        <span className="block max-w-[100px] truncate text-[11px] font-extrabold leading-4">
+                          {user.name || "My Account"}
+                        </span>
+                        <span className="block text-[9px] text-[#8290A5]">
+                          My account
+                        </span>
+                      </span>
+                      <ChevronDown
+                        size={14}
+                        className={`hidden text-slate-400 transition sm:block ${
+                          accountOpen ? "rotate-180" : ""
+                        }`}
                       />
+                    </button>
 
-                      <p className="text-sm font-medium text-gray-500">
-                        No products found
-                      </p>
+                    {accountOpen && (
+                      <div className="absolute right-0 top-[52px] z-[10002] w-[285px] overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_20px_60px_rgba(15,23,42,0.18)] dark:border-white/10 dark:bg-[#111113]">
+                        <div className="rounded-xl bg-gradient-to-br from-orange-50 to-white p-4 dark:from-orange-500/10 dark:to-white/[0.02]">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-[#E96B32] shadow-sm dark:bg-white/10">
+                              <UserCircle size={25} />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-extrabold">
+                                {user.name || "Customer"}
+                              </p>
+                              <p className="mt-1 truncate text-[11px] text-[#687991] dark:text-[#AEBACD]">
+                                {user.email || "Welcome back"}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="mt-3 flex items-center gap-1.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">
+                            <ShieldCheck size={13} />
+                            Signed in successfully
+                          </div>
+                        </div>
+
+                        <div className="py-2">
+                          <AccountLink href="/profile" icon={UserCircle} label="My Profile" onClick={closeAll} />
+                          <AccountLink href="/orders" icon={Package} label="My Orders" onClick={closeAll} />
+                          <AccountLink href="/wishlist" icon={Heart} label="My Wishlist" onClick={closeAll} />
+                          <AccountLink href="/cart" icon={ShoppingBag} label="My Shopping Bag" onClick={closeAll} />
+                          <AccountLink href="/settings" icon={Settings} label="Account Settings" onClick={closeAll} />
+                        </div>
+
+                        <div className="border-t border-slate-100 pt-2 dark:border-white/10">
+                          <button
+                            type="button"
+                            onClick={handleLogout}
+                            className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-[13px] font-bold text-red-500 transition hover:bg-red-50 dark:hover:bg-red-500/10"
+                          >
+                            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-50 dark:bg-red-500/10">
+                              <LogOut size={16} />
+                            </span>
+                            Sign out
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <Link
+                    href="/Auth"
+                    prefetch={false}
+                    className="flex h-10 items-center gap-2 rounded-xl bg-[#101828] px-3.5 text-white transition hover:bg-[#CF5421] sm:px-4 dark:bg-white dark:text-[#18263D] dark:hover:bg-orange-300"
+                  >
+                    <User size={16} />
+                    <span className="hidden text-xs font-extrabold sm:block">
+                      Sign in
+                    </span>
+                  </Link>
+                )}
+              </div>
+            </nav>
+          </div>
+
+          {/* Mobile search */}
+          <div ref={mobileSearchRef} className="relative pb-3.5 lg:hidden">
+            <form
+              onSubmit={handleSearch}
+              className="group flex h-[46px] items-center gap-2 rounded-2xl border border-slate-200 bg-[#F5F7FB] px-3 transition focus-within:border-orange-300 focus-within:bg-white focus-within:shadow-[0_0_0_3px_rgba(233,107,50,0.08)] dark:border-white/10 dark:bg-white/[0.04] dark:focus-within:bg-[#111113]"
+            >
+              <Search
+                size={18}
+                className="shrink-0 text-[#8290A5] group-focus-within:text-[#E96B32]"
+              />
+              <input
+                type="search"
+                value={search}
+                onFocus={() => setSearchFocused(true)}
+                onChange={(event) => handleSearchChange(event.target.value)}
+                placeholder="Search products and brands..."
+                aria-label="Search products"
+                className="min-w-0 flex-1 bg-transparent text-[13px] font-medium text-[#283952] outline-none placeholder:text-[#8290A5] dark:text-[#EDF2FA] dark:placeholder:text-[#8E9BB0]"
+              />
+              {search && (
+                <button
+                  type="button"
+                  aria-label="Clear search"
+                  onClick={() => handleSearchChange("")}
+                  className="flex h-7 w-7 items-center justify-center rounded-full text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10"
+                >
+                  <X size={14} />
+                </button>
+              )}
+              <button
+                type="submit"
+                aria-label="Submit search"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#E96B32] text-white shadow-sm shadow-orange-500/20 transition hover:bg-[#CF5421] active:scale-95"
+              >
+                <Search size={17} />
+              </button>
+            </form>
+
+            {searchFocused && (
+              <div className="absolute left-0 right-0 top-[52px] z-[10000] max-h-[75vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.2)] dark:border-white/10 dark:bg-[#111113]">
+                <div className="border-b border-slate-100 p-4 dark:border-white/10">
+                  <div className="mb-3 flex items-center gap-2">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-orange-50 text-[#E96B32] dark:bg-orange-500/10">
+                      <TrendingUp size={15} />
+                    </span>
+                    <h3 className="text-xs font-extrabold uppercase tracking-wider text-[#52627A] dark:text-[#C0CADA]">
+                      Trending searches
+                    </h3>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {trendingSearches.map((item, index) => (
+                      <button
+                        key={`${item}-${index}`}
+                        type="button"
+                        onClick={() => handleTrendingSearch(item)}
+                        className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold transition hover:border-orange-300 hover:bg-orange-50 hover:text-[#CF5421] dark:border-white/10 dark:bg-white/[0.03] dark:hover:bg-orange-500/10"
+                      >
+                        {item}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="p-4">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <div>
+                      <h3 className="text-sm font-extrabold">
+                        {search.trim() ? "Search results" : "Popular products"}
+                      </h3>
+                      {search.trim() && (
+                        <p className="mt-1 max-w-[240px] truncate text-[11px] text-[#8290A5]">
+                          Results for “{search}”
+                        </p>
+                      )}
                     </div>
+                    <button
+                      type="button"
+                      onClick={closeSearch}
+                      className="rounded-lg px-3 py-2 text-xs font-bold text-[#8290A5] transition hover:bg-slate-100 hover:text-[#CF5421] dark:hover:bg-white/10"
+                    >
+                      Close
+                    </button>
+                  </div>
+
+                  {productsLoading ? (
+                    <SearchMessage>Loading products...</SearchMessage>
+                  ) : searchResults.length === 0 ? (
+                    <SearchMessage>No products found</SearchMessage>
                   ) : (
                     <div className="grid grid-cols-2 gap-3">
-                      {searchResults.map((product) => (
+                      {searchResults.slice(0, 8).map((product) => (
                         <ProductSearchCard
                           key={product._id}
                           product={product}
@@ -1278,182 +1116,163 @@ export default function Header() {
                   )}
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
+
+        {/* Desktop category navigation */}
+        <nav className="hidden border-t border-slate-100 bg-[#F8FAFD] dark:border-white/[0.06] dark:bg-white/[0.02] lg:block">
+          <div className="mx-auto flex h-[46px] max-w-[1600px] items-center justify-center gap-5 overflow-visible px-8 xl:gap-8">
+            {categoriesLoading ? (
+              <span className="text-xs text-[#8290A5]">Loading categories...</span>
+            ) : categories.length === 0 ? (
+              <span className="text-xs text-[#8290A5]">No categories found</span>
+            ) : (
+              categories.map((category) => (
+                <DesktopCategory
+                  key={category._id}
+                  category={category}
+                  makeSlug={makeSlug}
+                />
+              ))
+            )}
+          </div>
+        </nav>
       </div>
 
-      {/* DESKTOP CATEGORY BAR */}
-
-      <nav className="hidden w-full border-t border-gray-100 bg-gray-50/70 dark:border-slate-800/80 dark:bg-slate-900/60 lg:block">
-        <div className="mx-auto flex h-[48px] max-w-[1440px] items-center justify-center gap-5 px-4 xl:gap-8">
-          {categoriesLoading ? (
-            <span className="text-sm text-gray-400">
-              Loading categories...
-            </span>
-          ) : categories.length === 0 ? (
-            <span className="text-sm text-gray-400">
-              No categories
-            </span>
-          ) : (
-            categories.map((category) => (
-              <DesktopCategory
-                key={category._id}
-                category={category}
-                makeSlug={makeSlug}
-              />
-            ))
-          )}
-        </div>
-      </nav>
-
-      {/* MOBILE MENU */}
-
+      {/* Mobile drawer */}
       {isMobileMenuOpen && (
-        <div className="fixed inset-x-0 top-0 z-[9998] h-screen overflow-y-auto bg-white px-4 pb-8 pt-[120px] shadow-2xl dark:bg-slate-900 lg:hidden">
-          <div className="mx-auto max-w-[600px]">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-                  Menu
-                </p>
-
-                <h2 className="mt-1 text-xl font-bold text-gray-900 dark:text-white">
-                  Categories
-                </h2>
+        <div
+          className="fixed inset-0 z-[99999] h-[100dvh] w-full overflow-y-auto overscroll-contain bg-[#F7F9FC] text-[#18263D] dark:bg-[#09090b] dark:text-[#EDF2FA] lg:hidden"
+          style={{
+            isolation: "isolate",
+            WebkitOverflowScrolling: "touch",
+          }}
+        >
+          <div className="mx-auto min-h-full max-w-[640px] px-4 pb-10 pt-5">
+            <div className="mb-5 flex items-center justify-between rounded-2xl bg-white p-4 shadow-sm dark:bg-white/[0.04]">
+              <div className="flex min-w-0 items-center gap-3">
+                <img
+                  src={LOGO_URL}
+                  alt="Apple Gadgets"
+                  className="h-auto w-[105px] object-contain"
+                />
+                <div className="h-8 w-px bg-slate-200 dark:bg-white/10" />
+                <div>
+                  <p className="text-[9px] font-extrabold uppercase tracking-[0.18em] text-[#E96B32]">
+                    Discover
+                  </p>
+                  <h2 className="mt-0.5 text-sm font-extrabold">
+                    Explore store
+                  </h2>
+                </div>
               </div>
-
               <button
                 type="button"
                 onClick={closeMobileMenu}
                 aria-label="Close menu"
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 text-gray-600 dark:border-slate-700 dark:text-gray-300"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white transition hover:border-orange-300 hover:text-[#CF5421] dark:border-white/10 dark:bg-white/[0.04]"
               >
-                <X size={20} />
+                <X size={19} />
               </button>
             </div>
 
-            {/* MOBILE NAV LINKS */}
+            <div className="mb-5 grid grid-cols-3 gap-2">
+              <DrawerBenefit icon={Truck} label="Delivery" sublabel="Convenient" />
+              <DrawerBenefit icon={ShieldCheck} label="Shopping" sublabel="With care" />
+              <DrawerBenefit icon={Clock3} label="Support" sublabel="Here to help" />
+            </div>
 
-            <div className="mb-5 grid grid-cols-2 gap-2">
-              <MobileNavLink
-                href="/blog"
-                label="Blog"
-                onClick={closeMobileMenu}
-              />
+            <div className="mb-6 rounded-2xl border border-slate-200/80 bg-white p-3 dark:border-white/10 dark:bg-white/[0.025]">
+              <div className="mb-3 flex items-center justify-between px-1">
+                <h3 className="text-sm font-extrabold">Quick access</h3>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#8290A5]">
+                  Explore
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <MobileNavLink href="/blog" label="Journal" onClick={closeMobileMenu} />
+                <MobileNavLink href="/offers" label="✦ Special offers" onClick={closeMobileMenu} highlighted />
+                <MobileNavLink href="/pre-order" label="Pre-order" onClick={closeMobileMenu} />
+                <MobileNavLink href="/compare" label="Compare products" onClick={closeMobileMenu} />
 
-              <MobileNavLink
-                href="/offers"
-                label="🎁 Offers"
-                onClick={closeMobileMenu}
-                highlighted
-              />
+                {user ? (
+                  <>
+                    <MobileNavLink href="/profile" label="My Profile" onClick={closeMobileMenu} />
+                    <MobileNavLink href="/orders" label="My Orders" onClick={closeMobileMenu} />
+                    <MobileNavLink href="/wishlist" label="My Wishlist" onClick={closeMobileMenu} />
+                    <MobileNavLink href="/cart" label={`My Bag (${totalItems})`} onClick={closeMobileMenu} />
+                    <MobileNavLink href="/settings" label="Settings" onClick={closeMobileMenu} />
+                  </>
+                ) : (
+                  <MobileNavLink href="/Auth" label="Sign in / Register" onClick={closeMobileMenu} highlighted />
+                )}
+              </div>
 
-              <MobileNavLink
-                href="/pre-order"
-                label="Pre-order"
-                onClick={closeMobileMenu}
-              />
-
-              <MobileNavLink
-                href="/compare"
-                label="⇄ Compare"
-                onClick={closeMobileMenu}
-              />
-
-              {user ? (
-                <>
-                  <MobileNavLink
-                    href="/profile"
-                    label="My Profile"
-                    onClick={closeMobileMenu}
-                  />
-
-                  <MobileNavLink
-                    href="/orders"
-                    label="My Orders"
-                    onClick={closeMobileMenu}
-                  />
-
-                  <MobileNavLink
-                    href="/wishlist"
-                    label="My Wishlist"
-                    onClick={closeMobileMenu}
-                  />
-                </>
-              ) : (
-                <MobileNavLink
-                  href="/Auth"
-                  label="Login / Register"
-                  onClick={closeMobileMenu}
-                  highlighted
-                />
+              {user && (
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-500 transition hover:bg-red-100 dark:border-red-500/20 dark:bg-red-500/10"
+                >
+                  <LogOut size={16} />
+                  Sign out
+                </button>
               )}
             </div>
 
-            {user && (
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="mb-5 flex w-full items-center gap-3 rounded-xl border border-red-200 px-4 py-3 text-sm font-semibold text-red-600 dark:border-red-900"
-              >
-                <LogOut size={18} />
-                Logout
-              </button>
-            )}
-
-            {/* MOBILE CATEGORY TREE */}
+            <div className="mb-3 flex items-end justify-between">
+              <div>
+                <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#E96B32]">
+                  Browse collection
+                </p>
+                <h3 className="mt-1 text-xl font-extrabold tracking-tight">
+                  Categories
+                </h3>
+              </div>
+              <span className="rounded-full bg-white px-3 py-1.5 text-[10px] font-bold text-[#52627A] shadow-sm dark:bg-white/[0.05] dark:text-[#C0CADA]">
+                {categories.length} categories
+              </span>
+            </div>
 
             {categoriesLoading ? (
-              <div className="py-8 text-center text-sm text-gray-400">
-                Loading categories...
-              </div>
+              <SearchMessage>Loading categories...</SearchMessage>
             ) : categories.length === 0 ? (
-              <div className="py-8 text-center text-sm text-gray-400">
-                No categories found
-              </div>
+              <SearchMessage>No categories found</SearchMessage>
             ) : (
               <div className="space-y-2">
                 {categories.map((category) => {
-                  const expanded =
-                    expandedMobileCategories[category._id];
+                  const expanded = expandedMobileCategories[category._id];
 
                   return (
                     <div
                       key={category._id}
-                      className="overflow-hidden rounded-xl border border-gray-200 dark:border-slate-700"
+                      className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_2px_8px_rgba(15,23,42,0.025)] dark:border-white/10 dark:bg-white/[0.025]"
                     >
-                      <div className="flex items-center justify-between px-4 py-3.5">
+                      <div className="flex items-center justify-between gap-3 px-4 py-3.5">
                         <Link
                           prefetch={false}
                           href={`/category/${makeSlug(category)}`}
                           onClick={closeMobileMenu}
-                          className="flex-1 text-sm font-bold text-gray-800 dark:text-gray-100"
+                          className="flex-1 text-[13px] font-bold transition hover:text-[#CF5421]"
                         >
                           {category.name}
                         </Link>
-
                         {category.children?.length > 0 && (
                           <button
                             type="button"
-                            onClick={() =>
-                              toggleMobileCategory(category._id)
-                            }
+                            onClick={() => toggleMobileCategory(category._id)}
                             aria-label={`Expand ${category.name}`}
-                            className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-500 dark:bg-slate-800"
+                            aria-expanded={Boolean(expanded)}
+                            className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-50 text-[#52627A] transition hover:bg-orange-50 hover:text-[#CF5421] dark:bg-white/[0.05] dark:hover:bg-orange-500/10"
                           >
                             <ChevronDown
-                              size={17}
-                              className={`transition-transform ${
-                                expanded
-                                  ? "rotate-180 text-[#f47421]"
-                                  : ""
-                              }`}
+                              size={16}
+                              className={`transition-transform ${expanded ? "rotate-180 text-[#E96B32]" : ""}`}
                             />
                           </button>
                         )}
                       </div>
-
                       {expanded && category.children?.length > 0 && (
                         <MobileCategoryChildren
                           items={category.children}
@@ -1469,6 +1288,32 @@ export default function Header() {
                 })}
               </div>
             )}
+
+            <div className="mt-6 rounded-2xl bg-[#101828] p-5 text-white">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[#FFB58C]">
+                    Apple Gadgets
+                  </p>
+                  <h3 className="mt-2 text-lg font-extrabold">
+                    Find your next favourite tech.
+                  </h3>
+                  <p className="mt-1 text-xs leading-5 text-slate-300">
+                    Explore products, discover offers and find what works for you.
+                  </p>
+                </div>
+                <Sparkles size={25} className="shrink-0 text-[#FFB58C]" />
+              </div>
+              <Link
+                href="/offers"
+                prefetch={false}
+                onClick={closeMobileMenu}
+                className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#E96B32] px-4 py-2.5 text-xs font-extrabold text-white transition hover:bg-[#CF5421]"
+              >
+                Explore offers
+                <ArrowUpRight size={14} />
+              </Link>
+            </div>
           </div>
         </div>
       )}
@@ -1476,43 +1321,33 @@ export default function Header() {
   );
 }
 
-// =====================================================
-// ACCOUNT LINK
-// =====================================================
-
 function AccountLink({ href, icon: Icon, label, onClick }) {
   return (
     <Link
       href={href}
       prefetch={false}
       onClick={onClick}
-      className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-gray-700 transition hover:bg-orange-50 hover:text-[#f47421] dark:text-gray-200 dark:hover:bg-slate-800"
+      className="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-semibold text-[#52627A] transition hover:bg-orange-50 hover:text-[#CF5421] dark:text-[#C0CADA] dark:hover:bg-orange-500/10"
     >
-      <Icon size={18} />
-      {label}
+      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-[#52627A] transition group-hover:bg-orange-100 group-hover:text-[#CF5421] dark:bg-white/[0.05] dark:group-hover:bg-orange-500/10">
+        <Icon size={16} />
+      </span>
+      <span className="flex-1">{label}</span>
+      <ChevronRight size={14} className="text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-[#E96B32]" />
     </Link>
   );
 }
 
-// =====================================================
-// MOBILE NAV LINK
-// =====================================================
-
-function MobileNavLink({
-  href,
-  label,
-  onClick,
-  highlighted = false,
-}) {
+function MobileNavLink({ href, label, onClick, highlighted = false }) {
   return (
     <Link
       prefetch={false}
       href={href}
       onClick={onClick}
-      className={`rounded-xl border px-4 py-3 text-sm font-semibold ${
+      className={`flex min-h-[43px] items-center rounded-xl border px-3 py-2.5 text-[12px] font-bold transition ${
         highlighted
-          ? "border-orange-200 bg-orange-50 text-[#f47421] dark:border-orange-900/40 dark:bg-orange-900/20"
-          : "border-gray-200 text-gray-700 dark:border-slate-700 dark:text-gray-200"
+          ? "border-orange-200 bg-orange-50 text-[#CF5421] hover:bg-orange-100 dark:border-orange-400/20 dark:bg-orange-400/10 dark:text-[#FFB58C]"
+          : "border-slate-200/80 bg-white text-[#40516B] hover:border-orange-200 hover:bg-orange-50/50 dark:border-white/10 dark:bg-white/[0.025] dark:text-[#D5DEEB] dark:hover:bg-orange-500/10"
       }`}
     >
       {label}
@@ -1520,9 +1355,17 @@ function MobileNavLink({
   );
 }
 
-// =====================================================
-// DESKTOP CATEGORY
-// =====================================================
+function DrawerBenefit({ icon: Icon, label, sublabel }) {
+  return (
+    <div className="rounded-xl border border-slate-200/80 bg-white px-2 py-3 text-center dark:border-white/10 dark:bg-white/[0.025]">
+      <span className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg bg-orange-50 text-[#E96B32] dark:bg-orange-500/10">
+        <Icon size={16} />
+      </span>
+      <p className="mt-2 text-[11px] font-extrabold">{label}</p>
+      <p className="mt-0.5 text-[9px] text-[#8290A5]">{sublabel}</p>
+    </div>
+  );
+}
 
 function DesktopCategory({ category, makeSlug }) {
   const hasChildren = category?.children?.length > 0;
@@ -1532,36 +1375,41 @@ function DesktopCategory({ category, makeSlug }) {
       <Link
         prefetch={false}
         href={`/category/${makeSlug(category)}`}
-        className="flex h-full items-center gap-1.5 whitespace-nowrap text-[14px] font-medium text-gray-700 transition hover:text-[#f47421] dark:text-gray-300"
+        className="relative flex h-full items-center gap-1.5 whitespace-nowrap text-[12px] font-bold tracking-[0.01em] text-[#52627A] transition-colors duration-200 hover:text-[#CF5421] dark:text-[#C0CADA] dark:hover:text-[#FFAA78]"
       >
-        <span>{category.name}</span>
-
+        {category.name}
         {hasChildren && (
-          <ChevronDown
-            size={12}
-            className="transition-transform group-hover:rotate-180"
-          />
+          <ChevronDown size={12} className="transition-transform duration-200 group-hover:rotate-180" />
         )}
+        <span className="absolute inset-x-0 bottom-0 h-[2px] origin-center scale-x-0 rounded-full bg-[#E96B32] transition-transform duration-200 group-hover:scale-x-100" />
       </Link>
 
       {hasChildren && (
-        <div className="invisible absolute left-0 top-full z-[9999] min-w-[235px] translate-y-1 rounded-xl border border-gray-100 bg-white py-2 opacity-0 shadow-xl transition-all duration-200 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 dark:border-slate-800 dark:bg-slate-900">
+        <div className="invisible absolute left-0 top-full z-[9999] min-w-[250px] translate-y-2 rounded-2xl border border-slate-200/90 bg-white p-2 opacity-0 shadow-[0_20px_50px_rgba(15,23,42,0.16)] transition-all duration-200 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 dark:border-white/10 dark:bg-[#111113]">
+          <div className="mb-1 rounded-xl bg-[#F5F7FB] px-3 py-2.5 dark:bg-white/[0.04]">
+            <p className="text-[9px] font-extrabold uppercase tracking-[0.18em] text-[#E96B32]">
+              Browse collection
+            </p>
+            <p className="mt-1 text-xs font-extrabold">{category.name}</p>
+          </div>
+
           {category.children.map((child) => (
-            <DesktopSubCategory
-              key={child._id}
-              category={child}
-              makeSlug={makeSlug}
-            />
+            <DesktopSubCategory key={child._id} category={child} makeSlug={makeSlug} />
           ))}
+
+          <Link
+            href={`/category/${makeSlug(category)}`}
+            prefetch={false}
+            className="mt-1 flex items-center justify-between rounded-xl border-t border-slate-100 px-3 py-3 text-xs font-extrabold text-[#E96B32] transition hover:bg-orange-50 dark:border-white/10 dark:hover:bg-orange-500/10"
+          >
+            View all {category.name}
+            <ArrowUpRight size={14} />
+          </Link>
         </div>
       )}
     </div>
   );
 }
-
-// =====================================================
-// DESKTOP SUBCATEGORY — RECURSIVE
-// =====================================================
 
 function DesktopSubCategory({ category, makeSlug }) {
   const hasChildren = category?.children?.length > 0;
@@ -1571,33 +1419,22 @@ function DesktopSubCategory({ category, makeSlug }) {
       <Link
         prefetch={false}
         href={`/category/${makeSlug(category)}`}
-        className="flex items-center justify-between px-4 py-2.5 text-[13px] font-medium text-gray-700 transition hover:bg-orange-50 hover:text-[#f47421] dark:text-gray-300 dark:hover:bg-slate-800"
+        className="flex items-center justify-between gap-4 rounded-xl px-3 py-2.5 text-[13px] font-semibold text-[#52627A] transition-colors hover:bg-orange-50 hover:text-[#CF5421] dark:text-[#C0CADA] dark:hover:bg-orange-500/10 dark:hover:text-[#FFAA78]"
       >
         <span>{category.name}</span>
-
-        {hasChildren && (
-          <ChevronRight size={14} className="text-gray-400" />
-        )}
+        {hasChildren && <ChevronRight size={14} className="text-slate-400" />}
       </Link>
 
       {hasChildren && (
-        <div className="invisible absolute left-full top-0 z-[9999] min-w-[235px] -translate-x-2 rounded-xl border border-gray-100 bg-white py-2 opacity-0 shadow-xl transition-all duration-200 group-hover/sub:visible group-hover/sub:translate-x-0 group-hover/sub:opacity-100 dark:border-slate-800 dark:bg-slate-900">
+        <div className="invisible absolute left-full top-0 z-[9999] min-w-[245px] -translate-x-2 rounded-2xl border border-slate-200 bg-white p-2 opacity-0 shadow-[0_20px_50px_rgba(15,23,42,0.16)] transition-all duration-200 group-hover/sub:visible group-hover/sub:translate-x-0 group-hover/sub:opacity-100 dark:border-white/10 dark:bg-[#111113]">
           {category.children.map((child) => (
-            <DesktopSubCategory
-              key={child._id}
-              category={child}
-              makeSlug={makeSlug}
-            />
+            <DesktopSubCategory key={child._id} category={child} makeSlug={makeSlug} />
           ))}
         </div>
       )}
     </div>
   );
 }
-
-// =====================================================
-// MOBILE CATEGORY CHILDREN — RECURSIVE
-// =====================================================
 
 function MobileCategoryChildren({
   items,
@@ -1609,8 +1446,8 @@ function MobileCategoryChildren({
 }) {
   return (
     <div
-      className={`space-y-1 border-t border-gray-100 bg-gray-50/70 p-2 dark:border-slate-700 dark:bg-slate-800/40 ${
-        level > 1 ? "ml-3 border-l-2 border-l-[#f47421]" : ""
+      className={`space-y-1 border-t border-slate-100 bg-slate-50/70 p-2 dark:border-white/[0.06] dark:bg-white/[0.025] ${
+        level > 1 ? "ml-3 border-l-2 border-l-[#E96B32]" : ""
       }`}
     >
       {items.map((item) => {
@@ -1618,21 +1455,14 @@ function MobileCategoryChildren({
         const hasChildren = item?.children?.length > 0;
 
         return (
-          <div
-            key={item._id}
-            className="rounded-lg bg-white dark:bg-slate-800"
-          >
-            <div className="flex items-center justify-between px-3 py-2.5">
+          <div key={item._id} className="rounded-xl bg-white dark:bg-white/[0.035]">
+            <div className="flex items-center justify-between gap-2 px-3 py-2.5">
               <Link
                 prefetch={false}
                 href={`/category/${makeSlug(item)}`}
                 onClick={closeMenu}
-                className={`flex-1 font-medium text-gray-700 dark:text-gray-200 ${
-                  level === 1
-                    ? "text-sm"
-                    : level === 2
-                      ? "text-xs"
-                      : "text-[11px]"
+                className={`flex-1 font-semibold text-[#40516B] transition hover:text-[#CF5421] dark:text-[#D5DEEB] ${
+                  level === 1 ? "text-sm" : level === 2 ? "text-xs" : "text-[11px]"
                 }`}
               >
                 {item.name}
@@ -1643,14 +1473,10 @@ function MobileCategoryChildren({
                   type="button"
                   onClick={() => toggle(item._id)}
                   aria-label={`Expand ${item.name}`}
-                  className="flex h-7 w-7 items-center justify-center rounded-full text-gray-400"
+                  aria-expanded={Boolean(expanded)}
+                  className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition hover:bg-orange-50 hover:text-[#CF5421] dark:hover:bg-orange-500/10"
                 >
-                  <ChevronDown
-                    size={level === 1 ? 16 : 14}
-                    className={`transition-transform ${
-                      expanded ? "rotate-180 text-[#f47421]" : ""
-                    }`}
-                  />
+                  <ChevronDown size={14} className={`transition-transform ${expanded ? "rotate-180 text-[#E96B32]" : ""}`} />
                 </button>
               )}
             </div>
@@ -1672,10 +1498,6 @@ function MobileCategoryChildren({
   );
 }
 
-// =====================================================
-// PRODUCT SEARCH CARD
-// =====================================================
-
 function ProductSearchCard({
   product,
   getProductImage,
@@ -1684,10 +1506,7 @@ function ProductSearchCard({
   onClick,
 }) {
   const image = getProductImage(product);
-
-  const { price, finalPrice, hasDiscount, discountAmount } =
-    getProductPrice(product);
-
+  const { price, finalPrice, hasDiscount, discountAmount } = getProductPrice(product);
   const slug = makeSlug(product) || product._id;
 
   return (
@@ -1695,43 +1514,48 @@ function ProductSearchCard({
       prefetch={false}
       href={`/Product/${slug}`}
       onClick={onClick}
-      className="group block"
+      className="group block min-w-0"
     >
-      <div className="h-full overflow-hidden rounded-xl border border-gray-200 bg-white p-2.5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-orange-200 hover:shadow-lg dark:border-slate-700 dark:bg-slate-800">
-        <div className="mb-2 flex h-[125px] items-center justify-center overflow-hidden rounded-lg bg-gray-50 dark:bg-slate-700">
+      <div className="h-full overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-2.5 transition duration-200 hover:-translate-y-1 hover:border-orange-200 hover:shadow-[0_12px_30px_rgba(15,23,42,0.09)] dark:border-white/10 dark:bg-white/[0.035] dark:hover:border-orange-400/30">
+        <div className="relative mb-3 flex h-[125px] items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-slate-50 to-slate-100/80 dark:from-white/[0.055] dark:to-white/[0.015] sm:h-[145px]">
+          {hasDiscount && (
+            <span className="absolute left-2 top-2 z-10 rounded-lg bg-[#E96B32] px-2 py-1 text-[9px] font-extrabold text-white shadow-sm">
+              SALE
+            </span>
+          )}
           {image ? (
             <img
               src={image}
               alt={product.name || "Product"}
               loading="lazy"
-              className="h-full w-full object-contain p-2 transition-transform duration-300 group-hover:scale-105"
+              className="h-full w-full object-contain p-2 transition duration-300 group-hover:scale-105"
             />
           ) : (
-            <div className="text-center text-[10px] text-gray-400">
-              No Image
+            <div className="flex flex-col items-center gap-2 text-slate-400">
+              <ShoppingBag size={22} />
+              <span className="text-[10px]">No Image</span>
             </div>
           )}
         </div>
 
-        <h4 className="line-clamp-2 min-h-[38px] text-[13px] font-semibold leading-[18px] text-gray-900 dark:text-white">
+        <h4 className="line-clamp-2 min-h-[38px] text-xs font-bold leading-[19px] text-[#283952] transition group-hover:text-[#CF5421] dark:text-white sm:text-[13px]">
           {product.name}
         </h4>
 
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
-          <span className="text-[14px] font-bold text-gray-900 dark:text-white">
-            ৳ {finalPrice.toLocaleString()}
+          <span className="text-sm font-extrabold tracking-tight text-[#18263D] dark:text-white">
+            ৳ {money(finalPrice)}
           </span>
-
           {hasDiscount && (
-            <span className="text-[10px] text-gray-400 line-through">
-              ৳ {price.toLocaleString()}
+            <span className="text-[10px] text-[#8290A5] line-through">
+              ৳ {money(price)}
             </span>
           )}
         </div>
 
         {hasDiscount && (
-          <span className="mt-1.5 inline-flex rounded-full bg-green-100 px-2 py-0.5 text-[9px] font-semibold text-green-600 dark:bg-green-900/30 dark:text-green-400">
-            ৳ {discountAmount.toLocaleString()} OFF
+          <span className="mt-2 inline-flex rounded-lg bg-emerald-50 px-2 py-1 text-[9px] font-extrabold text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-300">
+            Save ৳ {money(discountAmount)}
           </span>
         )}
       </div>
@@ -1739,9 +1563,16 @@ function ProductSearchCard({
   );
 }
 
-// =====================================================
-// DESKTOP SEARCH PANEL
-// =====================================================
+function SearchMessage({ children }) {
+  return (
+    <div className="flex min-h-[150px] flex-col items-center justify-center gap-3 text-sm font-medium text-[#8290A5]">
+      <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-50 dark:bg-white/[0.04]">
+        <SearchX size={20} />
+      </span>
+      {children}
+    </div>
+  );
+}
 
 function SearchPanel({
   search,
@@ -1755,92 +1586,78 @@ function SearchPanel({
   makeSlug,
 }) {
   return (
-    <div className="absolute left-1/2 top-[58px] z-[9998] w-[min(950px,calc(100vw-32px))] -translate-x-1/2 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_20px_60px_-15px_rgba(0,0,0,0.25)] dark:border-slate-700 dark:bg-slate-900">
-      <div className="grid grid-cols-[190px_minmax(0,1fr)]">
-        {/* TRENDING */}
-
-        <div className="border-r border-gray-100 p-5 dark:border-slate-800">
-          <div className="mb-5 flex items-center gap-2">
-            <TrendingUp size={18} className="text-[#f47421]" />
-
-            <h3 className="text-[17px] font-bold text-gray-900 dark:text-white">
-              Trending Search
-            </h3>
+    <div className="absolute left-1/2 top-[60px] z-[9998] w-[min(1000px,calc(100vw-32px))] -translate-x-1/2 overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-[0_25px_80px_rgba(15,23,42,0.2)] dark:border-white/10 dark:bg-[#111113]">
+      <div className="grid grid-cols-[205px_minmax(0,1fr)]">
+        <div className="border-r border-slate-100 bg-[#F5F7FB] p-5 dark:border-white/[0.06] dark:bg-white/[0.02]">
+          <div className="mb-4 flex items-center gap-2">
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-orange-50 text-[#E96B32] dark:bg-orange-500/10">
+              <TrendingUp size={16} />
+            </span>
+            <div>
+              <h3 className="text-[13px] font-extrabold">Trending</h3>
+              <p className="mt-0.5 text-[10px] text-[#8290A5]">Popular searches</p>
+            </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-1">
             {trendingSearches.map((item, index) => (
               <button
                 key={`${item}-${index}`}
                 type="button"
                 onClick={() => onTrendingClick(item)}
-                className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-[13px] text-gray-600 transition hover:bg-orange-50 hover:text-[#f47421] dark:text-gray-300 dark:hover:bg-slate-800"
+                className="group flex w-full items-start gap-2 rounded-xl px-2.5 py-2.5 text-left text-xs font-medium text-[#52627A] transition hover:bg-white hover:text-[#CF5421] dark:text-[#C0CADA] dark:hover:bg-white/[0.05]"
               >
-                <TrendingUp
-                  size={13}
-                  className="shrink-0 text-gray-400"
-                />
-
-                <span className="line-clamp-2">{item}</span>
+                <span className="mt-0.5 text-[10px] font-extrabold text-slate-300 group-hover:text-[#E96B32]">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <span className="line-clamp-2 flex-1">{item}</span>
+                <ArrowUpRight size={12} className="mt-0.5 shrink-0 opacity-0 transition group-hover:translate-x-0.5 group-hover:opacity-100" />
               </button>
             ))}
           </div>
+
+          <div className="mt-5 rounded-xl bg-[#101828] p-3 text-white">
+            <Sparkles size={16} className="text-[#FFB58C]" />
+            <p className="mt-2 text-xs font-extrabold">Find your next tech.</p>
+            <p className="mt-1 text-[10px] leading-4 text-slate-300">
+              Explore products made for your everyday.
+            </p>
+          </div>
         </div>
 
-        {/* PRODUCTS */}
-
         <div className="min-w-0 p-5">
-          <div className="mb-5 flex items-center justify-between">
-            <div>
-              <h3 className="text-[18px] font-bold text-gray-900 dark:text-white">
-                {search.trim()
-                  ? "Search Products"
-                  : "Popular Products"}
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#E96B32]">
+                Product discovery
+              </p>
+              <h3 className="mt-1 text-base font-extrabold">
+                {search.trim() ? "Search results" : "Popular products"}
               </h3>
-
               {search.trim() && (
-                <p className="mt-1 text-xs text-gray-400">
-                  Results for {search}
+                <p className="mt-1 max-w-[450px] truncate text-xs text-[#8290A5]">
+                  Results for “{search}”
                 </p>
               )}
             </div>
-
             <button
               type="button"
               onClick={onClose}
-              className="text-xs font-medium text-gray-400 transition hover:text-[#f47421]"
+              className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl border border-slate-200 px-3 text-xs font-bold text-[#52627A] transition hover:border-orange-200 hover:bg-orange-50 hover:text-[#CF5421] dark:border-white/10 dark:hover:bg-orange-500/10"
             >
+              <X size={13} />
               Close
             </button>
           </div>
 
-          <div className="max-h-[570px] overflow-y-auto pr-1">
+          <div className="max-h-[510px] overflow-y-auto pr-1">
             {productsLoading ? (
-              <div className="flex min-h-[250px] items-center justify-center">
-                <p className="text-sm text-gray-400">
-                  Loading products...
-                </p>
-              </div>
+              <SearchMessage>Loading products...</SearchMessage>
             ) : searchResults.length === 0 ? (
-              <div className="flex min-h-[250px] items-center justify-center">
-                <div className="text-center">
-                  <Search
-                    size={34}
-                    className="mx-auto mb-3 text-gray-300"
-                  />
-
-                  <p className="text-sm font-medium text-gray-500">
-                    No products found
-                  </p>
-
-                  <p className="mt-1 text-xs text-gray-400">
-                    Try another product name
-                  </p>
-                </div>
-              </div>
+              <SearchMessage>No products found. Try another keyword.</SearchMessage>
             ) : (
-              <div className="grid grid-cols-2 gap-4 xl:grid-cols-3">
-                {searchResults.map((product) => (
+              <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
+                {searchResults.slice(0, 9).map((product) => (
                   <ProductSearchCard
                     key={product._id}
                     product={product}

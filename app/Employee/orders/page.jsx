@@ -444,7 +444,7 @@ setAuthState(role === "employee" ? "ok" : "denied");
   const confirmMeta = confirm ? ACTION_META[confirm.status] : null;
 
   return (
-    <main className="mx-auto max-w-5xl space-y-5 px-3 py-6 sm:px-6">
+    <main className="mx-auto max-w-360 space-y-5 px-3 py-6 sm:px-6">
       {/* Header */}
       <header className="flex flex-col justify-between gap-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-white/[0.03] sm:flex-row sm:items-center">
         <div className="flex items-center gap-4">

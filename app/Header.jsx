@@ -3,6 +3,7 @@
 "use client";
 
 import Link from "next/link";
+import EmployeeMenu from "./Componant/EmployeeMenue.jsx"
 import { usePathname } from "next/navigation";
 import {
   ChevronDown,
@@ -1013,7 +1014,7 @@ useEffect(() => {
                 <Sparkles size={15} />
                 Offers
               </Link>
-
+<EmployeeMenu user={user} onNavigate={closeAll} />
               <Link
                 prefetch={false}
                 href="/compare"
@@ -1116,7 +1117,10 @@ useEffect(() => {
 
                         <div className="py-2">
                           <AccountLink href="/profile" icon={UserCircle} label="My Profile" onClick={closeAll} />
-                          <AccountLink href="/orders" icon={Package} label="My Orders" onClick={closeAll} />
+                          {user?.role === "employee" && (
+  <AccountLink href="/Employee/orders" icon={Truck} label="Employee Panel" onClick={closeAll} />
+)}
+                          
                           <AccountLink href="/wishlist" icon={Heart} label="My Wishlist" onClick={closeAll} />
                           <AccountLink href="/cart" icon={ShoppingBag} label="My Shopping Bag" onClick={closeAll} />
                           <AccountLink href="/settings" icon={Settings} label="Account Settings" onClick={closeAll} />

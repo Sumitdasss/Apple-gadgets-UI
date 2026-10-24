@@ -27,7 +27,7 @@ const API_BASE =
 const ADMIN_PANEL_URL =
   "https://apple-gadgets-ui-adminpanel.vercel.app";
 
-const ADMIN_ROLES = ["admin", "subadmin", "employee", "order_manager"];
+const ADMIN_ROLES = ["admin", "subadmin","order_manager"];
 const FLIP_DURATION = 900;
 const LAMP_REVEAL_DELAY = 550;
 const OTP_COOLDOWN = 30;

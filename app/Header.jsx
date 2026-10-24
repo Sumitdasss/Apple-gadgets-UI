@@ -48,6 +48,64 @@ const DEFAULT_TRENDING = [
   "MacBook Pro M5",
 ];
 
+const DATA_CACHE_TTL = 30 * 1000;
+
+const headerDataCache = new Map();
+const headerDataRequests = new Map();
+
+async function fetchHeaderData(key, url) {
+  const cached = headerDataCache.get(key);
+
+  if (cached && Date.now() - cached.time < DATA_CACHE_TTL) {
+    return cached.data;
+  }
+
+  if (headerDataRequests.has(key)) {
+    return headerDataRequests.get(key);
+  }
+
+  const request = (async () => {
+    const response = await fetch(url, {
+      cache: "default",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    const contentType = response.headers.get("content-type") || "";
+
+    if (!contentType.includes("application/json")) {
+      throw new Error(`API returned non-JSON response (${response.status})`);
+    }
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data?.message || `API request failed (${response.status})`,
+      );
+    }
+
+    headerDataCache.set(key, {
+      data,
+      time: Date.now(),
+    });
+
+    return data;
+  })();
+
+  headerDataRequests.set(key, request);
+
+  try {
+    return await request;
+  } finally {
+    if (headerDataRequests.get(key) === request) {
+      headerDataRequests.delete(key);
+    }
+  }
+}
+
+
 const LOGO_URL =
   "https://www.applegadgetsbd.com/_next/image?url=https%3A%2F%2Fadminapi.applegadgetsbd.com%2Fstorage%2Fmedia%2Flarge%2Flogo-3717.png&w=1920&q=100";
 
@@ -362,138 +420,221 @@ export default function Header() {
   }, [searchHistory]);
 
   // Categories
-  useEffect(() => {
-    let cancelled = false;
+ // Categories - cached loading
+useEffect(() => {
+  let cancelled = false;
 
-    const loadCategories = async () => {
-      try {
-        setCategoriesLoading(true);
+  const loadCategories = async () => {
+    const cacheKey = "header-category-tree";
+    const cached = headerDataCache.get(cacheKey);
 
-        const response = await fetch(`${API_BASE}/category/tree`, {
-          cache: "no-store",
-        });
+    // Cached data immediately show
+    if (cached && !cancelled) {
+      const data = cached.data;
 
-        const contentType = response.headers.get("content-type") || "";
+      const list = Array.isArray(data?.categories)
+        ? data.categories
+        : Array.isArray(data?.data)
+          ? data.data
+          : [];
 
-        if (!contentType.includes("application/json")) {
-          throw new Error(
-            `Category API returned non-JSON (${response.status})`,
-          );
-        }
+      const normalizeSubChild = (item) => ({
+        ...item,
+        children: [],
+      });
 
-        const data = await response.json();
+      const normalizeChild = (item) => ({
+        ...item,
+        children: Array.isArray(item?.subChildCategories)
+          ? item.subChildCategories.map(normalizeSubChild)
+          : [],
+      });
 
-        if (!response.ok) {
-          throw new Error(data?.message || "Failed to load categories");
-        }
+      const normalizeSub = (item) => ({
+        ...item,
+        children: Array.isArray(item?.childCategories)
+          ? item.childCategories.map(normalizeChild)
+          : [],
+      });
 
-        const list = Array.isArray(data?.categories)
-          ? data.categories
-          : Array.isArray(data?.data)
-            ? data.data
-            : [];
-
-        const normalizeSubChild = (item) => ({
-          ...item,
-          children: [],
-        });
-
-        const normalizeChild = (item) => ({
-          ...item,
-          children: Array.isArray(item?.subChildCategories)
-            ? item.subChildCategories.map(normalizeSubChild)
-            : [],
-        });
-
-        const normalizeSub = (item) => ({
-          ...item,
-          children: Array.isArray(item?.childCategories)
-            ? item.childCategories.map(normalizeChild)
-            : [],
-        });
-
-        const normalized = list.map((item) => ({
+      setCategories(
+        list.map((item) => ({
           ...item,
           children: Array.isArray(item?.subCategories)
             ? item.subCategories.map(normalizeSub)
             : [],
-        }));
+        })),
+      );
 
-        if (!cancelled) setCategories(normalized);
-      } catch (error) {
-        console.error("Header category loading error:", error);
-        if (!cancelled) setCategories([]);
-      } finally {
-        if (!cancelled) setCategoriesLoading(false);
+      setCategoriesLoading(false);
+    } else if (!cancelled) {
+      setCategoriesLoading(true);
+    }
+
+    try {
+      const data = await fetchHeaderData(
+        cacheKey,
+        `${API_BASE}/category/tree`,
+      );
+
+      const list = Array.isArray(data?.categories)
+        ? data.categories
+        : Array.isArray(data?.data)
+          ? data.data
+          : [];
+
+      const normalizeSubChild = (item) => ({
+        ...item,
+        children: [],
+      });
+
+      const normalizeChild = (item) => ({
+        ...item,
+        children: Array.isArray(item?.subChildCategories)
+          ? item.subChildCategories.map(normalizeSubChild)
+          : [],
+      });
+
+      const normalizeSub = (item) => ({
+        ...item,
+        children: Array.isArray(item?.childCategories)
+          ? item.childCategories.map(normalizeChild)
+          : [],
+      });
+
+      const normalized = list.map((item) => ({
+        ...item,
+        children: Array.isArray(item?.subCategories)
+          ? item.subCategories.map(normalizeSub)
+          : [],
+      }));
+
+      if (!cancelled) {
+        setCategories(normalized);
       }
-    };
+    } catch (error) {
+      console.error("Header category loading error:", error);
 
-    loadCategories();
+      if (!cancelled && !cached) {
+        setCategories([]);
+      }
+    } finally {
+      if (!cancelled) {
+        setCategoriesLoading(false);
+      }
+    }
+  };
 
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  loadCategories();
 
+  return () => {
+    cancelled = true;
+  };
+}, []);
   // Products
-  useEffect(() => {
-    let cancelled = false;
+  // Products - cached loading and duplicate request prevention
+useEffect(() => {
+  let cancelled = false;
 
-    const loadProducts = async () => {
-      try {
-        setProductsLoading(true);
+  const cacheKey = "header-all-products";
 
-        const response = await fetch(
-          `${API_BASE}/products/getALLproducts`,
-          { cache: "no-store" },
-        );
+  const normalizeProducts = (data) => {
+    if (Array.isArray(data)) return data;
 
-        const contentType = response.headers.get("content-type") || "";
+    if (Array.isArray(data?.products)) {
+      return data.products;
+    }
 
-        if (!contentType.includes("application/json")) {
-          throw new Error(
-            `Product API returned non-JSON (${response.status})`,
-          );
-        }
+    if (Array.isArray(data?.data)) {
+      return data.data;
+    }
 
-        const data = await response.json();
+    return [];
+  };
 
-        if (!response.ok) {
-          throw new Error(
-            data?.message || `Failed to get products (${response.status})`,
-          );
-        }
+  const loadProducts = async () => {
+    const cached = headerDataCache.get(cacheKey);
 
-        const list = Array.isArray(data)
-          ? data
-          : Array.isArray(data?.products)
-            ? data.products
-            : Array.isArray(data?.data)
-              ? data.data
-              : [];
+    // Immediately display cached products
+    if (cached && !cancelled) {
+      const cachedProducts = normalizeProducts(cached.data);
 
-        if (!cancelled) {
-          setAllProducts(list);
+      setAllProducts(cachedProducts);
+      setSearchResults(cachedProducts.slice(0, 8));
+      setProductsLoading(false);
+    } else if (!cancelled) {
+      setProductsLoading(true);
+    }
+
+    try {
+      const data = await fetchHeaderData(
+        cacheKey,
+        `${API_BASE}/products/getALLproducts`,
+      );
+
+      const list = normalizeProducts(data);
+
+      if (!cancelled) {
+        setAllProducts(list);
+
+        // Keep current search results relevant after data refresh
+        const keyword = search.trim().toLowerCase();
+
+        if (!keyword) {
           setSearchResults(list.slice(0, 8));
-        }
-      } catch (error) {
-        console.error("Header product loading error:", error);
+        } else {
+          const filtered = list
+            .filter((product) => {
+              const name = String(product?.name || "").toLowerCase();
+              const brand = String(product?.brand || "").toLowerCase();
+              const sku = String(product?.sku || "").toLowerCase();
+              const category = String(
+                product?.category?.name || product?.category || "",
+              ).toLowerCase();
 
-        if (!cancelled) {
-          setAllProducts([]);
-          setSearchResults([]);
+              const shortDescription = String(
+                product?.shortDescription || "",
+              ).toLowerCase();
+
+              const description = String(
+                product?.description || "",
+              ).toLowerCase();
+
+              return (
+                name.includes(keyword) ||
+                brand.includes(keyword) ||
+                sku.includes(keyword) ||
+                category.includes(keyword) ||
+                shortDescription.includes(keyword) ||
+                description.includes(keyword)
+              );
+            })
+            .slice(0, 12);
+
+          setSearchResults(filtered);
         }
-      } finally {
-        if (!cancelled) setProductsLoading(false);
       }
-    };
+    } catch (error) {
+      console.error("Header product loading error:", error);
 
-    loadProducts();
+      if (!cancelled && !cached) {
+        setAllProducts([]);
+        setSearchResults([]);
+      }
+    } finally {
+      if (!cancelled) {
+        setProductsLoading(false);
+      }
+    }
+  };
 
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  loadProducts();
+
+  return () => {
+    cancelled = true;
+  };
+// eslint-disable-next-line react-hooks/exhaustive-deps
+}, []);
 
   // Product helpers
   const makeSlug = useCallback((item) => {

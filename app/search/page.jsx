@@ -25,6 +25,54 @@ const API_BASE = "https://apple-gadgets-ui-backend.vercel.app";
 // Short client-side cache to make repeated category/search loads much faster.
 const PRODUCT_CACHE_TTL = 30 * 1000;
 const productCache = new Map();
+const productRequests = new Map();
+
+async function getProductsFast(endpoint) {
+  const cached = productCache.get(endpoint);
+
+  if (cached && Date.now() - cached.time < PRODUCT_CACHE_TTL) {
+    return cached.data;
+  }
+
+  if (productRequests.has(endpoint)) {
+    return productRequests.get(endpoint);
+  }
+
+  const request = (async () => {
+    const response = await fetch(endpoint);
+
+    if (!response.ok) {
+      throw new Error(`Products API failed: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    const productList = Array.isArray(data)
+      ? data
+      : data?.products || data?.data || [];
+
+    if (!Array.isArray(productList)) {
+      throw new Error("Invalid products API response");
+    }
+
+    productCache.set(endpoint, {
+      data: productList,
+      time: Date.now(),
+    });
+
+    return productList;
+  })();
+
+  productRequests.set(endpoint, request);
+
+  try {
+    return await request;
+  } finally {
+    if (productRequests.get(endpoint) === request) {
+      productRequests.delete(endpoint);
+    }
+  }
+}
 
 // ============================================
 // KNOWN FILTER GROUPS
@@ -529,78 +577,63 @@ const handleAddToCart = (product) => {
   // ============================================
   // GET PRODUCTS
   // ============================================
+useEffect(() => {
+  const currentSlug = Array.isArray(slug)
+    ? slug[slug.length - 1]
+    : slug;
 
-  useEffect(() => {
-    if (!slug && !isSearchPage) return;
+  if (!currentSlug && !isSearchPage) {
+    setProducts([]);
+    setLoading(false);
+    return;
+  }
 
-    const controller = new AbortController();
+  let active = true;
 
-    const fetchProducts = async () => {
-      const hasSearch = urlSearch.trim() !== "";
+  const endpoint =
+    isSearchPage || urlSearch.trim() !== ""
+      ? `${API_BASE}/products/getALLproducts`
+      : `${API_BASE}/products/getALLproducts?category=${encodeURIComponent(
+          currentSlug
+        )}`;
 
-      const endpoint =
-        isSearchPage || hasSearch
-          ? `${API_BASE}/products/getALLproducts`
-          : `${API_BASE}/products/getALLproducts?category=${encodeURIComponent(slug)}`;
+  const loadProducts = async () => {
+    const cached = productCache.get(endpoint);
 
-      // Show recently loaded data immediately.
-      const cached = productCache.get(endpoint);
+    if (cached && active) {
+      setProducts(cached.data);
+      setLoading(false);
+    } else if (active) {
+      setLoading(true);
+    }
 
-      if (cached && Date.now() - cached.time < PRODUCT_CACHE_TTL) {
-        setProducts(cached.data);
+    try {
+      const productList = await getProductsFast(endpoint);
+
+      if (!active) return;
+
+      setProducts(productList);
+    } catch (error) {
+      if (!active) return;
+
+      console.error("Category products error:", error);
+
+      if (!cached) {
+        setProducts([]);
+      }
+    } finally {
+      if (active) {
         setLoading(false);
-        return;
       }
+    }
+  };
 
-      try {
-        setLoading(true);
+  loadProducts();
 
-        const response = await fetch(endpoint, {
-          cache: "default",
-          signal: controller.signal,
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch products: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        const productList = Array.isArray(data)
-          ? data
-          : data?.products || data?.data || [];
-
-        productCache.set(endpoint, {
-          data: productList,
-          time: Date.now(),
-        });
-
-        if (!controller.signal.aborted) {
-          setProducts(productList);
-        }
-      } catch (error) {
-        if (error?.name === "AbortError") {
-          return;
-        }
-
-        console.error("Category products error:", error);
-
-        if (!controller.signal.aborted) {
-          setProducts([]);
-        }
-      } finally {
-        if (!controller.signal.aborted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    fetchProducts();
-
-    return () => {
-      controller.abort();
-    };
-  }, [slug, urlSearch, isSearchPage]);
+  return () => {
+    active = false;
+  };
+}, [slug, urlSearch, isSearchPage]);
 
   // ============================================
   // PRODUCT IMAGE

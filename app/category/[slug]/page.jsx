@@ -746,28 +746,110 @@ const handleAddToCart2 = (product) => {
     };
   }, [isFilterOpen]);
 
+
+
+
   // ============================================
-  // LOAD CATEGORY BANNER
-  // Supports nested Main/Sub/Child/SubChild data
+  // PARALLEL LOAD: CATEGORY BANNER + PRODUCTS
+  // One API failure will not block the other
   // ============================================
 
   useEffect(() => {
-    if (isSearchPage || !slug) {
+    if (!slug && !isSearchPage) {
+      setLoading(false);
       setCategoryBanner("");
       return;
     }
 
     const controller = new AbortController();
+    const { signal } = controller;
 
-    const loadCategoryBanner = async () => {
+    const loadProducts = async () => {
+      setLoading(true);
+
       try {
-        const response = await fetch(`${API_BASE}/category/tree`, {
-          cache: "no-store",
-          signal: controller.signal,
+        const hasSearch = urlSearch.trim() !== "";
+
+        const currentSlug = Array.isArray(slug)
+          ? slug[slug.length - 1]
+          : slug;
+
+        const endpoint =
+          isSearchPage || hasSearch
+            ? `${API_BASE}/products/getALLproducts`
+            : `${API_BASE}/products/getALLproducts?category=${encodeURIComponent(
+                currentSlug
+              )}`;
+
+        // Use cached products when available
+        const cached = productCache.get(endpoint);
+
+        if (
+          cached &&
+          Date.now() - cached.time < PRODUCT_CACHE_TTL
+        ) {
+          if (!signal.aborted) {
+            setProducts(cached.data);
+          }
+          return;
+        }
+
+        const response = await fetch(endpoint, {
+          signal,
         });
 
         if (!response.ok) {
-          throw new Error(`Category API returned ${response.status}`);
+          throw new Error(
+            `Products API returned ${response.status}`
+          );
+        }
+
+        const data = await response.json();
+
+        const productList = Array.isArray(data)
+          ? data
+          : data?.products || data?.data || [];
+
+        if (signal.aborted) return;
+
+        productCache.set(endpoint, {
+          data: productList,
+          time: Date.now(),
+        });
+
+        setProducts(productList);
+      } catch (error) {
+        if (error?.name === "AbortError") return;
+
+        console.error("Products API error:", error);
+
+        // Only products are affected
+        if (!signal.aborted) {
+          setProducts([]);
+        }
+      } finally {
+        if (!signal.aborted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    const loadCategoryBanner = async () => {
+      if (isSearchPage || !slug) {
+        setCategoryBanner("");
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `${API_BASE}/category/tree`,
+          { signal }
+        );
+
+        if (!response.ok) {
+          throw new Error(
+            `Category API returned ${response.status}`
+          );
         }
 
         const data = await response.json();
@@ -796,11 +878,13 @@ const handleAddToCart2 = (product) => {
 
           getCategoryCollections(value).forEach(walk);
 
-          // Also support common API response wrappers.
-          ["data", "tree", "categories", "mainCategories"].forEach((key) => {
-            if (value[key] && !Array.isArray(value[key])) {
-              walk(value[key]);
-            } else if (Array.isArray(value[key])) {
+          [
+            "data",
+            "tree",
+            "categories",
+            "mainCategories",
+          ].forEach((key) => {
+            if (value[key]) {
               walk(value[key]);
             }
           });
@@ -809,41 +893,58 @@ const handleAddToCart2 = (product) => {
         walk(data);
 
         const currentSlug = normalizeCategorySlug(
-          Array.isArray(slug) ? slug[slug.length - 1] : slug,
+          Array.isArray(slug)
+            ? slug[slug.length - 1]
+            : slug
         );
 
-        const matchedCategory = allCategories.find((category) => {
-          const candidates = [
-            category.slug,
-            category.name,
-            category.categorySlug,
-          ].filter(Boolean);
+        const matchedCategory = allCategories.find(
+          (category) => {
+            const candidates = [
+              category.slug,
+              category.name,
+              category.categorySlug,
+            ].filter(Boolean);
 
-          return candidates.some(
-            (candidate) => normalizeCategorySlug(candidate) === currentSlug,
-          );
-        });
+            return candidates.some(
+              (candidate) =>
+                normalizeCategorySlug(candidate) ===
+                currentSlug
+            );
+          }
+        );
 
-        if (!controller.signal.aborted) {
+        if (!signal.aborted) {
           setCategoryBanner(
-            matchedCategory ? getBannerUrl(matchedCategory) : "",
+            matchedCategory
+              ? getBannerUrl(matchedCategory)
+              : ""
           );
         }
       } catch (error) {
-        if (error.name !== "AbortError") {
-          console.error("Category banner error:", error);
+        if (error?.name === "AbortError") return;
 
-          if (!controller.signal.aborted) {
-            setCategoryBanner("");
-          }
+        console.error("Category banner API error:", error);
+
+        // Banner failure does not affect products
+        if (!signal.aborted) {
+          setCategoryBanner("");
         }
       }
     };
 
-    loadCategoryBanner();
+    // Both API requests start immediately and independently
+    Promise.allSettled([
+      loadProducts(),
+      loadCategoryBanner(),
+    ]).catch((error) => {
+      // Defensive fallback for unexpected errors
+      console.error("Page loading error:", error);
+    });
 
     return () => controller.abort();
-  }, [slug, isSearchPage]);
+  }, [slug, urlSearch, isSearchPage]);
+
 
   const categoryName = useMemo(() => {
     if (isSearchPage) {
@@ -865,74 +966,7 @@ const handleAddToCart2 = (product) => {
   // LOAD PRODUCTS
   // ============================================
 
-  useEffect(() => {
-    if (!slug && !isSearchPage) return;
 
-    const controller = new AbortController();
-
-    const fetchProducts = async () => {
-      const hasSearch = urlSearch.trim() !== "";
-
-      const endpoint =
-        isSearchPage || hasSearch
-          ? `${API_BASE}/products/getALLproducts`
-          : `${API_BASE}/products/getALLproducts?category=${encodeURIComponent(
-              Array.isArray(slug) ? slug[slug.length - 1] : slug,
-            )}`;
-
-      const cached = productCache.get(endpoint);
-
-      if (cached && Date.now() - cached.time < PRODUCT_CACHE_TTL) {
-        setProducts(cached.data);
-        setLoading(false);
-        return;
-      }
-
-      try {
-        setLoading(true);
-
-        const response = await fetch(endpoint, {
-          cache: "default",
-          signal: controller.signal,
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch products: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        const productList = Array.isArray(data)
-          ? data
-          : data?.products || data?.data || [];
-
-        productCache.set(endpoint, {
-          data: productList,
-          time: Date.now(),
-        });
-
-        if (!controller.signal.aborted) {
-          setProducts(productList);
-        }
-      } catch (error) {
-        if (error?.name === "AbortError") return;
-
-        console.error("Category products error:", error);
-
-        if (!controller.signal.aborted) {
-          setProducts([]);
-        }
-      } finally {
-        if (!controller.signal.aborted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    fetchProducts();
-
-    return () => controller.abort();
-  }, [slug, urlSearch, isSearchPage]);
 
   // ============================================
   // DYNAMIC FILTER CONFIGURATION

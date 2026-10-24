@@ -290,8 +290,8 @@ export default function FeaturedCategories() {
                         category.image ||
                         category.imageUrl ||
                         category.thumbnail ||
-                        category.icon ||
-                        categoryImages[index % categoryImages.length]
+                        category.icon 
+                        
                       }
                       alt={categoryName}
                       className="h-[70%] w-[70%] object-contain transition-transform duration-300 group-hover:scale-110"

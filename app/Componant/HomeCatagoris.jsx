@@ -6,19 +6,7 @@ import Link from "next/link";
 const API_BASE = "https://apple-gadgets-ui-backend.vercel.app";
 
 // Fallback images
-const categoryImages = [
-  "/images.png",
-  "/appliances-gray-background_24908-61032.avif",
-  "/pngtree-golden-photography-wing-camera-logo-png-image_6007201.png",
-  "/computer-logo-design-concept-vector-art-illustration_761413-40776.avif",
-  "/logo-mobile-products-mobile-products_1189726-5309.avif",
-  "/download.jpg",
-  "/download (1).jpg",
-  "/download (2).jpg",
-  "/iPhone-17-Pro-Max-cosmic-orange-8534.webp",
-  "/download (3).jpg",
-  "/pexels-rubaitulazad-13791394.jpg",
-];
+
 
 export default function FeaturedCategories() {
   const [categories, setCategories] = useState([]);

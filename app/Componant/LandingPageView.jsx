@@ -9,6 +9,7 @@ import {
   LoaderCircle,
   AlertCircle,
   RefreshCw,
+  Calendar,
 } from "lucide-react";
 
 const API_URL = "https://apple-gadgets-ui-backend.vercel.app";
@@ -38,9 +39,7 @@ export default function LandingPageView({ slug, onClose }) {
 
         const response = await fetch(url, {
           method: "GET",
-          headers: {
-            Accept: "application/json",
-          },
+          headers: { Accept: "application/json" },
           cache: "no-store",
           signal,
         });
@@ -62,8 +61,6 @@ export default function LandingPageView({ slug, onClose }) {
           );
         }
 
-        // Support both { success: true, data: page }
-        // and a response that directly returns the page object.
         const pageData = result.data ?? result.page ?? result;
 
         if (
@@ -92,22 +89,17 @@ export default function LandingPageView({ slug, onClose }) {
 
   useEffect(() => {
     const controller = new AbortController();
-
     fetchPage(controller.signal);
-
     return () => controller.abort();
   }, [fetchPage, retry]);
 
-  // Close popup with Escape key and prevent background scrolling.
   useEffect(() => {
     if (!slug) return;
 
     const previousOverflow = document.body.style.overflow;
 
     const handleKeyDown = (event) => {
-      if (event.key === "Escape") {
-        onClose?.();
-      }
+      if (event.key === "Escape") onClose?.();
     };
 
     document.body.style.overflow = "hidden";
@@ -125,9 +117,7 @@ export default function LandingPageView({ slug, onClose }) {
 
   const getImageUrl = (image) => {
     if (!image) return "";
-
     if (typeof image === "string") return image;
-
     return image.url || image.secure_url || "";
   };
 
@@ -135,12 +125,20 @@ export default function LandingPageView({ slug, onClose }) {
     if (price === undefined || price === null || price === "") {
       return "Price unavailable";
     }
-
     const amount = Number(price);
-
     return Number.isFinite(amount)
       ? `৳${amount.toLocaleString("en-BD")}`
       : String(price);
+  };
+
+  const formatEndDate = (date) => {
+    if (!date) return null;
+    const d = new Date(date);
+    if (Number.isNaN(d.getTime())) return null;
+    return d.toLocaleString("en-BD", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
   };
 
   const pageUrl =
@@ -207,7 +205,10 @@ export default function LandingPageView({ slug, onClose }) {
 
       case "banner":
         return (
-          <section key={key} className="mx-auto max-w-7xl px-4 py-5 sm:px-8 sm:py-8">
+          <section
+            key={key}
+            className="mx-auto max-w-7xl px-4 py-5 sm:px-8 sm:py-8"
+          >
             <div className="relative min-h-[180px] overflow-hidden rounded-2xl bg-slate-100 sm:min-h-[280px]">
               {imageUrl && (
                 <img
@@ -217,7 +218,9 @@ export default function LandingPageView({ slug, onClose }) {
                 />
               )}
 
-              {(section.title || section.description || section.buttonText) && (
+              {(section.title ||
+                section.description ||
+                section.buttonText) && (
                 <div className="relative z-10 flex min-h-[180px] flex-col items-start justify-center p-6 sm:min-h-[280px] sm:p-10">
                   <div
                     className={`max-w-2xl ${
@@ -248,7 +251,10 @@ export default function LandingPageView({ slug, onClose }) {
 
       case "features":
         return (
-          <section key={key} className="mx-auto max-w-7xl px-5 py-12 sm:px-8 sm:py-16">
+          <section
+            key={key}
+            className="mx-auto max-w-7xl px-5 py-12 sm:px-8 sm:py-16"
+          >
             {section.title && (
               <h2 className="text-center text-2xl font-bold text-slate-900 sm:text-4xl">
                 {section.title}
@@ -292,7 +298,10 @@ export default function LandingPageView({ slug, onClose }) {
 
       case "products":
         return (
-          <section key={key} className="mx-auto max-w-7xl px-5 py-12 sm:px-8 sm:py-16">
+          <section
+            key={key}
+            className="mx-auto max-w-7xl px-5 py-12 sm:px-8 sm:py-16"
+          >
             {section.title && (
               <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">
                 {section.title}
@@ -359,7 +368,10 @@ export default function LandingPageView({ slug, onClose }) {
 
       case "cta":
         return (
-          <section key={key} className="bg-indigo-700 px-5 py-12 text-center text-white sm:px-8 sm:py-16">
+          <section
+            key={key}
+            className="bg-indigo-700 px-5 py-12 text-center text-white sm:px-8 sm:py-16"
+          >
             {section.title && (
               <h2 className="text-2xl font-bold sm:text-4xl">
                 {section.title}
@@ -378,7 +390,10 @@ export default function LandingPageView({ slug, onClose }) {
 
       case "testimonials":
         return (
-          <section key={key} className="mx-auto max-w-7xl px-5 py-12 sm:px-8 sm:py-16">
+          <section
+            key={key}
+            className="mx-auto max-w-7xl px-5 py-12 sm:px-8 sm:py-16"
+          >
             {section.title && (
               <h2 className="text-center text-2xl font-bold text-slate-900 sm:text-3xl">
                 {section.title}
@@ -404,30 +419,148 @@ export default function LandingPageView({ slug, onClose }) {
           </section>
         );
 
-      case "offers":
+      /* ========== FIXED: offers section ========== */
+      case "offers": {
+        const offersList = Array.isArray(section.offers) ? section.offers : [];
+
         return (
-          <section key={key} className="mx-auto max-w-7xl px-5 py-10 sm:px-8">
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 sm:p-8">
-              {section.title && (
-                <h2 className="text-2xl font-bold text-slate-900">
-                  {section.title}
-                </h2>
-              )}
+          <section
+            key={key}
+            className="mx-auto max-w-7xl px-4 py-8 sm:px-8 sm:py-12"
+          >
+            {(section.title || section.subtitle || section.description) && (
+              <div className="mb-6 text-center sm:mb-8">
+                {section.title && (
+                  <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">
+                    {section.title}
+                  </h2>
+                )}
+                {section.subtitle && (
+                  <p className="mt-2 text-slate-500">{section.subtitle}</p>
+                )}
+                {section.description && (
+                  <p className="mx-auto mt-3 max-w-2xl whitespace-pre-line text-sm leading-7 text-slate-600">
+                    {section.description}
+                  </p>
+                )}
+              </div>
+            )}
 
-              {section.description && (
-                <p className="mt-3 whitespace-pre-line text-sm leading-7 text-slate-700">
-                  {section.description}
-                </p>
-              )}
+            {offersList.length === 0 ? (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-8 text-center text-sm text-slate-500">
+                No offers available in this section.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                {offersList.map((offer, offerIndex) => {
+                  const offerImage = getImageUrl(offer.image);
+                  const offerLink = offer.link || offer.buttonLink || "#";
+                  const endDateLabel = formatEndDate(offer.endDate);
+                  const products = Array.isArray(offer.productIds)
+                    ? offer.productIds.filter(
+                        (p) => p && typeof p === "object"
+                      )
+                    : [];
 
-              {renderButton(section)}
-            </div>
+                  return (
+                    <article
+                      key={offer._id || offerIndex}
+                      className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+                    >
+                      {/* Offer banner image */}
+                      {offerImage ? (
+                        <Link href={offerLink} className="block">
+                          <img
+                            src={offerImage}
+                            alt={offer.alt || offer.title || "Offer"}
+                            className="h-48 w-full object-cover sm:h-56"
+                          />
+                        </Link>
+                      ) : (
+                        <div className="flex h-40 items-center justify-center bg-gradient-to-br from-amber-50 to-orange-50 text-sm text-slate-400">
+                          No image
+                        </div>
+                      )}
+
+                      <div className="p-5 sm:p-6">
+                        {offer.title && (
+                          <h3 className="text-lg font-bold text-slate-900 sm:text-xl">
+                            {offer.title}
+                          </h3>
+                        )}
+
+                        {endDateLabel && (
+                          <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-amber-700">
+                            <Calendar size={13} />
+                            Ends: {endDateLabel}
+                          </p>
+                        )}
+
+                        {/* Related products */}
+                        {products.length > 0 && (
+                          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                            {products.map((product) => {
+                              const pImg = getImageUrl(product.images?.[0]);
+                              const pHref = `/products/${
+                                product.slug || product._id
+                              }`;
+                              const pPrice =
+                                product.discountPrice ?? product.price;
+
+                              return (
+                                <Link
+                                  key={product._id}
+                                  href={pHref}
+                                  className="group rounded-xl border border-slate-100 p-2 transition hover:border-indigo-200 hover:bg-indigo-50/40"
+                                >
+                                  {pImg ? (
+                                    <img
+                                      src={pImg}
+                                      alt={product.name || "Product"}
+                                      className="mx-auto h-20 w-full object-contain"
+                                    />
+                                  ) : (
+                                    <div className="flex h-20 items-center justify-center text-[10px] text-slate-400">
+                                      No img
+                                    </div>
+                                  )}
+                                  <p className="mt-1.5 line-clamp-2 text-center text-[11px] font-semibold text-slate-800 group-hover:text-indigo-700">
+                                    {product.name}
+                                  </p>
+                                  <p className="mt-0.5 text-center text-xs font-bold text-indigo-600">
+                                    {formatPrice(pPrice)}
+                                  </p>
+                                </Link>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {/* CTA button */}
+                        <Link
+                          href={offerLink}
+                          className="mt-5 inline-flex w-full items-center justify-center rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 sm:w-auto"
+                        >
+                          {offer.buttonText || "View Details"}
+                        </Link>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+
+            {renderButton(section)}
           </section>
         );
+      }
 
       default:
         return (
-          <section key={key} className="mx-auto max-w-7xl px-5 py-8 sm:px-8">
+          <section
+            key={key}
+            className="mx-auto max-w-7xl px-5 py-8 sm:px-8"
+          >
             {imageUrl && (
               <img
                 src={imageUrl}
@@ -523,9 +656,7 @@ export default function LandingPageView({ slug, onClose }) {
                 Preview load failed
               </h3>
 
-              <p className="mt-2 max-w-lg text-sm text-slate-500">
-                {error}
-              </p>
+              <p className="mt-2 max-w-lg text-sm text-slate-500">{error}</p>
 
               <button
                 type="button"

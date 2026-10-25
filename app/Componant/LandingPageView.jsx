@@ -147,7 +147,7 @@ export default function LandingPageView({ slug, onClose }) {
       : `/lp/${encodeURIComponent(slug)}`;
 
   const renderButton = (section, variant = "primary") => {
-    if (!section.buttonText) return null;
+    if (!section?.buttonText) return null;
 
     const styles =
       variant === "white"
@@ -169,41 +169,139 @@ export default function LandingPageView({ slug, onClose }) {
     const imageUrl = getImageUrl(section.image);
 
     switch (section.type) {
-      case "hero":
+      /* ===================== HERO ===================== */
+      case "hero": {
+        const hasTitle = Boolean(section.title);
+        const hasSubtitle = Boolean(section.subtitle);
+        const hasImage = Boolean(imageUrl);
+        const hasButton = Boolean(section.buttonText);
+
+        if (!hasTitle && !hasSubtitle && !hasImage && !hasButton) {
+          return null;
+        }
+
         return (
           <section key={key} className="relative">
-            <div className="relative flex min-h-[300px] items-center overflow-hidden bg-slate-950 sm:min-h-[440px]">
-              {imageUrl && (
+            <div
+              className={`relative flex min-h-[220px] items-center overflow-hidden sm:min-h-[380px] ${
+                hasImage
+                  ? "bg-slate-950"
+                  : "bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900"
+              }`}
+            >
+              {hasImage && (
                 <>
                   <img
                     src={imageUrl}
                     alt={section.title || "Hero banner"}
                     className="absolute inset-0 h-full w-full object-cover"
                   />
-                  <div className="absolute inset-0 bg-black/40" />
+                  <div className="absolute inset-0 bg-black/45" />
                 </>
               )}
 
-              <div className="relative z-10 mx-auto w-full max-w-7xl px-6 py-14 sm:px-10 sm:py-20">
-                {section.title && (
+              <div className="relative z-10 mx-auto w-full max-w-7xl px-6 py-12 sm:px-10 sm:py-16">
+                {hasTitle && (
                   <h1 className="max-w-3xl text-3xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl">
                     {section.title}
                   </h1>
                 )}
 
-                {section.subtitle && (
+                {hasSubtitle && (
                   <p className="mt-4 max-w-2xl text-base leading-7 text-white/90 sm:text-lg">
                     {section.subtitle}
                   </p>
                 )}
 
-                {renderButton(section, "white")}
+                {!hasTitle && !hasSubtitle && hasButton ? (
+                  <div className="flex justify-center sm:justify-start">
+                    {renderButton(section, "white")}
+                  </div>
+                ) : (
+                  renderButton(section, "white")
+                )}
               </div>
             </div>
           </section>
         );
+      }
 
-      case "banner":
+      /* ===================== BANNER ===================== */
+      case "banner": {
+        const bannersList = Array.isArray(section.banners)
+          ? section.banners.filter((b) => getImageUrl(b?.image))
+          : [];
+
+        // Prefer banners[] array
+        if (bannersList.length > 0) {
+          return (
+            <section
+              key={key}
+              className="mx-auto max-w-7xl px-4 py-5 sm:px-8 sm:py-8"
+            >
+              {(section.title || section.subtitle) && (
+                <div className="mb-4 sm:mb-6">
+                  {section.title && (
+                    <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">
+                      {section.title}
+                    </h2>
+                  )}
+                  {section.subtitle && (
+                    <p className="mt-1 text-sm text-slate-500">
+                      {section.subtitle}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <div
+                className={`grid gap-4 ${
+                  bannersList.length === 1
+                    ? "grid-cols-1"
+                    : "grid-cols-1 sm:grid-cols-2"
+                }`}
+              >
+                {bannersList.map((banner, i) => {
+                  const src = getImageUrl(banner.image);
+                  const href = banner.link || section.buttonLink || "#";
+
+                  return (
+                    <a
+                      key={banner._id || i}
+                      href={href}
+                      className="group relative block overflow-hidden rounded-2xl bg-slate-100 shadow-sm"
+                    >
+                      <img
+                        src={src}
+                        alt={banner.alt || section.title || "Banner"}
+                        className="h-auto w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+                      />
+                    </a>
+                  );
+                })}
+              </div>
+
+              {section.description && (
+                <p className="mt-4 whitespace-pre-line text-sm leading-7 text-slate-600">
+                  {section.description}
+                </p>
+              )}
+
+              {renderButton(section)}
+            </section>
+          );
+        }
+
+        // Fallback: single section.image
+        if (
+          !imageUrl &&
+          !section.title &&
+          !section.description &&
+          !section.buttonText
+        ) {
+          return null;
+        }
+
         return (
           <section
             key={key}
@@ -248,7 +346,9 @@ export default function LandingPageView({ slug, onClose }) {
             </div>
           </section>
         );
+      }
 
+      /* ===================== FEATURES ===================== */
       case "features":
         return (
           <section
@@ -296,7 +396,12 @@ export default function LandingPageView({ slug, onClose }) {
           </section>
         );
 
-      case "products":
+      /* ===================== PRODUCTS ===================== */
+      case "products": {
+        const products = (section.productIds || []).filter(
+          (p) => p && typeof p === "object"
+        );
+
         return (
           <section
             key={key}
@@ -314,58 +419,66 @@ export default function LandingPageView({ slug, onClose }) {
               </p>
             )}
 
-            <div className="mt-7 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-              {(section.productIds || []).map((product, productIndex) => {
-                if (!product || typeof product !== "object") return null;
+            {products.length === 0 ? (
+              <p className="mt-6 text-sm text-slate-400">
+                No products added to this section.
+              </p>
+            ) : (
+              <div className="mt-7 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+                {products.map((product, productIndex) => {
+                  const productImage = getImageUrl(product.images?.[0]);
+                  const productHref = `/products/${
+                    product.slug || product._id
+                  }`;
+                  const price = product.discountPrice ?? product.price;
 
-                const productImage = getImageUrl(product.images?.[0]);
-                const productHref = `/products/${product.slug || product._id}`;
-                const price = product.discountPrice ?? product.price;
+                  return (
+                    <article
+                      key={product._id || productIndex}
+                      className="overflow-hidden rounded-2xl border border-slate-200 bg-white transition hover:-translate-y-1 hover:shadow-lg"
+                    >
+                      <Link href={productHref} className="block">
+                        {productImage ? (
+                          <img
+                            src={productImage}
+                            alt={product.name || "Product"}
+                            className="h-40 w-full object-contain p-4 sm:h-52"
+                          />
+                        ) : (
+                          <div className="flex h-40 items-center justify-center bg-slate-50 text-sm text-slate-400 sm:h-52">
+                            No image
+                          </div>
+                        )}
 
-                return (
-                  <article
-                    key={product._id || productIndex}
-                    className="overflow-hidden rounded-2xl border border-slate-200 bg-white transition hover:-translate-y-1 hover:shadow-lg"
-                  >
-                    <Link href={productHref} className="block">
-                      {productImage ? (
-                        <img
-                          src={productImage}
-                          alt={product.name || "Product"}
-                          className="h-40 w-full object-contain p-4 sm:h-52"
-                        />
-                      ) : (
-                        <div className="flex h-40 items-center justify-center bg-slate-50 text-sm text-slate-400 sm:h-52">
-                          No image
+                        <div className="p-4">
+                          <h3 className="line-clamp-2 min-h-10 text-sm font-semibold text-slate-900 sm:text-base">
+                            {product.name || "Product"}
+                          </h3>
+
+                          <p className="mt-2 font-bold text-indigo-700">
+                            {formatPrice(price)}
+                          </p>
                         </div>
-                      )}
-
-                      <div className="p-4">
-                        <h3 className="line-clamp-2 min-h-10 text-sm font-semibold text-slate-900 sm:text-base">
-                          {product.name || "Product"}
-                        </h3>
-
-                        <p className="mt-2 font-bold text-indigo-700">
-                          {formatPrice(price)}
-                        </p>
-                      </div>
-                    </Link>
-
-                    <div className="px-4 pb-4">
-                      <Link
-                        href={productHref}
-                        className="block rounded-lg border border-slate-300 px-3 py-2 text-center text-xs font-semibold text-slate-700 transition hover:bg-slate-50 sm:text-sm"
-                      >
-                        View Product
                       </Link>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
+
+                      <div className="px-4 pb-4">
+                        <Link
+                          href={productHref}
+                          className="block rounded-lg border border-slate-300 px-3 py-2 text-center text-xs font-semibold text-slate-700 transition hover:bg-slate-50 sm:text-sm"
+                        >
+                          View Product
+                        </Link>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
           </section>
         );
+      }
 
+      /* ===================== CTA ===================== */
       case "cta":
         return (
           <section
@@ -388,6 +501,7 @@ export default function LandingPageView({ slug, onClose }) {
           </section>
         );
 
+      /* ===================== TESTIMONIALS ===================== */
       case "testimonials":
         return (
           <section
@@ -419,7 +533,7 @@ export default function LandingPageView({ slug, onClose }) {
           </section>
         );
 
-      /* ========== FIXED: offers section ========== */
+      /* ===================== OFFERS ===================== */
       case "offers": {
         const offersList = Array.isArray(section.offers) ? section.offers : [];
 
@@ -467,7 +581,6 @@ export default function LandingPageView({ slug, onClose }) {
                       key={offer._id || offerIndex}
                       className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
                     >
-                      {/* Offer banner image */}
                       {offerImage ? (
                         <Link href={offerLink} className="block">
                           <img
@@ -496,7 +609,6 @@ export default function LandingPageView({ slug, onClose }) {
                           </p>
                         )}
 
-                        {/* Related products */}
                         {products.length > 0 && (
                           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
                             {products.map((product) => {
@@ -536,7 +648,6 @@ export default function LandingPageView({ slug, onClose }) {
                           </div>
                         )}
 
-                        {/* CTA button */}
                         <Link
                           href={offerLink}
                           className="mt-5 inline-flex w-full items-center justify-center rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 sm:w-auto"
@@ -555,6 +666,7 @@ export default function LandingPageView({ slug, onClose }) {
         );
       }
 
+      /* ===================== DEFAULT ===================== */
       default:
         return (
           <section

@@ -520,7 +520,7 @@ export default function EmployeeOrdersPage() {
   const confirmMeta = confirm ? ACTION_META[confirm.status] : null;
 
   return (
-    <main className="mx-auto w-full max-w-4xl space-y-4 px-3 py-4 sm:space-y-5 sm:px-6 sm:py-6">
+    <main className="mx-auto w-full max-w-360 space-y-4 px-3 py-4 sm:space-y-5 sm:px-6 sm:py-6">
       {/* Header */}
       <header className="flex flex-col gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/[0.03] sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:p-5">
         <div className="flex min-w-0 items-center gap-3 sm:gap-4">

@@ -81,6 +81,7 @@ export default function AuthPage() {
     name: "",
     email: "",
     phone: "",
+    address: "",
     password: "",
   });
 
@@ -637,6 +638,22 @@ const handleVerifyOtp = async (event) => {
           required
         />
       </div>
+      <label htmlFor="register-address">ADDRESS</label>
+
+<div className="input-wrap">
+  <User size={18} />
+
+  <input
+    id="register-address"
+    type="text"
+    name="address"
+    placeholder="Enter your full address"
+    autoComplete="street-address"
+    value={registerData.address}
+    onChange={handleRegisterChange}
+    required
+  />
+</div>
 
       <label htmlFor="register-phone">PHONE NUMBER</label>
 

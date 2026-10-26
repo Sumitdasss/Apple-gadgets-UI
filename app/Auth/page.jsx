@@ -359,60 +359,61 @@ export default function AuthPage() {
   };
 
   // VERIFY EMAIL OTP OR LOGIN OTP
-  const handleVerifyOtp = async (event) => {
-    event.preventDefault();
-    clearMessage();
-    setLoading(true);
 
-    try {
-      const endpoint = isRegisterOtp
-        ? "/api/users/verify-email-otp"
-        : "/api/users/verify-login-otp";
 
-      const email = (
-        isRegisterOtp ? registerData.email : loginData.email
-      )
-        .trim()
-        .toLowerCase();
+const handleVerifyOtp = async (event) => {
+  event.preventDefault();
+  clearMessage();
+  setLoading(true);
 
-      const result = await request(endpoint, {
-        email,
-        otp: otp.trim(),
-      });
+  try {
+    const registerOtp = isRegisterOtp;
 
-      const { token, user } = extractAuth(result);
+    const endpoint = registerOtp
+      ? "/api/users/verify-email-otp"
+      : "/api/users/verify-login-otp";
 
-      if (token && user) {
-        saveSession(result);
-        return;
-      }
+    const email = (
+      registerOtp ? registerData.email : loginData.email
+    )
+      .trim()
+      .toLowerCase();
 
-      if (isRegisterOtp) {
-        setLoginData((previous) => ({
-          ...previous,
-          email: registerData.email,
-        }));
+    const result = await request(endpoint, {
+      email,
+      otp: otp.trim(),
+    });
 
-        flipTo("login");
+    const { token, user } = extractAuth(result);
 
-        showSuccessToast(
-          result.message ||
-            "Email verified successfully. You can now log in.",
-        );
-      } else {
-        resetToForm();
-
-        showSuccessToast(
-          result.message ||
-            "Verification completed. Please log in again if needed.",
+    // OTP verification must return both token and user
+    if (!token || !user) {
+      if (registerOtp) {
+        throw new Error(
+          "Email verified, but the server did not return a login token. Check the backend verifyEmailOtp response."
         );
       }
-    } catch (error) {
-      showMessage(error.message);
-    } finally {
-      setLoading(false);
+
+      throw new Error(
+        "OTP verified, but login token or user data was not returned."
+      );
     }
-  };
+
+    // Save session and redirect automatically
+    showSuccessToast(
+      registerOtp
+        ? "Registration successful! Logging you in..."
+        : "Login successful! Redirecting..."
+    );
+
+    saveSession(result);
+  } catch (error) {
+    showMessage(error.message || "OTP verification failed.");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   // RESEND OTP
   const handleResendOtp = async () => {

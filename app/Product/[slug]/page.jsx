@@ -7,6 +7,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Inter } from "next/font/google";
 import DOMPurify from "isomorphic-dompurify";
+import useCompareStore from "../../Store/compareStore.js";
 import {
   ChevronRight,
   Minus,
@@ -47,7 +48,7 @@ export default function ProductDetailsPage() {
   const [selectedStorage, setSelectedStorage] = useState("");
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [quantity, setQuantity] = useState(1);
-
+const { addToCompare } = useCompareStore();
   // =====================================================
   // AUTH CHECK
   // =====================================================
@@ -715,14 +716,17 @@ export default function ProductDetailsPage() {
                 {product.brand || "Brand"}
               </span>
 
-              <button
-                type="button"
-                onClick={() => alert("Compare feature is not connected yet.")}
-                className="flex items-center gap-1.5 text-orange-500 font-medium text-[13px] hover:text-orange-600 transition-colors"
-              >
-                <ArrowLeftRight size={15} />
-                Compare
-              </button>
+             <button
+  type="button"
+  onClick={() => {
+    addToCompare(product);
+    router.push("/compare");
+  }}
+  className="flex items-center gap-1.5 text-orange-500 font-medium text-[13px] hover:text-orange-600 transition-colors"
+>
+  <ArrowLeftRight size={15} />
+  Compare
+</button>
             </div>
 
             {/* Product Name */}

@@ -14,27 +14,27 @@ import {
 
 const ITEMS = [
   {
-    href: "/employee/orders",
+    href: "/Employee/orders",
     label: "All my deliveries",
     icon: Truck,
   },
   {
-    href: "/employee/orders?status=assigned",
+    href: "/Employee/orders?status=assigned",
     label: "New assigned",
     icon: PackageCheck,
   },
   {
-    href: "/employee/orders?status=in_transit",
+    href: "/Employee/orders?status=in_transit",
     label: "On the way",
     icon: Navigation,
   },
   {
-    href: "/employee/orders?status=delivered",
+    href: "/Employee/orders?status=delivered",
     label: "Delivered",
     icon: CheckCircle2,
   },
   {
-    href: "/employee/orders?status=failed",
+    href: "/Employee/orders?status=failed",
     label: "Failed / issues",
     icon: AlertTriangle,
   },

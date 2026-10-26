@@ -248,15 +248,31 @@ function OrderCard({ order, onAction }) {
             )}
           </div>
 
-          <div className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300">
-            <MapPin
-              size={15}
-              className="mt-0.5 shrink-0 text-slate-400"
-            />
-            <span className="break-words leading-relaxed">
-              {order.deliveryAddress || "Address not available"}
-            </span>
-          </div>
+   
+
+{/* Customer delivery address + area */}
+<div className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300">
+  <MapPin
+    size={16}
+    className="mt-0.5 shrink-0 text-slate-400"
+  />
+
+  <div className="min-w-0 space-y-1">
+    {/* Area */}
+    {order.selectArea && (
+      <p className="break-words font-semibold text-emerald-700 dark:text-emerald-400">
+        {order.selectArea}
+      </p>
+    )}
+
+    {/* Delivery Address */}
+    <p className="break-words leading-relaxed">
+      {order.deliveryAddress || "Address not available"}
+    </p>
+  </div>
+</div>
+
+
 
           {products.length > 0 && (
             <ul className="space-y-1.5 rounded-xl bg-slate-50 p-2.5 text-xs sm:p-3 dark:bg-white/[0.03]">

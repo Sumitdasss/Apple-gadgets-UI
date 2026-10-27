@@ -828,10 +828,16 @@ const fillUserData = (user) => {
 
       console.log("FINAL ORDER PAYLOAD:", payload);
 
+      const token =
+        typeof window !== "undefined"
+          ? localStorage.getItem("token")
+          : null;
+
       const response = await fetch(`${API_BASE}/products/CreateOrder`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify(payload),
       });
@@ -846,24 +852,65 @@ const fillUserData = (user) => {
         );
       }
 
-    
-clearCart();
+      const orderId =
+        result?.data?.orderId ||
+        result?.data?.data?.orderId ||
+        result?.data?._id ||
+        result?.orderId ||
+        result?._id;
 
-const orderId =
-  result?.data?.orderId ||
-  result?.data?._id ||
-  result?.orderId;
+      if (!orderId) {
+        throw new Error("Order created, but Order ID was not returned.");
+      }
 
-if (!orderId) {
-  throw new Error("Order created, but Order ID was not returned.");
-}
-showReviewToast(
-  "Order placed successfully!",
-  8000,
-  "success"
-);
-// Redirect to the invoice page
-router.push(`/invoice/${encodeURIComponent(orderId)}`);
+      // Online / partial payment: create the gateway session first.
+      // Keep the cart intact until payment is confirmed.
+      if (
+        formData.paymentMethod === "online_payment" ||
+        formData.paymentMethod === "partial_payment"
+      ) {
+        const paymentResponse = await fetch(
+          `${API_BASE}/api/payment/sslcommerz/initiate`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({ orderId: String(orderId) }),
+          },
+        );
+
+        const paymentResult = await paymentResponse
+          .json()
+          .catch(() => ({}));
+
+        if (!paymentResponse.ok || paymentResult?.success !== true) {
+          throw new Error(
+            paymentResult?.message ||
+              `Order created, but payment could not be started. Order ID: ${orderId}`,
+          );
+        }
+
+        const gatewayUrl = paymentResult?.data?.GatewayPageURL;
+
+        if (
+          typeof gatewayUrl !== "string" ||
+          !/^https:\/\//i.test(gatewayUrl)
+        ) {
+          throw new Error(
+            `SSLCOMMERZ Gateway URL was not returned. Order ID: ${orderId}`,
+          );
+        }
+
+        window.location.assign(gatewayUrl);
+        return;
+      }
+
+      // COD only: keep the existing invoice flow.
+      clearCart();
+      showReviewToast("Order placed successfully!", 8000, "success");
+      router.push(`/invoice/${encodeURIComponent(String(orderId))}`);
 
     } catch (error) {
       console.error("ORDER ERROR:", error);

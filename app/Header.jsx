@@ -1122,6 +1122,8 @@ useEffect(() => {
 )}
                           
                           <AccountLink href="/wishlist" icon={Heart} label="My Wishlist" onClick={closeAll} />
+                          <AccountLink href="/my-orders" icon={Package} label="My Oder" onClick={closeAll} />
+                          <AccountLink href="/order-tracking" icon={Package} label="Order-Tracking" onClick={closeAll} />
                           <AccountLink href="/cart" icon={ShoppingBag} label="My Shopping Bag" onClick={closeAll} />
                           <AccountLink href="/settings" icon={Settings} label="Account Settings" onClick={closeAll} />
                         </div>

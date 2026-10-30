@@ -1,4 +1,3 @@
-
 /* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
@@ -60,6 +59,23 @@ const getUserField = (user, keys) => {
   }
 
   return "";
+};
+
+/* =========================================================
+   GET PUBLIC IP (Frontend)
+========================================================= */
+
+const getPublicIp = async () => {
+  try {
+    const res = await fetch("https://api.ipify.org?format=json", {
+      cache: "no-store",
+    });
+    const data = await res.json().catch(() => ({}));
+    return data?.ip || "";
+  } catch (err) {
+    console.error("IP fetch failed:", err);
+    return "";
+  }
 };
 
 /* =========================================================
@@ -242,58 +258,60 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false);
   const [userLoading, setUserLoading] = useState(true);
   const [loggedInUser, setLoggedInUser] = useState(null);
-const router = useRouter();
+  const router = useRouter();
+
   /* =========================================================
      LOAD USER AND AUTOFILL FORM
   ========================================================= */
 
   useEffect(() => {
     let cancelled = false;
-const fillUserData = (user) => {
-  if (!user || typeof user !== "object" || cancelled) return;
 
-  setLoggedInUser(user);
+    const fillUserData = (user) => {
+      if (!user || typeof user !== "object" || cancelled) return;
 
-  const name = getUserField(user, [
-    "name",
-    "fullName",
-    "customerName",
-    "username",
-  ]);
+      setLoggedInUser(user);
 
-  const email = getUserField(user, ["email"]);
+      const name = getUserField(user, [
+        "name",
+        "fullName",
+        "customerName",
+        "username",
+      ]);
 
-  const phone = getUserField(user, [
-    "phone",
-    "phoneNumber",
-    "mobile",
-    "mobileNumber",
-  ]);
+      const email = getUserField(user, ["email"]);
 
-  const address = getUserField(user, [
-    "address",
-    "deliveryAddress",
-    "fullAddress",
-    "shippingAddress",
-  ]);
+      const phone = getUserField(user, [
+        "phone",
+        "phoneNumber",
+        "mobile",
+        "mobileNumber",
+      ]);
 
-  const selectArea = getUserField(user, [
-    "selectArea",
-    "deliveryArea",
-    "area",
-  ]);
+      const address = getUserField(user, [
+        "address",
+        "deliveryAddress",
+        "fullAddress",
+        "shippingAddress",
+      ]);
 
-  setFormData((previous) => ({
-    ...previous,
-    fullName: previous.fullName || name,
-    email: previous.email || email,
-    phone: previous.phone || phone,
-    address: previous.address || address,
-    selectArea: previous.selectArea || selectArea,
-  }));
-};
+      const selectArea = getUserField(user, [
+        "selectArea",
+        "deliveryArea",
+        "area",
+      ]);
+
+      setFormData((previous) => ({
+        ...previous,
+        fullName: previous.fullName || name,
+        email: previous.email || email,
+        phone: previous.phone || phone,
+        address: previous.address || address,
+        selectArea: previous.selectArea || selectArea,
+      }));
+    };
+
     const loadUser = async () => {
-      // First use locally saved user data.
       const savedUser = getSavedUser();
 
       if (savedUser) {
@@ -324,8 +342,6 @@ const fillUserData = (user) => {
             "User profile request failed:",
             result?.message || response.status,
           );
-
-          // Do not clear saved data automatically if the API fails.
           return;
         }
 
@@ -632,7 +648,6 @@ const fillUserData = (user) => {
     if (formData.deliveryMethod === "shop_pickup") return 0;
     if (!formData.selectArea) return 0;
 
-    // The selected area starts with the division name.
     return formData.selectArea.startsWith("Dhaka") ? 80 : 150;
   }, [formData.deliveryMethod, formData.selectArea]);
 
@@ -770,6 +785,9 @@ const fillUserData = (user) => {
     setLoading(true);
 
     try {
+      // Frontend থেকে public IP নিয়ে নাও
+      const clientIp = await getPublicIp();
+
       const products = cart.map((item) => {
         const productId = getProductId(item);
         const variants = getVariants(item);
@@ -824,6 +842,9 @@ const fillUserData = (user) => {
         deliveryMethod: formData.deliveryMethod,
         termsAgreed: formData.termsAgreed,
         orderSource: "website",
+
+        // IP Address
+        ipAddress: clientIp,
       };
 
       console.log("FINAL ORDER PAYLOAD:", payload);
@@ -863,8 +884,7 @@ const fillUserData = (user) => {
         throw new Error("Order created, but Order ID was not returned.");
       }
 
-      // Online / partial payment: create the gateway session first.
-      // Keep the cart intact until payment is confirmed.
+      // Online / partial payment
       if (
         formData.paymentMethod === "online_payment" ||
         formData.paymentMethod === "partial_payment"
@@ -907,11 +927,10 @@ const fillUserData = (user) => {
         return;
       }
 
-      // COD only: keep the existing invoice flow.
+      // COD
       clearCart();
       showReviewToast("Order placed successfully!", 8000, "success");
       router.push(`/invoice/${encodeURIComponent(String(orderId))}`);
-
     } catch (error) {
       console.error("ORDER ERROR:", error);
       alert(error?.message || "Failed to place order!");

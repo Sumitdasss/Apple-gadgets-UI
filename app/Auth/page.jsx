@@ -10,10 +10,12 @@ import {
   Lock,
   User,
   Phone,
+  MapPin,
   ArrowRight,
   ArrowLeft,
   LoaderCircle,
   CheckCircle2,
+  Check,
   ShieldCheck,
   RotateCcw,
   LogIn,
@@ -27,11 +29,22 @@ const API_BASE =
 const ADMIN_PANEL_URL =
   "https://apple-gadgets-ui-adminpanel.vercel.app";
 
-const ADMIN_ROLES = ["admin", "subadmin","order_manager"];
+const ADMIN_ROLES = ["admin", "subadmin", "order_manager"];
 const FLIP_DURATION = 900;
 const LAMP_REVEAL_DELAY = 550;
 const OTP_COOLDOWN = 30;
 const PHONE_REGEX = /^01[3-9]\d{8}$/;
+
+// OTP verify animation timings (ms)
+const OTP_LENGTH = 6;
+const SPIN_DURATION = 1000; // OTP boxes ghurbe
+const PROGRESS_DURATION = 1800; // 0% -> 100%
+const SUCCESS_DURATION = 1700; // "Access Granted" dekhabe, tarpor redirect
+
+const RING_RADIUS = 46;
+const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function getPasswordStrength(password) {
   if (!password) return { score: 0, label: "" };
@@ -72,6 +85,10 @@ export default function AuthPage() {
   const [otp, setOtp] = useState("");
   const [cooldown, setCooldown] = useState(0);
 
+  // OTP verify animation: idle -> spinning -> progress -> success
+  const [phase, setPhase] = useState("idle");
+  const [progress, setProgress] = useState(0);
+
   const [loginData, setLoginData] = useState({
     email: "",
     password: "",
@@ -88,6 +105,7 @@ export default function AuthPage() {
   const isOtpStep = step === "register-otp" || step === "login-otp";
   const isRegisterOtp = step === "register-otp";
   const flipped = formType === "register";
+  const showVerifyView = phase === "progress" || phase === "success";
 
   const passwordStrength = useMemo(
     () => getPasswordStrength(registerData.password),
@@ -160,6 +178,8 @@ export default function AuthPage() {
     setStep("form");
     setOtp("");
     setCooldown(0);
+    setPhase("idle");
+    setProgress(0);
     clearMessage();
   }, [clearMessage]);
 
@@ -281,6 +301,27 @@ export default function AuthPage() {
     user: result?.user || result?.data?.user,
   });
 
+  // 0% -> 100% counter (percentage ring)
+  const runProgress = (duration) =>
+    new Promise((resolve) => {
+      const start = performance.now();
+
+      const tick = (now) => {
+        const t = Math.min((now - start) / duration, 1);
+        const eased = t * t * (3 - 2 * t); // smoothstep
+
+        setProgress(Math.round(eased * 100));
+
+        if (t < 1) {
+          requestAnimationFrame(tick);
+        } else {
+          resolve();
+        }
+      };
+
+      requestAnimationFrame(tick);
+    });
+
   // LOGIN
   const handleLogin = async (event) => {
     event.preventDefault();
@@ -360,61 +401,73 @@ export default function AuthPage() {
   };
 
   // VERIFY EMAIL OTP OR LOGIN OTP
+  // Animation flow: OTP boxes ghurbe -> percentage (0-100%) -> Verified
+  const handleVerifyOtp = async (event) => {
+    event.preventDefault();
+    if (loading) return;
 
+    clearMessage();
+    setLoading(true);
+    setProgress(0);
+    setPhase("spinning");
 
-const handleVerifyOtp = async (event) => {
-  event.preventDefault();
-  clearMessage();
-  setLoading(true);
-
-  try {
     const registerOtp = isRegisterOtp;
 
     const endpoint = registerOtp
       ? "/api/users/verify-email-otp"
       : "/api/users/verify-login-otp";
 
-    const email = (
-      registerOtp ? registerData.email : loginData.email
-    )
+    const email = (registerOtp ? registerData.email : loginData.email)
       .trim()
       .toLowerCase();
 
-    const result = await request(endpoint, {
-      email,
-      otp: otp.trim(),
-    });
+    // API call ar spin animation ek sathe cholbe
+    const apiCall = request(endpoint, { email, otp: otp.trim() }).then(
+      (result) => ({ result }),
+      (error) => ({ error }),
+    );
 
-    const { token, user } = extractAuth(result);
+    const [outcome] = await Promise.all([apiCall, sleep(SPIN_DURATION)]);
+
+    // Wrong OTP / server error -> boxes abar ferot ashbe
+    if (outcome.error) {
+      setPhase("idle");
+      showMessage(outcome.error.message || "OTP verification failed.");
+      setLoading(false);
+      return;
+    }
+
+    const { token, user } = extractAuth(outcome.result);
 
     // OTP verification must return both token and user
     if (!token || !user) {
-      if (registerOtp) {
-        throw new Error(
-          "Email verified, but the server did not return a login token. Check the backend verifyEmailOtp response."
-        );
-      }
-
-      throw new Error(
-        "OTP verified, but login token or user data was not returned."
+      setPhase("idle");
+      showMessage(
+        registerOtp
+          ? "Email verified, but the server did not return a login token. Check the backend verifyEmailOtp response."
+          : "OTP verified, but login token or user data was not returned.",
       );
+      setLoading(false);
+      return;
     }
 
-    // Save session and redirect automatically
+    // Percentage count 0 -> 100
+    setPhase("progress");
+    await runProgress(PROGRESS_DURATION);
+
+    // Access Granted + Verified
+    setPhase("success");
+
     showSuccessToast(
       registerOtp
         ? "Registration successful! Logging you in..."
-        : "Login successful! Redirecting..."
+        : "Login successful! Redirecting...",
     );
 
-    saveSession(result);
-  } catch (error) {
-    showMessage(error.message || "OTP verification failed.");
-  } finally {
-    setLoading(false);
-  }
-};
+    await sleep(SUCCESS_DURATION);
 
+    saveSession(outcome.result);
+  };
 
   // RESEND OTP
   const handleResendOtp = async () => {
@@ -497,23 +550,40 @@ const handleVerifyOtp = async (event) => {
     <form className="auth-form" onSubmit={handleVerifyOtp}>
       <label htmlFor="otp">VERIFICATION CODE</label>
 
-      <div className="input-wrap otp-wrap">
-        <ShieldCheck size={18} />
+      <div
+        className={`otp-boxes ${phase === "spinning" ? "otp-spinning" : ""}`}
+        onClick={() => otpInputRef.current?.focus()}
+      >
+        {Array.from({ length: OTP_LENGTH }).map((_, index) => (
+          <span
+            key={index}
+            className={`otp-box ${otp[index] ? "otp-box-filled" : ""} ${
+              index === otp.length && phase === "idle"
+                ? "otp-box-current"
+                : ""
+            }`}
+            style={{ "--i": index }}
+          >
+            {otp[index] || ""}
+          </span>
+        ))}
 
         <input
           ref={otpInputRef}
           id="otp"
+          className="otp-hidden-input"
           type="text"
           inputMode="numeric"
           autoComplete="one-time-code"
-          placeholder="••••••"
+          aria-label="Verification code"
           value={otp}
           onChange={(event) =>
-            setOtp(event.target.value.replace(/\D/g, "").slice(0, 6))
+            setOtp(event.target.value.replace(/\D/g, "").slice(0, OTP_LENGTH))
           }
           required
           minLength={4}
-          maxLength={6}
+          maxLength={OTP_LENGTH}
+          disabled={loading}
         />
       </div>
 
@@ -538,12 +608,73 @@ const handleVerifyOtp = async (event) => {
         type="button"
         className="back-button"
         onClick={resetToForm}
+        disabled={loading}
       >
         <ArrowLeft size={15} />
         Back to form
       </button>
     </form>
   );
+
+  // VERIFYING (percentage) + ACCESS GRANTED (verified)
+  const renderVerifyView = () => {
+    const done = phase === "success";
+    const offset = RING_CIRCUMFERENCE * (1 - progress / 100);
+
+    return (
+      <div className={`verify-view ${done ? "verify-done" : ""}`}>
+        {!done ? (
+          <div className="verify-stage" key="progress">
+            <div className="ring-wrap">
+              <svg viewBox="0 0 110 110" className="ring-svg">
+                <defs>
+                  <linearGradient id="ringGradient" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="#f3d68c" />
+                    <stop offset="100%" stopColor="#c7a85d" />
+                  </linearGradient>
+                </defs>
+
+                <circle className="ring-track" cx="55" cy="55" r={RING_RADIUS} />
+
+                <circle
+                  className="ring-bar"
+                  cx="55"
+                  cy="55"
+                  r={RING_RADIUS}
+                  strokeDasharray={RING_CIRCUMFERENCE}
+                  strokeDashoffset={offset}
+                />
+              </svg>
+
+              <div className="ring-number">
+                {progress}
+                <small>%</small>
+              </div>
+            </div>
+
+            <h3>Verifying...</h3>
+            <p>Securely checking your credentials.</p>
+          </div>
+        ) : (
+          <div className="verify-stage" key="success">
+            <div className="success-badge">
+              <span className="success-pulse" />
+              <Check size={38} strokeWidth={3.2} />
+            </div>
+
+            <h3>Access Granted</h3>
+            <p>
+              {isRegisterOtp
+                ? "Account verified. Welcome to Apple Gadgets..."
+                : "Welcome back. Redirecting to your store..."}
+            </p>
+
+            <span className="verified-pill">VERIFIED</span>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   // LOGIN FORM
   const renderLoginForm = () => (
@@ -638,22 +769,23 @@ const handleVerifyOtp = async (event) => {
           required
         />
       </div>
+
       <label htmlFor="register-address">ADDRESS</label>
 
-<div className="input-wrap">
-  <User size={18} />
+      <div className="input-wrap">
+        <MapPin size={18} />
 
-  <input
-    id="register-address"
-    type="text"
-    name="address"
-    placeholder="Enter your full address"
-    autoComplete="street-address"
-    value={registerData.address}
-    onChange={handleRegisterChange}
-    required
-  />
-</div>
+        <input
+          id="register-address"
+          type="text"
+          name="address"
+          placeholder="Enter your full address"
+          autoComplete="street-address"
+          value={registerData.address}
+          onChange={handleRegisterChange}
+          required
+        />
+      </div>
 
       <label htmlFor="register-phone">PHONE NUMBER</label>
 
@@ -731,6 +863,7 @@ const handleVerifyOtp = async (event) => {
   const renderFace = (type) => {
     const active = formType === type;
     const showOtp = active && isOtpStep;
+    const showVerify = showOtp && showVerifyView;
     const isLogin = type === "login";
 
     return (
@@ -744,11 +877,15 @@ const handleVerifyOtp = async (event) => {
         <div className="panel-topline">
           <span className="panel-indicator">
             <span />
-            {showOtp
-              ? "VERIFICATION"
-              : isLogin
-                ? "SIGN IN"
-                : "NEW ACCOUNT"}
+            {showVerify
+              ? phase === "success"
+                ? "VERIFIED"
+                : "VERIFYING"
+              : showOtp
+                ? "VERIFICATION"
+                : isLogin
+                  ? "SIGN IN"
+                  : "NEW ACCOUNT"}
           </span>
 
           <span className="secure-label">
@@ -757,43 +894,49 @@ const handleVerifyOtp = async (event) => {
           </span>
         </div>
 
-        <div className="form-heading">
-          <div className="form-icon">
-            {showOtp ? (
-              <ShieldCheck size={23} />
-            ) : isLogin ? (
-              <LogIn size={23} />
-            ) : (
-              <UserPlus size={23} />
-            )}
-          </div>
+        {showVerify ? (
+          renderVerifyView()
+        ) : (
+          <>
+            <div className="form-heading">
+              <div className="form-icon">
+                {showOtp ? (
+                  <ShieldCheck size={23} />
+                ) : isLogin ? (
+                  <LogIn size={23} />
+                ) : (
+                  <UserPlus size={23} />
+                )}
+              </div>
 
-          <div>
-            <h2>
-              {showOtp
-                ? "Check your inbox"
-                : isLogin
-                  ? "Welcome back."
-                  : "Join Apple Gadgets."}
-            </h2>
+              <div>
+                <h2>
+                  {showOtp
+                    ? "Check your inbox"
+                    : isLogin
+                      ? "Welcome back."
+                      : "Join Apple Gadgets."}
+                </h2>
 
-            <p>
-              {showOtp
-                ? "Enter the code we sent to your email."
-                : isLogin
-                  ? "Sign in to continue your journey."
-                  : "Create your account and get started."}
-            </p>
-          </div>
-        </div>
+                <p>
+                  {showOtp
+                    ? "Enter the code we sent to your email."
+                    : isLogin
+                      ? "Sign in to continue your journey."
+                      : "Create your account and get started."}
+                </p>
+              </div>
+            </div>
 
-        {active && renderMessage()}
+            {active && renderMessage()}
 
-        {showOtp
-          ? renderOtpForm()
-          : isLogin
-            ? renderLoginForm()
-            : renderRegisterForm()}
+            {showOtp
+              ? renderOtpForm()
+              : isLogin
+                ? renderLoginForm()
+                : renderRegisterForm()}
+          </>
+        )}
 
         <div className="panel-footer">
           <span>APPLE GADGETS</span>
@@ -953,6 +1096,7 @@ const handleVerifyOtp = async (event) => {
         .auth-page {
           --gold: #d7b86b;
           --gold-bright: #f3d68c;
+          --ok: #5fcf9a;
           position: relative;
           min-height: 100svh;
           overflow: hidden;
@@ -1687,13 +1831,263 @@ const handleVerifyOtp = async (event) => {
           caret-color: #eee9d8;
         }
 
-        .otp-wrap input {
+        /* ---------- OTP BOXES (spin animation) ---------- */
+        .otp-boxes {
+          position: relative;
+          display: flex;
+          justify-content: space-between;
+          gap: 9px;
+          margin-bottom: 22px;
+          cursor: text;
+          perspective: 700px;
+        }
+
+        .otp-box {
+          flex: 1;
+          min-width: 0;
+          height: 54px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: 1px solid #393a2d;
+          border-radius: 8px;
+          background: rgba(11, 12, 9, 0.55);
+          color: #f3d68c;
           font-family: ui-monospace, SFMono-Regular, Menlo, Consolas,
             monospace;
-          font-size: 20px;
-          letter-spacing: 10px;
+          font-size: 22px;
+          font-weight: 700;
+          transition: border-color 0.25s ease, box-shadow 0.25s ease,
+            background 0.25s ease;
+        }
+
+        .otp-box-filled {
+          border-color: rgba(215, 184, 107, 0.55);
+          background: rgba(215, 184, 107, 0.07);
+        }
+
+        .otp-box-current {
+          border-color: rgba(215, 184, 107, 0.85);
+          box-shadow: 0 0 0 3px rgba(215, 184, 107, 0.08);
+        }
+
+        .otp-hidden-input {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          opacity: 0;
+          border: 0;
+          outline: 0;
+          background: transparent;
+          color: transparent;
+          caret-color: transparent;
+          cursor: text;
+        }
+
+        .otp-spinning {
+          pointer-events: none;
+        }
+
+        .otp-spinning .otp-box {
+          border-color: rgba(215, 184, 107, 0.75);
+          background: rgba(215, 184, 107, 0.1);
+          box-shadow: 0 0 22px rgba(215, 184, 107, 0.28);
+          animation: otpSpin ${SPIN_DURATION}ms cubic-bezier(0.55, 0, 0.35, 1)
+            forwards;
+          animation-delay: calc(var(--i) * 55ms);
+        }
+
+        @keyframes otpSpin {
+          0% {
+            transform: translateX(0) rotate(0deg) rotateY(0deg) scale(1);
+            opacity: 1;
+          }
+          35% {
+            transform: translateX(0) rotate(-14deg) rotateY(180deg) scale(1.12);
+            opacity: 1;
+          }
+          75% {
+            transform: translateX(calc((2.5 - var(--i)) * 46px))
+              rotate(360deg) rotateY(360deg) scale(0.55);
+            opacity: 0.9;
+          }
+          100% {
+            transform: translateX(calc((2.5 - var(--i)) * 52px))
+              rotate(540deg) rotateY(540deg) scale(0);
+            opacity: 0;
+          }
+        }
+
+        /* ---------- VERIFY VIEW (percentage + verified) ---------- */
+        .verify-view {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 300px;
+          padding: 10px 0;
+        }
+
+        .verify-stage {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
           text-align: center;
-          padding-left: 10px;
+          animation: stageIn 0.5s cubic-bezier(0.2, 0.8, 0.25, 1) both;
+        }
+
+        .verify-stage h3 {
+          margin: 26px 0 8px;
+          color: #f1ecd9;
+          font-family: Georgia, "Times New Roman", serif;
+          font-size: 26px;
+          font-weight: 400;
+          letter-spacing: -0.5px;
+        }
+
+        .verify-stage p {
+          margin: 0;
+          max-width: 260px;
+          color: #939383;
+          font-size: 12px;
+          line-height: 1.7;
+        }
+
+        @keyframes stageIn {
+          from {
+            opacity: 0;
+            transform: translateY(12px) scale(0.96);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+
+        .ring-wrap {
+          position: relative;
+          width: 118px;
+          height: 118px;
+        }
+
+        .ring-wrap::before {
+          content: "";
+          position: absolute;
+          inset: 8px;
+          border-radius: 50%;
+          background: radial-gradient(
+            circle,
+            rgba(215, 184, 107, 0.16),
+            transparent 70%
+          );
+          animation: ringPulse 1.6s ease-in-out infinite;
+        }
+
+        .ring-svg {
+          position: relative;
+          width: 100%;
+          height: 100%;
+          transform: rotate(-90deg);
+        }
+
+        .ring-track {
+          fill: none;
+          stroke: rgba(255, 255, 255, 0.07);
+          stroke-width: 6;
+        }
+
+        .ring-bar {
+          fill: none;
+          stroke: url(#ringGradient);
+          stroke-width: 6;
+          stroke-linecap: round;
+          filter: drop-shadow(0 0 6px rgba(231, 198, 110, 0.55));
+        }
+
+        .ring-number {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #f6e4b0;
+          font-family: ui-monospace, SFMono-Regular, Menlo, Consolas,
+            monospace;
+          font-size: 28px;
+          font-weight: 700;
+        }
+
+        .ring-number small {
+          margin: 6px 0 0 1px;
+          color: #a8a58e;
+          font-size: 12px;
+          font-weight: 600;
+        }
+
+        @keyframes ringPulse {
+          0%, 100% { transform: scale(0.9); opacity: 0.6; }
+          50% { transform: scale(1.08); opacity: 1; }
+        }
+
+        .success-badge {
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 92px;
+          height: 92px;
+          border-radius: 50%;
+          color: #effff6;
+          background: linear-gradient(145deg, #3fbf86, #1f8f63);
+          box-shadow:
+            0 0 0 8px rgba(95, 207, 154, 0.1),
+            0 14px 40px rgba(47, 160, 112, 0.35);
+          animation: badgePop 0.65s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+        }
+
+        .success-badge svg {
+          stroke-dasharray: 40;
+          stroke-dashoffset: 40;
+          animation: checkDraw 0.45s ease 0.35s forwards;
+        }
+
+        .success-pulse {
+          position: absolute;
+          inset: 0;
+          border-radius: 50%;
+          border: 2px solid rgba(95, 207, 154, 0.7);
+          animation: successRing 1.5s ease-out infinite;
+        }
+
+        @keyframes badgePop {
+          0% { transform: scale(0) rotate(-90deg); opacity: 0; }
+          100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+
+        @keyframes checkDraw {
+          to { stroke-dashoffset: 0; }
+        }
+
+        @keyframes successRing {
+          0% { transform: scale(1); opacity: 0.8; }
+          100% { transform: scale(1.7); opacity: 0; }
+        }
+
+        .verified-pill {
+          margin-top: 22px;
+          padding: 7px 18px;
+          border-radius: 999px;
+          background: linear-gradient(110deg, #3fbf86, #2da474);
+          color: #eafff4;
+          font-size: 9px;
+          font-weight: 800;
+          letter-spacing: 2px;
+          box-shadow: 0 8px 22px rgba(47, 160, 112, 0.3);
+          animation: stageIn 0.5s ease 0.45s both;
+        }
+
+        .verify-done .verify-stage h3 {
+          color: #bdf0d6;
         }
 
         .password-toggle {
@@ -1917,8 +2311,13 @@ const handleVerifyOtp = async (event) => {
           cursor: pointer;
         }
 
-        .back-button:hover {
+        .back-button:hover:not(:disabled) {
           color: var(--gold);
+        }
+
+        .back-button:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
         }
 
         .page-footer {
@@ -2123,6 +2522,11 @@ const handleVerifyOtp = async (event) => {
             font-size: 25px;
           }
 
+          .otp-box {
+            height: 48px;
+            font-size: 19px;
+          }
+
           .page-footer {
             padding: 17px 19px;
             font-size: 7px;
@@ -2166,6 +2570,10 @@ const handleVerifyOtp = async (event) => {
 
           .form-heading h2 {
             font-size: 23px;
+          }
+
+          .otp-boxes {
+            gap: 6px;
           }
         }
 

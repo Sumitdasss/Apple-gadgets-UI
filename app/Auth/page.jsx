@@ -20,6 +20,7 @@ import {
   RotateCcw,
   LogIn,
   UserPlus,
+  KeyRound,
 } from "lucide-react";
 
 const API_BASE =
@@ -33,6 +34,7 @@ const ADMIN_ROLES = ["admin", "subadmin", "order_manager"];
 const FLIP_DURATION = 900;
 const LAMP_REVEAL_DELAY = 550;
 const OTP_COOLDOWN = 30;
+const FORGOT_COOLDOWN = 60; // backend er resend cooldown-er sathe mila
 const PHONE_REGEX = /^01[3-9]\d{8}$/;
 
 // OTP verify animation timings (ms)
@@ -89,6 +91,12 @@ export default function AuthPage() {
   const [phase, setPhase] = useState("idle");
   const [progress, setProgress] = useState(0);
 
+  // Forgot password flow: forgot-email -> forgot-otp -> forgot-reset
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [resetToken, setResetToken] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
   const [loginData, setLoginData] = useState({
     email: "",
     password: "",
@@ -104,6 +112,8 @@ export default function AuthPage() {
 
   const isOtpStep = step === "register-otp" || step === "login-otp";
   const isRegisterOtp = step === "register-otp";
+  const isForgotFlow = step.startsWith("forgot-");
+  const hasOtpInput = isOtpStep || step === "forgot-otp";
   const flipped = formType === "register";
   const showVerifyView = phase === "progress" || phase === "success";
 
@@ -140,7 +150,7 @@ export default function AuthPage() {
   }, [cooldown]);
 
   useEffect(() => {
-    if (!isOtpStep) return;
+    if (!hasOtpInput) return;
 
     const timer = window.setTimeout(
       () => otpInputRef.current?.focus(),
@@ -148,7 +158,7 @@ export default function AuthPage() {
     );
 
     return () => window.clearTimeout(timer);
-  }, [isOtpStep]);
+  }, [hasOtpInput]);
 
   const showMessage = useCallback((text, type = "error") => {
     setMessage(text);
@@ -180,6 +190,9 @@ export default function AuthPage() {
     setCooldown(0);
     setPhase("idle");
     setProgress(0);
+    setResetToken("");
+    setNewPassword("");
+    setConfirmPassword("");
     clearMessage();
   }, [clearMessage]);
 
@@ -477,24 +490,31 @@ export default function AuthPage() {
     setLoading(true);
 
     try {
-      const email = isRegisterOtp
-        ? registerData.email
-        : loginData.email;
+      const isForgotOtp = step === "forgot-otp";
 
-      const endpoint = isRegisterOtp
-        ? "/api/users/resend-email-otp"
-        : "/api/users/login";
+      const email = isForgotOtp
+        ? forgotEmail
+        : isRegisterOtp
+          ? registerData.email
+          : loginData.email;
 
-      const body = isRegisterOtp
-        ? { email: email.trim().toLowerCase() }
-        : {
-            email: loginData.email.trim().toLowerCase(),
-            password: loginData.password,
-          };
+      const endpoint = isForgotOtp
+        ? "/api/users/forgot-password"
+        : isRegisterOtp
+          ? "/api/users/resend-email-otp"
+          : "/api/users/login";
+
+      const body =
+        isForgotOtp || isRegisterOtp
+          ? { email: email.trim().toLowerCase() }
+          : {
+              email: loginData.email.trim().toLowerCase(),
+              password: loginData.password,
+            };
 
       const result = await request(endpoint, body);
 
-      setCooldown(OTP_COOLDOWN);
+      setCooldown(isForgotOtp ? FORGOT_COOLDOWN : OTP_COOLDOWN);
 
       showSuccessToast(
         result.message || "A new verification code has been requested.",
@@ -504,6 +524,135 @@ export default function AuthPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // FORGOT PASSWORD - step 1: email e reset code pathano
+  const handleForgotEmail = async (event) => {
+    event.preventDefault();
+    if (loading) return;
+
+    clearMessage();
+
+    const email = forgotEmail.trim().toLowerCase();
+
+    setLoading(true);
+
+    try {
+      const result = await request("/api/users/forgot-password", { email });
+
+      setForgotEmail(email);
+      setOtp("");
+      setStep("forgot-otp");
+      setCooldown(FORGOT_COOLDOWN);
+
+      showSuccessToast(
+        result.message || "Check your email for the reset code.",
+      );
+    } catch (error) {
+      showMessage(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // FORGOT PASSWORD - step 2: reset code verify (OTP boxes ghurbe)
+  const handleVerifyResetOtp = async (event) => {
+    event.preventDefault();
+    if (loading) return;
+
+    clearMessage();
+    setLoading(true);
+    setPhase("spinning");
+
+    const apiCall = request("/api/users/verify-reset-otp", {
+      email: forgotEmail.trim().toLowerCase(),
+      otp: otp.trim(),
+    }).then(
+      (result) => ({ result }),
+      (error) => ({ error }),
+    );
+
+    const [outcome] = await Promise.all([apiCall, sleep(SPIN_DURATION)]);
+
+    if (outcome.error) {
+      setPhase("idle");
+      showMessage(outcome.error.message || "Code verification failed.");
+      setLoading(false);
+      return;
+    }
+
+    const token =
+      outcome.result?.resetToken || outcome.result?.data?.resetToken;
+
+    if (!token) {
+      setPhase("idle");
+      showMessage(
+        "Code verified, but the server did not return a reset token.",
+      );
+      setLoading(false);
+      return;
+    }
+
+    setResetToken(token);
+    setOtp("");
+    setPhase("idle");
+    setStep("forgot-reset");
+    setLoading(false);
+
+    showSuccessToast("Code verified. Set your new password.");
+  };
+
+  // FORGOT PASSWORD - step 3: notun password set
+  const handleResetPassword = async (event) => {
+    event.preventDefault();
+    if (loading) return;
+
+    clearMessage();
+
+    if (newPassword.length < 6) {
+      showMessage("Password must be at least 6 characters.");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      showMessage("Passwords do not match.");
+      return;
+    }
+
+    setLoading(true);
+
+    const email = forgotEmail.trim().toLowerCase();
+
+    try {
+      await request("/api/users/reset-password", {
+        email,
+        resetToken,
+        newPassword,
+      });
+    } catch (error) {
+      showMessage(error.message);
+      setLoading(false);
+      return;
+    }
+
+    // Percentage -> Password Updated
+    setProgress(0);
+    setPhase("progress");
+    await runProgress(PROGRESS_DURATION);
+
+    setPhase("success");
+    showSuccessToast("Password updated! Please sign in.");
+
+    await sleep(SUCCESS_DURATION);
+
+    // Login form e fire jabe, email pre-filled
+    setLoginData({ email, password: "" });
+    resetToForm();
+    setLoading(false);
+
+    showSuccessToast(
+      "Password reset successful. Please sign in with your new password.",
+    );
   };
 
   const renderMessage = () =>
@@ -546,8 +695,11 @@ export default function AuthPage() {
     );
 
   // OTP FORM
-  const renderOtpForm = () => (
-    <form className="auth-form" onSubmit={handleVerifyOtp}>
+  const renderOtpForm = ({
+    onSubmit = handleVerifyOtp,
+    backLabel = "Back to form",
+  } = {}) => (
+    <form className="auth-form" onSubmit={onSubmit}>
       <label htmlFor="otp">VERIFICATION CODE</label>
 
       <div
@@ -611,7 +763,7 @@ export default function AuthPage() {
         disabled={loading}
       >
         <ArrowLeft size={15} />
-        Back to form
+        {backLabel}
       </button>
     </form>
   );
@@ -619,6 +771,7 @@ export default function AuthPage() {
   // VERIFYING (percentage) + ACCESS GRANTED (verified)
   const renderVerifyView = () => {
     const done = phase === "success";
+    const isResetFlow = step === "forgot-reset";
     const offset = RING_CIRCUMFERENCE * (1 - progress / 100);
 
     return (
@@ -652,8 +805,12 @@ export default function AuthPage() {
               </div>
             </div>
 
-            <h3>Verifying...</h3>
-            <p>Securely checking your credentials.</p>
+            <h3>{isResetFlow ? "Updating..." : "Verifying..."}</h3>
+            <p>
+              {isResetFlow
+                ? "Securely saving your new password."
+                : "Securely checking your credentials."}
+            </p>
           </div>
         ) : (
           <div className="verify-stage" key="success">
@@ -662,14 +819,18 @@ export default function AuthPage() {
               <Check size={38} strokeWidth={3.2} />
             </div>
 
-            <h3>Access Granted</h3>
+            <h3>{isResetFlow ? "Password Updated" : "Access Granted"}</h3>
             <p>
-              {isRegisterOtp
-                ? "Account verified. Welcome to Apple Gadgets..."
-                : "Welcome back. Redirecting to your store..."}
+              {isResetFlow
+                ? "All set. Taking you back to sign in..."
+                : isRegisterOtp
+                  ? "Account verified. Welcome to Apple Gadgets..."
+                  : "Welcome back. Redirecting to your store..."}
             </p>
 
-            <span className="verified-pill">VERIFIED</span>
+            <span className="verified-pill">
+              {isResetFlow ? "UPDATED" : "VERIFIED"}
+            </span>
           </div>
         )}
       </div>
@@ -713,6 +874,20 @@ export default function AuthPage() {
         />
 
         {renderPasswordToggle()}
+      </div>
+
+      <div className="forgot-row">
+        <button
+          type="button"
+          className="text-button"
+          onClick={() => {
+            clearMessage();
+            setForgotEmail(loginData.email);
+            setStep("forgot-email");
+          }}
+        >
+          Forgot password?
+        </button>
       </div>
 
       <button type="submit" className="submit-button" disabled={loading}>
@@ -859,11 +1034,133 @@ export default function AuthPage() {
     </form>
   );
 
+  // PASSWORD STRENGTH METER
+  const renderStrength = (password) => {
+    const strength = getPasswordStrength(password);
+
+    return (
+      <div
+        className={`strength strength-${strength.score} ${
+          password ? "strength-visible" : ""
+        }`}
+        aria-live="polite"
+      >
+        <div className="strength-bars">
+          <span />
+          <span />
+          <span />
+          <span />
+        </div>
+
+        <small>{strength.label}</small>
+      </div>
+    );
+  };
+
+  // FORGOT PASSWORD: EMAIL FORM
+  const renderForgotEmailForm = () => (
+    <form className="auth-form" onSubmit={handleForgotEmail}>
+      <label htmlFor="forgot-email">EMAIL ADDRESS</label>
+
+      <div className="input-wrap">
+        <Mail size={18} />
+
+        <input
+          id="forgot-email"
+          type="email"
+          name="email"
+          placeholder="you@example.com"
+          autoComplete="email"
+          value={forgotEmail}
+          onChange={(event) => setForgotEmail(event.target.value)}
+          required
+        />
+      </div>
+
+      <button type="submit" className="submit-button" disabled={loading}>
+        {renderSubmitLabel("SEND RESET CODE")}
+      </button>
+
+      <button
+        type="button"
+        className="back-button"
+        onClick={resetToForm}
+        disabled={loading}
+      >
+        <ArrowLeft size={15} />
+        Back to sign in
+      </button>
+    </form>
+  );
+
+  // FORGOT PASSWORD: NEW PASSWORD FORM
+  const renderResetForm = () => (
+    <form className="auth-form" onSubmit={handleResetPassword}>
+      <label htmlFor="reset-password">NEW PASSWORD</label>
+
+      <div className="input-wrap input-wrap-tight">
+        <Lock size={18} />
+
+        <input
+          id="reset-password"
+          type={showPassword ? "text" : "password"}
+          name="newPassword"
+          placeholder="Create a new password"
+          autoComplete="new-password"
+          value={newPassword}
+          onChange={(event) => setNewPassword(event.target.value)}
+          minLength={6}
+          required
+        />
+
+        {renderPasswordToggle()}
+      </div>
+
+      {renderStrength(newPassword)}
+
+      <label htmlFor="reset-confirm">CONFIRM PASSWORD</label>
+
+      <div className="input-wrap">
+        <Lock size={18} />
+
+        <input
+          id="reset-confirm"
+          type={showPassword ? "text" : "password"}
+          name="confirmPassword"
+          placeholder="Re-enter the new password"
+          autoComplete="new-password"
+          value={confirmPassword}
+          onChange={(event) => setConfirmPassword(event.target.value)}
+          minLength={6}
+          required
+        />
+      </div>
+
+      <button type="submit" className="submit-button" disabled={loading}>
+        {renderSubmitLabel("UPDATE PASSWORD")}
+      </button>
+
+      <button
+        type="button"
+        className="back-button"
+        onClick={resetToForm}
+        disabled={loading}
+      >
+        <ArrowLeft size={15} />
+        Back to sign in
+      </button>
+    </form>
+  );
+
   // 3D CARD FACES
   const renderFace = (type) => {
     const active = formType === type;
     const showOtp = active && isOtpStep;
-    const showVerify = showOtp && showVerifyView;
+    const forgotStep = active && isForgotFlow ? step : "";
+    const showVerify =
+      active &&
+      showVerifyView &&
+      (isOtpStep || step === "forgot-reset");
     const isLogin = type === "login";
 
     return (
@@ -878,14 +1175,24 @@ export default function AuthPage() {
           <span className="panel-indicator">
             <span />
             {showVerify
-              ? phase === "success"
-                ? "VERIFIED"
-                : "VERIFYING"
-              : showOtp
-                ? "VERIFICATION"
-                : isLogin
-                  ? "SIGN IN"
-                  : "NEW ACCOUNT"}
+              ? step === "forgot-reset"
+                ? phase === "success"
+                  ? "UPDATED"
+                  : "UPDATING"
+                : phase === "success"
+                  ? "VERIFIED"
+                  : "VERIFYING"
+              : forgotStep === "forgot-email"
+                ? "RECOVERY"
+                : forgotStep === "forgot-otp"
+                  ? "VERIFICATION"
+                  : forgotStep === "forgot-reset"
+                    ? "NEW PASSWORD"
+                    : showOtp
+                      ? "VERIFICATION"
+                      : isLogin
+                        ? "SIGN IN"
+                        : "NEW ACCOUNT"}
           </span>
 
           <span className="secure-label">
@@ -900,7 +1207,9 @@ export default function AuthPage() {
           <>
             <div className="form-heading">
               <div className="form-icon">
-                {showOtp ? (
+                {forgotStep ? (
+                  <KeyRound size={23} />
+                ) : showOtp ? (
                   <ShieldCheck size={23} />
                 ) : isLogin ? (
                   <LogIn size={23} />
@@ -911,30 +1220,51 @@ export default function AuthPage() {
 
               <div>
                 <h2>
-                  {showOtp
-                    ? "Check your inbox"
-                    : isLogin
-                      ? "Welcome back."
-                      : "Join Apple Gadgets."}
+                  {forgotStep === "forgot-email"
+                    ? "Forgot password?"
+                    : forgotStep === "forgot-otp"
+                      ? "Check your inbox"
+                      : forgotStep === "forgot-reset"
+                        ? "Set new password."
+                        : showOtp
+                          ? "Check your inbox"
+                          : isLogin
+                            ? "Welcome back."
+                            : "Join Apple Gadgets."}
                 </h2>
 
                 <p>
-                  {showOtp
-                    ? "Enter the code we sent to your email."
-                    : isLogin
-                      ? "Sign in to continue your journey."
-                      : "Create your account and get started."}
+                  {forgotStep === "forgot-email"
+                    ? "Enter your email and we'll send you a reset code."
+                    : forgotStep === "forgot-otp"
+                      ? "Enter the reset code we sent to your email."
+                      : forgotStep === "forgot-reset"
+                        ? "Choose a strong password you'll remember."
+                        : showOtp
+                          ? "Enter the code we sent to your email."
+                          : isLogin
+                            ? "Sign in to continue your journey."
+                            : "Create your account and get started."}
                 </p>
               </div>
             </div>
 
             {active && renderMessage()}
 
-            {showOtp
-              ? renderOtpForm()
-              : isLogin
-                ? renderLoginForm()
-                : renderRegisterForm()}
+            {forgotStep === "forgot-email"
+              ? renderForgotEmailForm()
+              : forgotStep === "forgot-otp"
+                ? renderOtpForm({
+                    onSubmit: handleVerifyResetOtp,
+                    backLabel: "Back to sign in",
+                  })
+                : forgotStep === "forgot-reset"
+                  ? renderResetForm()
+                  : showOtp
+                    ? renderOtpForm()
+                    : isLogin
+                      ? renderLoginForm()
+                      : renderRegisterForm()}
           </>
         )}
 
@@ -2104,6 +2434,22 @@ export default function AuthPage() {
 
         .password-toggle:hover {
           color: var(--gold);
+        }
+
+        .forgot-row {
+          display: flex;
+          justify-content: flex-end;
+          margin: -8px 0 18px;
+        }
+
+        .forgot-row .text-button {
+          color: #a8a58e;
+          font-size: 10px;
+          letter-spacing: 0.3px;
+        }
+
+        .forgot-row .text-button:hover:not(:disabled) {
+          color: var(--gold-bright);
         }
 
         .strength {
